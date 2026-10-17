@@ -1,4 +1,4 @@
-<h1 align="center">Fathom<br/><sub><sup><sub>from <a href="https://traceapps.github.io/docs/">TraceApps</a></sub></sup></sub></h1>
+<h1 align="center">Fathom<br/><sup><sup><sub>from <a href="https://traceapps.github.io/docs/">TraceApps</a></sub></sup></sup></h1>
 
 <p align="center"><b>Dive into your media</b></p>
 
