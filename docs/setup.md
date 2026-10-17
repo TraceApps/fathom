@@ -44,4 +44,4 @@ Optionally enrich detail pages with Rotten Tomatoes, IMDb, and community scores,
 - **Home**: rearrange the rows to taste.
 - **Player**: video fit, default playback speed, a control bar you can style (glass, dark, or plain), and remappable keyboard shortcuts.
 - **Search your settings**: the Settings screen has its own search, so you do not have to hunt for an option.
-- **Language**: the interface is fully translatable. See [Contributing](contributing.md#translations).
+- **Language**: Fathom follows your device's or desktop's language. Every language translated so far is used automatically; anything not yet translated shows in English. To add or improve a language, see [Translations](contributing.md#translations).

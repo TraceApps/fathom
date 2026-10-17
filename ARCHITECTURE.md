@@ -58,7 +58,7 @@ Every user-facing string lives in `lib/l10n/app_en.arb`. A CI guard fails on new
 ## Conventions
 
 - **App ID:** `app.fathom.player`. On Linux this is the storage scope, changing it logs users out and resets prefs, so don't.
-- **Strings:** add to `app_en.arb` and keep the settings-search index in sync; run `flutter gen-l10n` after editing ARB.
+- **Strings:** add to `app_en.arb` and keep the settings-search index in sync; run `flutter gen-l10n` after editing ARB. The generated bindings in `lib/l10n/generated/` aren't committed: `flutter pub get` and every build write them, so Weblate's commits only touch ARB files.
 - **Branches:** `dev` is the daily driver (direct commits fine); `main` is release-only.
 - **Comments:** explain the non-obvious "why", not the "what". Match the surrounding density.
 

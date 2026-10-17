@@ -17,8 +17,7 @@ class SupportScreen extends StatelessWidget {
   static const _sponsors = 'https://github.com/sponsors/TraceApps?metadata_app=fathom&metadata_from=app';
   static const _repo = 'https://github.com/TraceApps/fathom';
   static const _newIssue = 'https://github.com/TraceApps/fathom/issues/new/choose';
-  static const _translate =
-      'https://traceapps.github.io/fathom/contributing/#translations';
+  static const _translate = 'https://hosted.weblate.org/engage/fathom/';
 
   static void _open(String url) =>
       launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);

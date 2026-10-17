@@ -29,16 +29,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Regenerate localizations
+      - name: Generate localizations
+        # lib/l10n/generated isn't committed (Weblate commits only ARB files),
+        # so this also fails the build on an ARB file gen-l10n can't read.
         run: flutter gen-l10n
-
-      - name: Check generated localizations are committed and up to date
-        run: |
-          if ! git diff --quiet lib/l10n/generated; then
-            echo "::error::lib/l10n/generated is stale. Run 'flutter gen-l10n' and commit the result."
-            git --no-pager diff --stat lib/l10n/generated
-            exit 1
-          fi
 
       - name: i18n guard (no hardcoded UI strings)
         run: ./tool/i18n_guard.sh

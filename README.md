@@ -17,6 +17,7 @@ Your media, your server, Seerr requests, and YouTube, without leaving the app.</
   <a href="https://traceapps.github.io/fathom/install/"><img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Android-lightgrey"></a>
   <br/>
   <a href="https://traceapps.github.io/fathom/"><img alt="Documentation" src="https://img.shields.io/badge/docs-traceapps.github.io-8A2BE2?logo=readthedocs&logoColor=white"></a>
+  <a href="https://hosted.weblate.org/engage/fathom/"><img alt="Translation status" src="https://hosted.weblate.org/widget/fathom/svg-badge.svg"></a>
 </p>
 
 <p align="center">
@@ -63,9 +64,15 @@ The docs cover installing, connecting your server, every feature, the update cha
 
 **[traceapps.github.io/fathom](https://traceapps.github.io/fathom/)**
 
+## Translations
+
+Fathom is translated with [Weblate](https://weblate.org/), a free web platform for libre translation projects. No coding required: pick your language, translate the strings, submit. Missing strings fall back to English, so a partial translation is safe to use.
+
+Start translating at [hosted.weblate.org/projects/fathom/](https://hosted.weblate.org/projects/fathom/). See the [contributing guide](https://traceapps.github.io/fathom/contributing/#translations) for guidance (Jellyfin and media terms, proper nouns, tone).
+
 ## Contributing
 
-[ARCHITECTURE.md](ARCHITECTURE.md) is a tour of the codebase; [ROADMAP.md](ROADMAP.md) tracks what's planned. Build from source, tests, and the translation workflow are in the [contributing guide](https://traceapps.github.io/fathom/contributing/). Translations are welcome by pull request.
+[ARCHITECTURE.md](ARCHITECTURE.md) is a tour of the codebase; [ROADMAP.md](ROADMAP.md) tracks what's planned. Build from source, tests, and the translation workflow are in the [contributing guide](https://traceapps.github.io/fathom/contributing/).
 
 ## Support
 

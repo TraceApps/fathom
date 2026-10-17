@@ -55,3 +55,8 @@ FUTURE.md
 **/CLAUDE.md
 **/FUTURE.md
 /site/
+
+# Flutter regenerates these from the ARB files on every pub get and build
+# (pubspec generate: true), so Weblate commits only touch lib/l10n/*.arb.
+/lib/l10n/generated/
+/lib/l10n/untranslated_messages.txt
