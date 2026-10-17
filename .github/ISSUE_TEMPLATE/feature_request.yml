@@ -12,7 +12,7 @@ body:
     attributes:
       label: Before You Post
       options:
-      - label: I searched the open and closed [issues](https://github.com/Fathom-Media/fathom/issues?q=is%3Aissue) and the [roadmap](https://github.com/Fathom-Media/fathom/blob/main/ROADMAP.md), and nobody has asked for this yet.
+      - label: I searched the open and closed [issues](https://github.com/TraceApps/fathom/issues?q=is%3Aissue) and the [roadmap](https://github.com/TraceApps/fathom/blob/main/ROADMAP.md), and nobody has asked for this yet.
         required: true
 
   - type: textarea

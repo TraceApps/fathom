@@ -15,6 +15,7 @@ import '../widgets/search_field.dart';
 import '../widgets/tv_keyboard.dart';
 import '../widgets/user_avatar.dart';
 import 'settings_search.dart';
+import 'support_screen.dart';
 
 /// The form factor this build is running on, for the About row's pill. Not
 /// localized — these are platform proper nouns (Android TV, Windows, …). TV is a
@@ -267,7 +268,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         leading: const SizedBox(
             width: 38, height: 38, child: FathomLogo(size: 38)),
         title: Text(l.appName),
-        subtitle: Text(l.settingsVersion(version)),
+        // Who makes it, as a byline under the name, as Periscope's About has it.
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              link: true,
+              child: InkWell(
+                onTap: SupportScreen.openTraceApps,
+                borderRadius: BorderRadius.circular(4),
+                child: Text(l.settingsFromTraceApps),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(l.settingsVersion(version)),
+          ],
+        ),
         // A pill naming the platform this build runs on (Fladder-style), so a
         // tester can tell at a glance which form factor they're on — Android TV
         // and plain Android share one APK but read differently here.

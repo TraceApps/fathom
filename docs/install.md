@@ -2,7 +2,7 @@
 
 Fathom runs on **Linux**, **Windows**, and **Android** (phones and tablets, with Android Auto, and Android TV as an experimental option). Each download is self-contained: libmpv and the media codecs are bundled, so there is nothing else to install.
 
-Grab the newest build from the [Releases page](https://github.com/Fathom-Media/fathom/releases/latest).
+Grab the newest build from the [Releases page](https://github.com/TraceApps/fathom/releases/latest).
 
 ## Linux (AppImage)
 
@@ -47,13 +47,13 @@ Windows will likely warn that the app is from an unrecognized publisher the firs
 Fathom ships a flake, so on NixOS (or anywhere with Nix and flakes enabled) you can run it without downloading a release:
 
 ```bash
-nix run github:Fathom-Media/fathom
+nix run github:TraceApps/fathom
 ```
 
 Or build it and keep the result:
 
 ```bash
-nix build github:Fathom-Media/fathom
+nix build github:TraceApps/fathom
 ./result/bin/fathom
 ```
 
@@ -61,7 +61,7 @@ It builds for `x86_64-linux` and `aarch64-linux`, pulls in mpv itself, and insta
 
 ## Android
 
-Download the APK from [Releases](https://github.com/Fathom-Media/fathom/releases) (named like `Fathom-0.13.1.apk`) and open it. Android asks you to allow installing unknown apps the first time; grant it and confirm. Fathom runs on phones and tablets, and on Android TV, where the interface is D-pad friendly. Android TV support is experimental for now and still being refined.
+Download the APK from [Releases](https://github.com/TraceApps/fathom/releases) (named like `Fathom-0.13.1.apk`) and open it. Android asks you to allow installing unknown apps the first time; grant it and confirm. Fathom runs on phones and tablets, and on Android TV, where the interface is D-pad friendly. Android TV support is experimental for now and still being refined.
 
 After that, Fathom keeps itself up to date from **Settings → Updates**: it downloads the new APK and hands it to the system installer for you to confirm. Pick the **Dev** channel there if you want the pre-release test builds.
 
@@ -80,4 +80,4 @@ flutter build linux --release      # or: flutter build windows --release
 
 `ffmpeg` is recommended but optional: it merges YouTube's separate video and audio streams when you download in higher quality. Everything else works without it.
 
-For the packaged, self-contained AppImage (libmpv bundled), see [`tool/build_appimage.sh`](https://github.com/Fathom-Media/fathom/blob/main/tool/build_appimage.sh) and the [Contributing](contributing.md) guide.
+For the packaged, self-contained AppImage (libmpv bundled), see [`tool/build_appimage.sh`](https://github.com/TraceApps/fathom/blob/main/tool/build_appimage.sh) and the [Contributing](contributing.md) guide.

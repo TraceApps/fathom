@@ -11,7 +11,7 @@ flutter build linux --release      # or: flutter build windows --release
 
 `ffmpeg` is recommended but optional (it merges YouTube's separate video and audio streams for higher-quality downloads).
 
-For the packaged, self-contained AppImage that bundles libmpv, use [`tool/build_appimage.sh`](https://github.com/Fathom-Media/fathom/blob/main/tool/build_appimage.sh). It takes an `ARCH` of `x86_64` or `aarch64`.
+For the packaged, self-contained AppImage that bundles libmpv, use [`tool/build_appimage.sh`](https://github.com/TraceApps/fathom/blob/main/tool/build_appimage.sh). It takes an `ARCH` of `x86_64` or `aarch64`.
 
 ## Run the tests
 
@@ -22,14 +22,14 @@ flutter test --tags live --run-skipped    # hits real YouTube / network endpoint
 
 ## Learn the codebase
 
-- **[ARCHITECTURE.md](https://github.com/Fathom-Media/fathom/blob/main/ARCHITECTURE.md)** is a tour of the code and the design decisions worth knowing before touching things.
-- **[ROADMAP.md](https://github.com/Fathom-Media/fathom/blob/main/ROADMAP.md)** tracks what is planned, done, and parked.
+- **[ARCHITECTURE.md](https://github.com/TraceApps/fathom/blob/main/ARCHITECTURE.md)** is a tour of the code and the design decisions worth knowing before touching things.
+- **[ROADMAP.md](https://github.com/TraceApps/fathom/blob/main/ROADMAP.md)** tracks what is planned, done, and parked.
 
 ## Translations
 
 Fathom's interface is internationalized with Flutter's built-in ARB localization, the same approach the wider Jellyfin ecosystem uses.
 
-- English, [`lib/l10n/app_en.arb`](https://github.com/Fathom-Media/fathom/blob/main/lib/l10n/app_en.arb), is the source of truth. Every other language is an `app_<lang>.arb` beside it.
+- English, [`lib/l10n/app_en.arb`](https://github.com/TraceApps/fathom/blob/main/lib/l10n/app_en.arb), is the source of truth. Every other language is an `app_<lang>.arb` beside it.
 - Only English is edited in-repo; other locales flow in from translators, and the setup is Weblate-ready.
 - After editing an ARB file, regenerate the bindings with `flutter gen-l10n`.
 
@@ -48,4 +48,4 @@ Keep the docs in step with the app: when a change alters something a user sees o
 
 ## License
 
-Fathom is free software under the [GNU AGPL-3.0](https://github.com/Fathom-Media/fathom/blob/main/LICENSE) license.
+Fathom is free software under the [GNU AGPL-3.0](https://github.com/TraceApps/fathom/blob/main/LICENSE) license.

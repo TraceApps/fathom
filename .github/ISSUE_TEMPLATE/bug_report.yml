@@ -14,7 +14,7 @@ body:
     attributes:
       label: Before You Post
       options:
-      - label: I searched the open and closed [issues](https://github.com/Fathom-Media/fathom/issues?q=is%3Aissue) and [pull requests](https://github.com/Fathom-Media/fathom/pulls?q=is%3Apr), and nobody has reported this yet. A closed one may already have the fix, waiting for the next release.
+      - label: I searched the open and closed [issues](https://github.com/TraceApps/fathom/issues?q=is%3Aissue) and [pull requests](https://github.com/TraceApps/fathom/pulls?q=is%3Apr), and nobody has reported this yet. A closed one may already have the fix, waiting for the next release.
         required: true
 
   - type: dropdown

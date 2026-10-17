@@ -5,11 +5,12 @@
 # Fathom
 
 **Dive into your media.**
+<small>From [TraceApps](https://traceapps.github.io/docs/).</small>
 
-[![Latest release](https://img.shields.io/github/v/release/Fathom-Media/fathom)](https://github.com/Fathom-Media/fathom/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Fathom-Media/fathom/total)](https://github.com/Fathom-Media/fathom/releases)
-[![Stars](https://img.shields.io/github/stars/Fathom-Media/fathom)](https://github.com/Fathom-Media/fathom/stargazers)
-[![License](https://img.shields.io/github/license/Fathom-Media/fathom?color=blue)](https://github.com/Fathom-Media/fathom/blob/main/LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/TraceApps/fathom)](https://github.com/TraceApps/fathom/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/TraceApps/fathom/total)](https://github.com/TraceApps/fathom/releases)
+[![Stars](https://img.shields.io/github/stars/TraceApps/fathom)](https://github.com/TraceApps/fathom/stargazers)
+[![License](https://img.shields.io/github/license/TraceApps/fathom?color=blue)](https://github.com/TraceApps/fathom/blob/main/LICENSE)
 
 Fathom is an all-in-one client for [Jellyfin](https://jellyfin.org), on desktop and Android. It brings your whole setup into one window: movies, shows, music, and Live TV, plus most of Jellyfin's server-side management, so you rarely need the web dashboard. Two optional integrations, [Seerr](features.md#requests-ratings-and-watch-together) requests and a full [YouTube](youtube.md) client, live right inside the app.
 
@@ -46,4 +47,4 @@ Everything plays through mpv (via [media_kit](https://github.com/media-kit/media
 Fathom runs on **Linux** (AppImage, or a Nix flake), **Windows** (installer or portable zip), and **Android** (phones, tablets, and foldables, with **Android Auto**) today, with **Android TV** supported but experimental for now. Linux and Windows have a self-contained download each, and Android installs from the APK. macOS and iOS are on the radar but need Mac hardware. See [Install](install.md) for details.
 
 !!! info "Free and open source"
-    Fathom is free software under the [AGPL-3.0](https://github.com/Fathom-Media/fathom/blob/main/LICENSE) license, built and maintained by one person. If it is useful to you, a [star on GitHub](https://github.com/Fathom-Media/fathom), a [Ko-fi](https://ko-fi.com/traceapps), or [sponsoring on GitHub](https://github.com/sponsors/TraceApps?metadata_app=fathom&metadata_from=docs) helps.
+    Fathom is free software under the [AGPL-3.0](https://github.com/TraceApps/fathom/blob/main/LICENSE) license, built and maintained by one person. If it is useful to you, a [star on GitHub](https://github.com/TraceApps/fathom), a [Ko-fi](https://ko-fi.com/traceapps), or [sponsoring on GitHub](https://github.com/sponsors/TraceApps?metadata_app=fathom&metadata_from=docs) helps.

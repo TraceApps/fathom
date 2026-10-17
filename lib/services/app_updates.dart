@@ -129,7 +129,7 @@ bool get canSelfInstall {
   return false;
 }
 
-const _repo = 'Fathom-Media/fathom';
+const _repo = 'TraceApps/fathom';
 
 /// Fetches releases from GitHub and returns the newest one for the channel:
 /// stable-only, or including pre-releases. Returns null if none or on failure

@@ -1,6 +1,6 @@
 # Updates and channels
 
-Fathom updates itself. On Linux it swaps the AppImage in place and relaunches; on Windows it replaces the install folder and relaunches (this works the same way whether you installed via the `.exe` installer or just extracted the zip, both land in a folder Fathom owns); on Android it downloads the APK and hands it to the system installer (you confirm the prompt, granting "install unknown apps" the first time). You can also just download a newer build from [Releases](https://github.com/Fathom-Media/fathom/releases) at any time.
+Fathom updates itself. On Linux it swaps the AppImage in place and relaunches; on Windows it replaces the install folder and relaunches (this works the same way whether you installed via the `.exe` installer or just extracted the zip, both land in a folder Fathom owns); on Android it downloads the APK and hands it to the system installer (you confirm the prompt, granting "install unknown apps" the first time). You can also just download a newer build from [Releases](https://github.com/TraceApps/fathom/releases) at any time.
 
 Open **Settings → Updates** to check manually, choose a channel, and turn automatic checking on or off. When it is on, pick how often it checks: every launch, daily, or weekly (a daily or weekly check also runs in the background while the app stays open, so you do not have to relaunch to pick it up).
 

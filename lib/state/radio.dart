@@ -178,7 +178,7 @@ class RadioController extends AsyncNotifier<List<RadioStation>> {
     // radio-browser asks clients to send a descriptive User-Agent (app + version);
     // some mirrors reject bare/blank agents.
     final opts = Options(headers: {
-      'User-Agent': 'Fathom/0.9.0 (+https://github.com/Fathom-Media/fathom)',
+      'User-Agent': 'Fathom/0.9.0 (+https://github.com/TraceApps/fathom)',
     });
     for (final host in _mirrors) {
       try {

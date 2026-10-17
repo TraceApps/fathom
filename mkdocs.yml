@@ -2,9 +2,9 @@ site_name: Fathom
 site_description: >-
   An all-in-one desktop client for Jellyfin, with a built-in YouTube client,
   Seerr requests, and internet radio.
-site_url: https://fathom-media.github.io/fathom/
-repo_url: https://github.com/Fathom-Media/fathom
-repo_name: Fathom-Media/fathom
+site_url: https://traceapps.github.io/fathom/
+repo_url: https://github.com/TraceApps/fathom
+repo_name: TraceApps/fathom
 edit_uri: edit/main/docs/
 copyright: Fathom is free software under the GNU AGPL-3.0 license.
 

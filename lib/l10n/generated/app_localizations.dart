@@ -508,6 +508,12 @@ abstract class AppLocalizations {
   /// **'Remote'**
   String get serverAddressRemote;
 
+  /// Byline under the app name in the About section, naming who makes Fathom. Opens the TraceApps site. Keep the name TraceApps as is.
+  ///
+  /// In en, this message translates to:
+  /// **'from TraceApps'**
+  String get settingsFromTraceApps;
+
   /// App version row subtitle on the About section.
   ///
   /// In en, this message translates to:

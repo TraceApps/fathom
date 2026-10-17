@@ -7,8 +7,8 @@
   <name>Fathom</name>
   <summary>A modern Jellyfin desktop client with optional Seerr requests and a built-in YouTube player</summary>
 
-  <developer id="io.github.fathom_media">
-    <name>Fathom</name>
+  <developer id="io.github.traceapps">
+    <name>TraceApps</name>
   </developer>
 
   <description>
@@ -42,8 +42,8 @@
     <keyword>mpv</keyword>
   </keywords>
 
-  <url type="homepage">https://github.com/Fathom-Media/fathom</url>
-  <url type="bugtracker">https://github.com/Fathom-Media/fathom/issues</url>
+  <url type="homepage">https://github.com/TraceApps/fathom</url>
+  <url type="bugtracker">https://github.com/TraceApps/fathom/issues</url>
 
   <provides>
     <binary>fathom</binary>

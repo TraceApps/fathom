@@ -11,15 +11,19 @@ import '../theme/app_theme.dart';
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
 
+  /// Who makes Fathom ("from TraceApps", in About).
+  static const traceApps = 'https://traceapps.github.io/docs/';
   static const _kofi = 'https://ko-fi.com/traceapps';
   static const _sponsors = 'https://github.com/sponsors/TraceApps?metadata_app=fathom&metadata_from=app';
-  static const _repo = 'https://github.com/Fathom-Media/fathom';
-  static const _newIssue = 'https://github.com/Fathom-Media/fathom/issues/new/choose';
+  static const _repo = 'https://github.com/TraceApps/fathom';
+  static const _newIssue = 'https://github.com/TraceApps/fathom/issues/new/choose';
   static const _translate =
-      'https://fathom-media.github.io/fathom/contributing/#translations';
+      'https://traceapps.github.io/fathom/contributing/#translations';
 
   static void _open(String url) =>
       launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
+  static void openTraceApps() => _open(traceApps);
 
   @override
   Widget build(BuildContext context) {

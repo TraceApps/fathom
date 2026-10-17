@@ -222,6 +222,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverAddressRemote => 'Remote';
 
   @override
+  String get settingsFromTraceApps => 'from TraceApps';
+
+  @override
   String settingsVersion(String version) {
     return 'Version $version';
   }

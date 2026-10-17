@@ -32,13 +32,13 @@ The file is for a different CPU, or the download is incomplete.
 
 ### The update did not relaunch, or the app will not start afterward
 
-Usually the download was grabbed while a release was still publishing (a partial file), or an older build fetched the wrong-architecture file. Newer builds guard against both automatically, but to recover now, download the correct build for your machine directly from [Releases](https://github.com/Fathom-Media/fathom/releases/latest) and run it:
+Usually the download was grabbed while a release was still publishing (a partial file), or an older build fetched the wrong-architecture file. Newer builds guard against both automatically, but to recover now, download the correct build for your machine directly from [Releases](https://github.com/TraceApps/fathom/releases/latest) and run it:
 
 ```bash
 cd ~/Downloads
 rm -f Fathom-x86_64.AppImage
 curl -L -o Fathom-x86_64.AppImage \
-  https://github.com/Fathom-Media/fathom/releases/latest/download/Fathom-x86_64.AppImage
+  https://github.com/TraceApps/fathom/releases/latest/download/Fathom-x86_64.AppImage
 ls -la Fathom-x86_64.AppImage    # sanity-check the size
 chmod +x Fathom-x86_64.AppImage
 ./Fathom-x86_64.AppImage
@@ -82,4 +82,4 @@ For anything harder to pin down, open **Settings → System → Diagnostics**, t
 
 ## Still stuck?
 
-Open an issue at [github.com/Fathom-Media/fathom/issues](https://github.com/Fathom-Media/fathom/issues/new/choose). The bug report form asks for your platform and the Fathom version (**Settings → Updates** shows it), and has a place for the diagnostic log. Questions that are not bugs are welcome in [Discussions](https://github.com/Fathom-Media/fathom/discussions/categories/q-a).
+Open an issue at [github.com/TraceApps/fathom/issues](https://github.com/TraceApps/fathom/issues/new/choose). The bug report form asks for your platform and the Fathom version (**Settings → Updates** shows it), and has a place for the diagnostic log. Questions that are not bugs are welcome in [Discussions](https://github.com/TraceApps/fathom/discussions/categories/q-a).

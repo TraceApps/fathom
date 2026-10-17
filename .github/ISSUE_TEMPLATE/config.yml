@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or Help
-    url: https://github.com/Fathom-Media/fathom/discussions/categories/q-a
+    url: https://github.com/TraceApps/fathom/discussions/categories/q-a
     about: Not sure it's a bug, or need help setting something up? Ask in Discussions.
   - name: Documentation
-    url: https://fathom-media.github.io/fathom/
+    url: https://traceapps.github.io/fathom/
     about: Install steps, setup, every feature, and troubleshooting.

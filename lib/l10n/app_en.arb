@@ -176,6 +176,10 @@
   "serverAddressHelp": "Fathom uses the Home address on your local network and the Remote address elsewhere, switching automatically. Leave Home blank to always use the Remote address.",
   "serverAddressHome": "Home",
   "serverAddressRemote": "Remote",
+  "settingsFromTraceApps": "from TraceApps",
+  "@settingsFromTraceApps": {
+    "description": "Byline under the app name in the About section, naming who makes Fathom. Opens the TraceApps site. Keep the name TraceApps as is."
+  },
   "settingsVersion": "Version {version}",
   "@settingsVersion": {
     "description": "App version row subtitle on the About section.",

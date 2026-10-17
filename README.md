@@ -1,26 +1,32 @@
-<div align="center">
+<h1 align="center">Fathom<br/><sub>from <a href="https://traceapps.github.io/docs/">TraceApps</a></sub></h1>
 
-<img src="assets/icon/fathom.png" width="128" alt="Fathom">
+<p align="center"><b>Dive into your media</b></p>
 
-# Fathom
+<p align="center">An all-in-one client for Jellyfin, on desktop and Android.<br/>
+Your media, your server, Seerr requests, and YouTube, without leaving the app.</p>
 
-**Dive into your media**
+<p align="center">
+  <img src="assets/icon/fathom.png" alt="Fathom" width="128" />
+</p>
 
-An all-in-one client for Jellyfin, on desktop and Android. Your media, your server, Seerr requests, and YouTube, without leaving the app.
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
+  <a href="https://github.com/TraceApps/fathom/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/TraceApps/fathom?label=release&color=orange"></a>
+  <a href="https://github.com/TraceApps/fathom/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/TraceApps/fathom/total?label=downloads&color=brightgreen"></a>
+  <a href="https://github.com/TraceApps/fathom/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/TraceApps/fathom?style=social"></a>
+  <a href="https://traceapps.github.io/fathom/install/"><img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Android-lightgrey"></a>
+  <br/>
+  <a href="https://traceapps.github.io/fathom/"><img alt="Documentation" src="https://img.shields.io/badge/docs-traceapps.github.io-8A2BE2?logo=readthedocs&logoColor=white"></a>
+</p>
 
-[![License](https://img.shields.io/github/license/Fathom-Media/fathom?color=blue)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/Fathom-Media/fathom?label=release&color=orange)](https://github.com/Fathom-Media/fathom/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Fathom-Media/fathom/total?label=downloads&color=brightgreen)](https://github.com/Fathom-Media/fathom/releases)
-[![Stars](https://img.shields.io/github/stars/Fathom-Media/fathom?style=social)](https://github.com/Fathom-Media/fathom/stargazers)
-[![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Android-lightgrey)](https://fathom-media.github.io/fathom/install/)
+<p align="center">
+  <b>Coming to Apple devices:</b> Fathom has no Mac or iPhone app yet, because building and testing them needs a Mac and an iPhone.
+  <a href="https://ko-fi.com/traceapps">Chip in on Ko-fi</a>. Fathom stays free either way.
+</p>
 
-[![Documentation](https://img.shields.io/badge/docs-fathom--media.github.io-8A2BE2?logo=readthedocs&logoColor=white)](https://fathom-media.github.io/fathom/)
+---
 
-**[Documentation](https://fathom-media.github.io/fathom/) · [Install](https://fathom-media.github.io/fathom/install/) · [Releases](https://github.com/Fathom-Media/fathom/releases/latest)**
-
-**Coming to Apple devices:** Fathom has no Mac or iPhone app yet, because building and testing them needs a Mac and an iPhone. [Chip in on Ko-fi](https://ko-fi.com/traceapps). Fathom stays free either way.
-
-</div>
+**Jump to:** [Highlights](#highlights) · [Install](#install) · [Documentation](https://traceapps.github.io/fathom/) · [Releases](https://github.com/TraceApps/fathom/releases/latest)
 
 ---
 
@@ -34,13 +40,13 @@ Fathom brings your whole Jellyfin setup into one window: movies, shows, music, a
 - **Requests and ratings**: Seerr browse-and-request with manage-in-place, plus Rotten Tomatoes, IMDb, and more.
 - **Internet radio** with live time-shift, **casting**, **watch together** over SyncPlay, **picture-in-picture**, and light / dark / AMOLED themes.
 
-See the [feature tour](https://fathom-media.github.io/fathom/features/) for the full list.
+See the [feature tour](https://traceapps.github.io/fathom/features/) for the full list.
 
 ## Install
 
 Fathom runs on **Linux** and **Windows** (self-contained, nothing else to install) and on **Android** phones, tablets, and foldables, with **Android Auto**. **Android TV** is supported but experimental for now. macOS and iOS need Mac hardware.
 
-Grab the latest build from [Releases](https://github.com/Fathom-Media/fathom/releases/latest). On Linux:
+Grab the latest build from [Releases](https://github.com/TraceApps/fathom/releases/latest). On Linux:
 
 ```bash
 chmod +x Fathom-x86_64.AppImage
@@ -49,17 +55,17 @@ chmod +x Fathom-x86_64.AppImage
 
 On Android, download the `.apk` and open it to install (allow installs from your browser or file manager if prompted). The same APK covers phones, tablets, and Android TV (Android TV is experimental for now).
 
-Full instructions, first-run setup, and troubleshooting are in the **[documentation](https://fathom-media.github.io/fathom/install/)**.
+Full instructions, first-run setup, and troubleshooting are in the **[documentation](https://traceapps.github.io/fathom/install/)**.
 
 ## Documentation
 
 The docs cover installing, connecting your server, every feature, the update channels, and troubleshooting:
 
-**[fathom-media.github.io/fathom](https://fathom-media.github.io/fathom/)**
+**[traceapps.github.io/fathom](https://traceapps.github.io/fathom/)**
 
 ## Contributing
 
-[ARCHITECTURE.md](ARCHITECTURE.md) is a tour of the codebase; [ROADMAP.md](ROADMAP.md) tracks what's planned. Build from source, tests, and the translation workflow are in the [contributing guide](https://fathom-media.github.io/fathom/contributing/). Translations are welcome by pull request.
+[ARCHITECTURE.md](ARCHITECTURE.md) is a tour of the codebase; [ROADMAP.md](ROADMAP.md) tracks what's planned. Build from source, tests, and the translation workflow are in the [contributing guide](https://traceapps.github.io/fathom/contributing/). Translations are welcome by pull request.
 
 ## Support
 

@@ -10,7 +10,7 @@
 #endif
 
 #define AppName "Fathom"
-#define AppPublisher "Fathom Media"
+#define AppPublisher "TraceApps"
 #define AppExeName "fathom.exe"
 #define ReleaseDir "..\..\build\windows\x64\runner\Release"
 
@@ -21,8 +21,8 @@ AppId={{CA3985E6-779D-4BF1-BB84-96295317CF4D}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
-AppPublisherURL=https://github.com/Fathom-Media/fathom
-AppSupportURL=https://github.com/Fathom-Media/fathom/issues
+AppPublisherURL=https://github.com/TraceApps/fathom
+AppSupportURL=https://github.com/TraceApps/fathom/issues
 ; Per-user (LocalAppData), not Program Files, and no admin prompt: Fathom's
 ; in-app updater (app_installer.dart) overwrites its own install folder
 ; directly with no elevation, the same assumption the existing portable zip
