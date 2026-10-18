@@ -632,7 +632,7 @@ class _SeerrRequestDialogState extends ConsumerState<_SeerrRequestDialog> {
         : l.detailRequest;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      // Scale-safe: "Select Season(s)" is already the longest of these
+      // Scale-safe: "Select Seasons" is already the longest of these
       // labels in English, and a longer translation could outgrow a narrow
       // phone's width even inside this dialog's own cap, so shrink together
       // (both stay fully readable, just smaller) rather than hard-overflowing.

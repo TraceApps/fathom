@@ -2735,7 +2735,7 @@
       }
     }
   },
-  "detailSelectSeasons": "Select Season(s)",
+  "detailSelectSeasons": "Select Seasons",
   "@detailSelectSeasons": {
     "description": "Disabled submit-button label prompting the user to pick seasons."
   },

@@ -7,8 +7,8 @@ import 'package:fathom/theme/app_theme.dart' show kInlineButtonStyle;
 // (seerr_request_dialog.dart) are file-private, so this reconstructs their
 // exact actions-row shape (a right-aligned Cancel + Save/Request button
 // pair) rather than importing them directly. Pins the layout that replaced a
-// real overflow: German "Abbrechen"/"Speichern"/"Staffel(n) auswählen" (the
-// translated lengths of Cancel/Save/"Select Season(s)") overflowed a plain
+// real overflow: German "Abbrechen"/"Speichern"/"Staffel(n) auswählen" (long
+// translations of Cancel/Save/"Select Seasons") overflowed a plain
 // Row on any phone narrower than ~400 logical pixels, a very common width,
 // even though the English labels always fit.
 Widget buildEditRequestActions({required double dialogMaxWidth}) {
