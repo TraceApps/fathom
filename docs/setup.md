@@ -25,6 +25,8 @@ Each of these lives in **Settings** and is off by default. Turn on only what you
 
 Point Fathom at your [Jellyseerr / Overseerr](https://docs.jellyseerr.dev) instance to browse and request titles, then approve, decline, or manage requests without leaving the detail page. Download progress shows right on the page. You will need your Seerr URL and API key (or sign in), set in **Settings → Seerr**.
 
+Discover follows your Seerr server's own display settings: with **Hide Available**, **Hide Already Requested** (Seerr 3.5 and later), or **Hide Blocklisted** turned on in Seerr, those titles stay out of Fathom's Discover rows too, just as on Seerr's web page. Search still finds them.
+
 ### YouTube
 
 A complete YouTube client with no account and no ads. Turn it on in **Settings**, and see the [YouTube](youtube.md) page for what it includes.
