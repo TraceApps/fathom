@@ -1,0 +1,102 @@
+[
+ {
+  "seriesId": 2,
+  "seasonNumber": 1,
+  "relativePath": "Season 1/Breaking Bad - S01E01 - Pilot Bluray-1080p.mkv",
+  "path": "/tv/Breaking Bad/Season 1/Breaking Bad - S01E01 - Pilot Bluray-1080p.mkv",
+  "size": 291970,
+  "dateAdded": "2026-11-04T06:04:47Z",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 7,
+    "name": "Bluray-1080p",
+    "source": "bluray",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "releaseType": "singleEpisode",
+  "mediaInfo": {
+   "audioBitrate": 448000,
+   "audioChannels": 5.1,
+   "audioCodec": "AC3",
+   "audioLanguages": "eng",
+   "audioStreamCount": 1,
+   "videoBitDepth": 8,
+   "videoBitrate": 0,
+   "videoCodec": "x264",
+   "videoFps": 24,
+   "videoDynamicRange": "",
+   "videoDynamicRangeType": "",
+   "resolution": "1920x1080",
+   "runTime": "0:03",
+   "scanType": "Progressive",
+   "subtitles": ""
+  },
+  "qualityCutoffNotMet": false,
+  "id": 1
+ },
+ {
+  "seriesId": 2,
+  "seasonNumber": 1,
+  "relativePath": "Season 1/Breaking Bad - S01E02 - Cat's in the Bag Bluray-1080p.mkv",
+  "path": "/tv/Breaking Bad/Season 1/Breaking Bad - S01E02 - Cat's in the Bag Bluray-1080p.mkv",
+  "size": 291970,
+  "dateAdded": "2026-11-04T06:04:47Z",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 7,
+    "name": "Bluray-1080p",
+    "source": "bluray",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "indexerFlags": 0,
+  "releaseType": "singleEpisode",
+  "mediaInfo": {
+   "audioBitrate": 448000,
+   "audioChannels": 5.1,
+   "audioCodec": "AC3",
+   "audioLanguages": "eng",
+   "audioStreamCount": 1,
+   "videoBitDepth": 8,
+   "videoBitrate": 0,
+   "videoCodec": "x264",
+   "videoFps": 24,
+   "videoDynamicRange": "",
+   "videoDynamicRangeType": "",
+   "resolution": "1920x1080",
+   "runTime": "0:03",
+   "scanType": "Progressive",
+   "subtitles": ""
+  },
+  "qualityCutoffNotMet": false,
+  "id": 2
+ }
+]

@@ -17,7 +17,7 @@ PATTERN="(Text\(|Tab\(text: |tooltip: |labelText: |hintText: |helperText: |Snack
 
 # Brands, proper nouns, technical tokens, and example placeholders that are
 # intentionally never translated.
-ALLOW='Fathom|Seerr|Jellyseerr|YouTube|Jellyfin|IMDb|TMDB|MDBList|LrcLib|SponsorBlock|DeArrow|Return YouTube Dislike|Rotten Tomatoes|Letterboxd|Metacritic|Trakt|trakt|MyAnimeList|MAL|Ko-fi|HDHomeRun|XMLTV|Schedules Direct|VAAPI|NVENC|QSV|QuickSync|VideoToolbox|AMF|Rockchip|V4L2|HEVC|AV1|UPnP|IPv6|DLNA|FFmpeg|https?://|www\.|\.com|\.xml|\.json|e\.g\.|v\$\{|'"'"'[A-Z]'"'"'|^.{0,40}(MP4|MKV|M4A|MP3|Mbps|kbps|1080p|2160p|4K)'
+ALLOW='Fathom|Seerr|Sonarr|Radarr|Arr|Jellyseerr|YouTube|Jellyfin|IMDb|TMDB|MDBList|LrcLib|SponsorBlock|DeArrow|Return YouTube Dislike|Rotten Tomatoes|Letterboxd|Metacritic|Trakt|trakt|MyAnimeList|MAL|Ko-fi|HDHomeRun|XMLTV|Schedules Direct|VAAPI|NVENC|QSV|QuickSync|VideoToolbox|AMF|Rockchip|V4L2|HEVC|AV1|UPnP|IPv6|DLNA|FFmpeg|https?://|www\.|\.com|\.xml|\.json|e\.g\.|v\$\{|'"'"'[A-Z]'"'"'|^.{0,40}(MP4|MKV|M4A|MP3|Mbps|kbps|1080p|2160p|4K)'
 
 # Collect matched literals (file:line:literal), drop the l10n layer, tests, and
 # generated code, then filter the allowlist.

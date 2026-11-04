@@ -289,6 +289,12 @@ class Prefs {
   final String seerrAuthMode;
   final String seerrCookie; // session cookie when signed in
 
+  // Sonarr and Radarr (the Arr section). Empty URL means not connected.
+  final String sonarrUrl;
+  final String sonarrApiKey;
+  final String radarrUrl;
+  final String radarrApiKey;
+
   /// Order of the Seerr Discover rows, and which are hidden. Matches the
   /// Jellyseerr web home, and is reorderable + toggleable from the Discover
   /// customize screen.
@@ -425,6 +431,10 @@ class Prefs {
     this.seerrApiKey = '',
     this.seerrAuthMode = 'apikey',
     this.seerrCookie = '',
+    this.sonarrUrl = '',
+    this.sonarrApiKey = '',
+    this.radarrUrl = '',
+    this.radarrApiKey = '',
     this.seerrRowOrder = kDefaultSeerrRows,
     this.seerrHiddenRows = const [],
     this.seerrCustomSliders = const [],
@@ -552,6 +562,10 @@ class Prefs {
     String? seerrApiKey,
     String? seerrAuthMode,
     String? seerrCookie,
+    String? sonarrUrl,
+    String? sonarrApiKey,
+    String? radarrUrl,
+    String? radarrApiKey,
     List<String>? seerrRowOrder,
     List<String>? seerrHiddenRows,
     List<Map<String, dynamic>>? seerrCustomSliders,
@@ -693,6 +707,10 @@ class Prefs {
         seerrApiKey: seerrApiKey ?? this.seerrApiKey,
         seerrAuthMode: seerrAuthMode ?? this.seerrAuthMode,
         seerrCookie: seerrCookie ?? this.seerrCookie,
+        sonarrUrl: sonarrUrl ?? this.sonarrUrl,
+        sonarrApiKey: sonarrApiKey ?? this.sonarrApiKey,
+        radarrUrl: radarrUrl ?? this.radarrUrl,
+        radarrApiKey: radarrApiKey ?? this.radarrApiKey,
         seerrRowOrder: seerrRowOrder ?? this.seerrRowOrder,
         seerrHiddenRows: seerrHiddenRows ?? this.seerrHiddenRows,
         seerrCustomSliders: seerrCustomSliders ?? this.seerrCustomSliders,
@@ -820,6 +838,10 @@ class Prefs {
         'seerrApiKey': seerrApiKey,
         'seerrAuthMode': seerrAuthMode,
         'seerrCookie': seerrCookie,
+        'sonarrUrl': sonarrUrl,
+        'sonarrApiKey': sonarrApiKey,
+        'radarrUrl': radarrUrl,
+        'radarrApiKey': radarrApiKey,
         'seerrRowOrder': seerrRowOrder,
         'seerrHiddenRows': seerrHiddenRows,
         'seerrCustomSliders': seerrCustomSliders,
@@ -972,6 +994,10 @@ class Prefs {
         seerrApiKey: j['seerrApiKey'] as String? ?? '',
         seerrAuthMode: j['seerrAuthMode'] as String? ?? 'apikey',
         seerrCookie: j['seerrCookie'] as String? ?? '',
+        sonarrUrl: j['sonarrUrl'] as String? ?? '',
+        sonarrApiKey: j['sonarrApiKey'] as String? ?? '',
+        radarrUrl: j['radarrUrl'] as String? ?? '',
+        radarrApiKey: j['radarrApiKey'] as String? ?? '',
         seerrRowOrder: (j['seerrRowOrder'] as List?)?.cast<String>() ??
             kDefaultSeerrRows,
         seerrHiddenRows:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../state/arr_providers.dart';
 import '../state/library_providers.dart';
 import '../state/preferences.dart';
 import '../state/radio.dart';
@@ -18,6 +19,7 @@ typedef NavDest = ({String route, IconData icon, String label, bool fixed});
 /// and the Navigation customization screen.
 List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
   final seerrOn = ref.watch(seerrConfiguredProvider);
+  final arrOn = ref.watch(arrConfiguredProvider);
   final youtubeOn = ref.watch(youtubeEnabledProvider);
   final radioOn = ref.watch(radioEnabledProvider);
   final views = ref.watch(userViewsProvider).asData?.value;
@@ -62,6 +64,8 @@ List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
         label: 'Seerr',
         fixed: false
       ),
+    if (arrOn)
+      (route: '/arr', icon: Icons.dns_rounded, label: 'Arr', fixed: false),
     if (youtubeOn)
       (
         route: '/youtube',

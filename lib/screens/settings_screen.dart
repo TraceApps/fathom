@@ -186,6 +186,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         onTap: () => context.push('/seerr-settings'),
       ),
       ListTile(
+        leading: _leading(context, Icons.dns_rounded),
+        title: Text(l.settingsArr),
+        subtitle: Text(l.settingsArrSubtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push('/arr-settings'),
+      ),
+      ListTile(
         leading: _leading(context, Icons.smart_display_rounded),
         title: Text(l.settingsYouTube),
         subtitle: Text(l.settingsYouTubeSubtitle),

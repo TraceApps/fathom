@@ -1,13 +1,14 @@
 # Roadmap
 
-What's done, what's next, and what's parked. The client is feature-complete for day-to-day use; the road to 1.0 is about stability and trust rather than new features.
+What's done, what's next, and what's parked. The client is feature-complete for day-to-day use; the road to 1.0 is about stability and trust, plus one new feature: managing Sonarr and Radarr.
 
 ## Road to 1.0
 
 - [x] **0.13.1 stable**: released, now getting real use.
 - [ ] **Real-server tests**: run the core flows (sign in, browse, play, resume, mark watched, subtitles) in CI against real Jellyfin servers, old and current, so a break is caught by a failing check rather than by a user.
 - [ ] **Decide 1.0's scope**: Linux, Windows, and Android phones and tablets are in. Android TV is either finished or stays marked experimental.
-- [ ] **Translations**: open community translation, or ship 1.0 in English with translations welcome by pull request.
+- [x] **Translations**: open to everyone on Weblate.
+- [ ] **Sonarr and Radarr in Fathom**: Calendar, Queue, and the libraries with detail pages are in; searches (automatic and interactive), adding, monitoring, deleting, Wanted, history, and health are next.
 - [ ] **1.0.0 release candidate**: bug fixes only, for a few weeks.
 - [ ] **1.0.0**
 

@@ -1,0 +1,1074 @@
+[
+ {
+  "title": "Interstellar",
+  "originalTitle": "Interstellar",
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "alternateTitles": [
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u661f\u9645\u7a7f\u8d8a",
+    "id": 1
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u661f\u969b\u555f\u793a\u9304",
+    "id": 2
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Interestelar",
+    "id": 3
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Csillagok K\u00f6z\u00f6tt",
+    "id": 4
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u30a4\u30f3\u30bf\u30fc\u30b9\u30c6\u30e9\u30fc",
+    "id": 5
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u10d8\u10dc\u10e2\u10d4\u10e0\u10e1\u10e2\u10d4\u10da\u10d0\u10e0\u10d8",
+    "id": 6
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "H\u1ed1 \u0110en T\u1eed Th\u1ea7n",
+    "id": 7
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Ulduzlararas\u0131",
+    "id": 8
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Interstellaire",
+    "id": 9
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0418\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u043b\u0430\u0440",
+    "id": 10
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0418\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u0430\u0440",
+    "id": 11
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0628\u064a\u0646 \u0627\u0644\u0646\u062c\u0648\u0645",
+    "id": 12
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0406\u043d\u0442\u044d\u0440\u0441\u0442\u044d\u043b\u0430\u0440",
+    "id": 13
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0645\u06cc\u0627\u0646\u200c \u0633\u062a\u0627\u0631\u0647\u200c \u0627\u06cc",
+    "id": 14
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0907\u0902\u091f\u0930\u0938\u094d\u091f\u0947\u0932\u0930",
+    "id": 15
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0a07\u0a70\u0a1f\u0a30\u0a38\u0a1f\u0a48\u0a32\u0a30",
+    "id": 16
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "T\u00e4htedevaheline",
+    "id": 17
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u05d1\u05d9\u05df \u05db\u05d5\u05db\u05d1\u05d9\u05dd",
+    "id": 18
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u10d5\u10d0\u10e0\u10e1\u10d9\u10d5\u10da\u10d0\u10d5\u10d7\u10e8\u10dd\u10e0\u10d8\u10e1\u10d8",
+    "id": 19
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Tarp \u017evaig\u017ed\u017ei\u0173",
+    "id": 20
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0d07\u0d28\u0d4d\u0d31\u0d7c\u0d38\u0d4d\u0d31\u0d4d\u0d31\u0d46\u0d32\u0d4d\u0d32\u0d3e\u0d7c",
+    "id": 21
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0642\u0627\u0626\u0645 \u0628\u064a\u0646 \u0627\u0644\u0646\u062c\u0648\u0645",
+    "id": 22
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0627\u06cc\u0646\u062a\u0631 \u0627\u0633\u062a\u0644\u0627\u0631",
+    "id": 23
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u041e\u0434\u043e\u0434 \u0445\u043e\u043e\u0440\u043e\u043d\u0434",
+    "id": 24
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0907\u0928\u094d\u091f\u0930\u0938\u094d\u091f\u0947\u0932\u0930",
+    "id": 25
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Interstellar: C\u0103l\u0103torind Prin Univers",
+    "id": 26
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Medzvezdje",
+    "id": 27
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0b87\u0ba9\u0bcd\u0b9f\u0bb0\u0bcd\u200c\u0bb8\u0bcd\u0b9f\u0bc6\u0bb2\u0bb0\u0bcd",
+    "id": 28
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0406\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u043b\u0430\u0440",
+    "id": 29
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0627\u0646\u0679\u0631\u0633\u0679\u06cc\u0644\u0631",
+    "id": 30
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Me\u0111uzvjezdani",
+    "id": 31
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "Y\u0131ld\u0131zlararas\u0131",
+    "id": 32
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u041c\u0435\u0452\u0443\u0437\u0432\u0435\u0437\u0434\u0430\u043d\u0438",
+    "id": 33
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0c07\u0c02\u0c1f\u0c30\u0c4d \u0c38\u0c4d\u0c1f\u0c46\u0c32\u0c4d\u0c32\u0c30\u0c4d",
+    "id": 34
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0e2d\u0e34\u0e19\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e2a\u0e40\u0e15\u0e25\u0e25\u0e32\u0e23\u0e4c \u0e17\u0e30\u0e22\u0e32\u0e19\u0e14\u0e32\u0e27\u0e01\u0e39\u0e49\u0e42\u0e25\u0e01",
+    "id": 35
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\uc778\ud130\uc2a4\ud154\ub77c",
+    "id": 36
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u661f\u969b\u6548\u61c9",
+    "id": 37
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u053b\u0576\u057f\u0565\u0580\u057d\u057f\u0565\u056c\u0565\u0580",
+    "id": 38
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u062f\u0631 \u0645\u06cc\u0627\u0646 \u0633\u062a\u0627\u0631\u06af\u0627\u0646",
+    "id": 39
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0623\u0646\u062a\u0631\u0633\u062a\u064a\u0644\u0631",
+    "id": 40
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u0418\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u043b\u044d\u0440",
+    "id": 41
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 1,
+    "title": "\u661f\u969b\u5553\u793a\u9304",
+    "id": 42
+   }
+  ],
+  "secondaryYearSourceId": 0,
+  "sortTitle": "interstellar",
+  "sizeOnDisk": 291970,
+  "status": "released",
+  "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+  "inCinemas": "2014-11-05T00:00:00Z",
+  "physicalRelease": "2015-03-31T00:00:00Z",
+  "digitalRelease": "2014-11-07T00:00:00Z",
+  "releaseDate": "2014-11-07T00:00:00Z",
+  "images": [
+   {
+    "coverType": "poster",
+    "url": "/MediaCover/1/poster.jpg?h=6ea857fa1664e710ba38",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg"
+   },
+   {
+    "coverType": "fanart",
+    "url": "/MediaCover/1/fanart.jpg?h=09050d90b1d43db56511",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/8sNiAPPYU14PUepFNeSNGUTiHW.jpg"
+   }
+  ],
+  "website": "http://www.interstellarmovie.net/",
+  "year": 2014,
+  "youTubeTrailerId": "LY19rHKAaAg",
+  "studio": "Legendary Pictures",
+  "path": "/movies/Interstellar (2014)",
+  "qualityProfileId": 1,
+  "hasFile": true,
+  "movieFileId": 1,
+  "monitored": true,
+  "minimumAvailability": "released",
+  "isAvailable": true,
+  "folderName": "/movies/Interstellar (2014)",
+  "runtime": 169,
+  "cleanTitle": "interstellar",
+  "imdbId": "tt0816692",
+  "tmdbId": 157336,
+  "titleSlug": "157336",
+  "rootFolderPath": "/movies",
+  "certification": "PG-13",
+  "genres": [
+   "Adventure",
+   "Drama",
+   "Science Fiction"
+  ],
+  "keywords": [
+   "2060s",
+   "artificial intelligence (a.i.)",
+   "astronaut",
+   "audacious",
+   "black hole",
+   "cryonics",
+   "dystopia",
+   "enthusiastic",
+   "expedition",
+   "family relationships",
+   "famine",
+   "father daughter relationship",
+   "gravity",
+   "hibernation",
+   "nasa",
+   "planet",
+   "quantum mechanics",
+   "race against time",
+   "scientist",
+   "single father",
+   "space",
+   "space adventure",
+   "space station",
+   "space travel",
+   "spacecraft",
+   "time travel",
+   "time warp",
+   "time-manipulation",
+   "wormhole"
+  ],
+  "tags": [],
+  "added": "2026-11-04T06:04:11Z",
+  "ratings": {
+   "imdb": {
+    "votes": 2629515,
+    "value": 8.7,
+    "type": "user"
+   },
+   "tmdb": {
+    "votes": 41768,
+    "value": 8.493,
+    "type": "user"
+   },
+   "metacritic": {
+    "votes": 0,
+    "value": 74,
+    "type": "user"
+   },
+   "rottenTomatoes": {
+    "votes": 0,
+    "value": 73,
+    "type": "user"
+   },
+   "trakt": {
+    "votes": 74602,
+    "value": 8.83471,
+    "type": "user"
+   }
+  },
+  "movieFile": {
+   "movieId": 1,
+   "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+   "path": "/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv",
+   "size": 291970,
+   "dateAdded": "2026-11-04T06:04:47Z",
+   "edition": "",
+   "languages": [
+    {
+     "id": 1,
+     "name": "English"
+    }
+   ],
+   "quality": {
+    "quality": {
+     "id": 7,
+     "name": "Bluray-1080p",
+     "source": "bluray",
+     "resolution": 1080,
+     "modifier": "none"
+    },
+    "revision": {
+     "version": 1,
+     "real": 0,
+     "isRepack": false
+    }
+   },
+   "indexerFlags": 0,
+   "mediaInfo": {
+    "audioBitrate": 448000,
+    "audioChannels": 5.1,
+    "audioCodec": "AC3",
+    "audioLanguages": "eng",
+    "audioStreamCount": 1,
+    "videoBitDepth": 8,
+    "videoBitrate": 0,
+    "videoCodec": "x264",
+    "videoFps": 24,
+    "videoDynamicRange": "",
+    "videoDynamicRangeType": "",
+    "resolution": "1920x1080",
+    "runTime": "0:03",
+    "scanType": "Progressive",
+    "subtitles": ""
+   },
+   "qualityCutoffNotMet": false,
+   "id": 1
+  },
+  "popularity": 63.9343,
+  "statistics": {
+   "movieFileCount": 1,
+   "sizeOnDisk": 291970,
+   "releaseGroups": [],
+   "movieFileQualities": [
+    {
+     "id": 7,
+     "name": "Bluray-1080p",
+     "source": "bluray",
+     "resolution": 1080,
+     "modifier": "none"
+    }
+   ]
+  },
+  "id": 1
+ },
+ {
+  "title": "Project Hail Mary",
+  "originalTitle": "Project Hail Mary",
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "alternateTitles": [
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "Projet derni\u00e8re chance",
+    "id": 43
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "\u0e20\u0e32\u0e23\u0e01\u0e34\u0e08\u0e01\u0e39\u0e49\u0e2a\u0e38\u0e23\u0e34\u0e22\u0e30",
+    "id": 44
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "\u041f\u0440\u043e\u0435\u043a\u0442 \u00ab\u0410\u0432\u0435 \u041c\u0430\u0440\u0438\u044f\u00bb",
+    "id": 45
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "\u041f\u0440\u043e\u0435\u043a\u0442 \u00ab\u041a\u043e\u043d\u0435\u0446 \u0441\u0432\u0435\u0442\u0430\u00bb",
+    "id": 46
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "\u0645\u0634\u0631\u0648\u0639 \u0647\u064a\u0644 \u0645\u0627\u0631\u064a",
+    "id": 47
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u30fb\u30d8\u30a4\u30eb\u30fb\u30e1\u30a2\u30ea\u30fc",
+    "id": 48
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "Devoradores de Estrelas",
+    "id": 49
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "Projecto Hail Mary",
+    "id": 50
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "\u041f\u0440\u043e\u0435\u043a\u0442 \u00ab\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f \u043d\u0430\u0434\u0435\u0436\u0434\u0430\u00bb",
+    "id": 51
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "Projecto Fin del Mundo",
+    "id": 52
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "Projekti Shpresa e Fundit",
+    "id": 53
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 2,
+    "title": "Proyek Hail Mary",
+    "id": 54
+   }
+  ],
+  "secondaryYearSourceId": 0,
+  "sortTitle": "project hail mary",
+  "sizeOnDisk": 0,
+  "status": "released",
+  "overview": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction.",
+  "inCinemas": "2026-03-18T00:00:00Z",
+  "physicalRelease": "2026-08-11T00:00:00Z",
+  "digitalRelease": "2026-05-12T00:00:00Z",
+  "releaseDate": "2026-05-12T00:00:00Z",
+  "images": [
+   {
+    "coverType": "poster",
+    "url": "/MediaCover/2/poster.jpg?h=ab58cdc100853bde4359",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/iOb2fjXLbpJgyQXe46n1WtGCnaa.jpg"
+   },
+   {
+    "coverType": "fanart",
+    "url": "/MediaCover/2/fanart.jpg?h=742715d75be04155f02f",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/8Tfys3mDZVp4tNoH2ktm06a0Tau.jpg"
+   }
+  ],
+  "website": "https://www.amazon.com/salp/projecthailmary?hhf",
+  "year": 2026,
+  "youTubeTrailerId": "NKYea63tQmI",
+  "studio": "Lord Miller",
+  "path": "/movies/Project Hail Mary (2026)",
+  "qualityProfileId": 1,
+  "hasFile": false,
+  "movieFileId": 0,
+  "monitored": true,
+  "minimumAvailability": "released",
+  "isAvailable": true,
+  "folderName": "/movies/Project Hail Mary (2026)",
+  "runtime": 157,
+  "cleanTitle": "projecthailmary",
+  "imdbId": "tt12042730",
+  "tmdbId": 687163,
+  "titleSlug": "687163",
+  "rootFolderPath": "/movies",
+  "certification": "PG-13",
+  "genres": [
+   "Science Fiction",
+   "Adventure"
+  ],
+  "keywords": [
+   "alien",
+   "astronaut",
+   "based on novel or book",
+   "bravery",
+   "coma",
+   "friendship",
+   "interspecies friendship",
+   "language barrier",
+   "memory loss",
+   "save the planet",
+   "science teacher",
+   "scientist",
+   "space",
+   "space mission",
+   "space travel",
+   "spaceship",
+   "suicide mission",
+   "sun"
+  ],
+  "tags": [],
+  "added": "2026-11-04T06:04:11Z",
+  "ratings": {
+   "imdb": {
+    "votes": 593535,
+    "value": 8.2,
+    "type": "user"
+   },
+   "tmdb": {
+    "votes": 8672,
+    "value": 8.631,
+    "type": "user"
+   },
+   "metacritic": {
+    "votes": 0,
+    "value": 77,
+    "type": "user"
+   },
+   "rottenTomatoes": {
+    "votes": 0,
+    "value": 95,
+    "type": "user"
+   },
+   "trakt": {
+    "votes": 34350,
+    "value": 8.74547,
+    "type": "user"
+   }
+  },
+  "popularity": 73.6346,
+  "statistics": {
+   "movieFileCount": 0,
+   "sizeOnDisk": 0,
+   "releaseGroups": [],
+   "movieFileQualities": []
+  },
+  "id": 2
+ },
+ {
+  "title": "Spider-Man: Brand New Day",
+  "originalTitle": "Spider-Man: Brand New Day",
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "alternateTitles": [
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "Spider-Man 4",
+    "id": 55
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\uc2a4\ud30c\uc774\ub354\ub9e8 4",
+    "id": 56
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "Homem-Aranha 4",
+    "id": 57
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u05e1\u05e4\u05d9\u05d9\u05d3\u05e8\u05de\u05df 4",
+    "id": 58
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u0427\u0435\u043b\u043e\u0432\u0435\u043a-\u043f\u0430\u0443\u043a 4",
+    "id": 59
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u1798\u1793\u17bb\u179f\u17d2\u179f\u1796\u17b8\u1784\u1796\u17b6\u1784: \u1790\u17d2\u1784\u17c3\u1790\u17d2\u1798\u17b8\u179f\u1793\u17d2\u179b\u17b6\u1784",
+    "id": 60
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "Marvel Studios' Spider-Man: Brand New Day",
+    "id": 61
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u8718\u86db\u4fa04",
+    "id": 62
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u0eaa\u0eb0\u0ec4\u0e9b\u0ec0\u0e94\u0eb5-\u0ec1\u0ea1\u0e99: \u0ec1\u0e9a\u0e99 \u0e99\u0eb4\u0ea7 \u0ec0\u0e94",
+    "id": 63
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "H\u00f6r\u00fcm\u00e7\u0259k Adam: Tamamil\u0259 Yeni G\u00fcn",
+    "id": 64
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u09b8\u09cd\u09aa\u09be\u0987\u09a1\u09be\u09b0-\u09ae\u09cd\u09af\u09be\u09a8: \u09ac\u09cd\u09b0\u09cd\u09af\u09be\u09a8\u09cd\u09a1 \u09a8\u09bf\u0989 \u09a1\u09c7",
+    "id": 65
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u05e1\u05e4\u05d9\u05d9\u05d3\u05e8\u05de\u05df:\u05d9\u05d5\u05dd \u05d7\u05d3\u05e9 \u05d3\u05e0\u05d3\u05e9",
+    "id": 66
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u0427\u0435\u043b\u043e\u0432\u0435\u043a-\u043f\u0430\u0443\u043a \u041a\u0412\u041c 4",
+    "id": 67
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u0645\u0631\u062f \u0639\u0646\u06a9\u0628\u0648\u062a\u06cc : \u0631\u0648\u0632 \u06a9\u0627\u0645\u0644\u0627\u064b \u062c\u062f\u06cc\u062f",
+    "id": 68
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u0627\u0633\u067e\u0627\u06cc\u062f\u0631 \u0645\u0646 : \u0631\u0648\u0632 \u06a9\u0627\u0645\u0644\u0627\u064b \u062c\u062f\u06cc\u062f",
+    "id": 69
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "Spider-Man: un nuevo d\u00eda",
+    "id": 70
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "\u10d0\u10d3\u10d0\u10db\u10d8\u10d0\u10dc\u10d8-\u10dd\u10d1\u10dd\u10d1\u10d0: \u10d0\u10ee\u10d0\u10da\u10d8 \u10d3\u10e6\u10d4",
+    "id": 71
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 3,
+    "title": "Spider-Man. Ca\u0142kiem nowy dzie\u0144",
+    "id": 72
+   }
+  ],
+  "secondaryYearSourceId": 0,
+  "sortTitle": "spiderman brand new day",
+  "sizeOnDisk": 0,
+  "status": "released",
+  "overview": "Fighting crime full-time as Spider-Man in a world that doesn't remember him\u2014and the pressure of seeing his old friends move on without him\u2014sparks a change in Peter Parker he may not have the power to control. But that transformation might also be the only thing that can stop a shocking new threat to the city and those he loves - a powerful villain no one can even see.",
+  "inCinemas": "2026-07-29T00:00:00Z",
+  "physicalRelease": "2026-12-02T00:00:00Z",
+  "digitalRelease": "2026-10-06T00:00:00Z",
+  "releaseDate": "2026-10-06T00:00:00Z",
+  "images": [
+   {
+    "coverType": "poster",
+    "url": "/MediaCover/3/poster.jpg?h=10eb267d0138f302f6da",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg"
+   },
+   {
+    "coverType": "fanart",
+    "url": "/MediaCover/3/fanart.jpg?h=95c71040a8ea40273c8a",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/r08LxMJCbf1SiJIWeyH9aJmdqwC.jpg"
+   }
+  ],
+  "website": "https://spidermanbrandnewday.movie",
+  "year": 2026,
+  "youTubeTrailerId": "P3uI5sLosKU",
+  "studio": "Marvel Studios",
+  "path": "/movies/Spider-Man - Brand New Day (2026)",
+  "qualityProfileId": 1,
+  "hasFile": false,
+  "movieFileId": 0,
+  "monitored": true,
+  "minimumAvailability": "released",
+  "isAvailable": true,
+  "folderName": "/movies/Spider-Man - Brand New Day (2026)",
+  "runtime": 145,
+  "cleanTitle": "spidermanbrandnewday",
+  "imdbId": "tt22084616",
+  "tmdbId": 969681,
+  "titleSlug": "969681",
+  "rootFolderPath": "/movies",
+  "certification": "PG-13",
+  "genres": [
+   "Science Fiction",
+   "Action",
+   "Adventure"
+  ],
+  "keywords": [
+   "aftercreditsstinger",
+   "based on comic",
+   "fight for justice",
+   "genetic mutation",
+   "hero",
+   "marvel cinematic universe (mcu)",
+   "masked superhero",
+   "masked vigilante",
+   "mind control",
+   "mutation",
+   "new york city",
+   "secret identity",
+   "sequel",
+   "spider",
+   "spider web",
+   "super power",
+   "superhero",
+   "transhumanism",
+   "villain"
+  ],
+  "tags": [],
+  "added": "2026-11-04T06:04:11Z",
+  "ratings": {
+   "imdb": {
+    "votes": 341165,
+    "value": 7.9,
+    "type": "user"
+   },
+   "tmdb": {
+    "votes": 5723,
+    "value": 8.468,
+    "type": "user"
+   },
+   "metacritic": {
+    "votes": 0,
+    "value": 66,
+    "type": "user"
+   },
+   "rottenTomatoes": {
+    "votes": 0,
+    "value": 90,
+    "type": "user"
+   }
+  },
+  "collection": {
+   "title": "Spider-Man (MCU) Collection",
+   "tmdbId": 531241
+  },
+  "popularity": 655.4447,
+  "statistics": {
+   "movieFileCount": 0,
+   "sizeOnDisk": 0,
+   "releaseGroups": [],
+   "movieFileQualities": []
+  },
+  "id": 3
+ },
+ {
+  "title": "Avengers: Doomsday",
+  "originalTitle": "Avengers: Doomsday",
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "alternateTitles": [
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Marvel Studios' Avengers: The Kang Dynasty",
+    "id": 73
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Avengers: The Kang Dynasty",
+    "id": 74
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\uc5b4\ubca4\uc838\uc2a4 5",
+    "id": 75
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Qasoskorlar: Kang sulolasi",
+    "id": 76
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u05d4\u05e0\u05d5\u05e7\u05de\u05d9\u05dd: \u05d3\u05d5\u05de\u05e1\u05d3\u05d9\u05d9",
+    "id": 77
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Avengers 5",
+    "id": 78
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Marvel Studios' Avengers: Doomsday",
+    "id": 79
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u5fa9\u4ec7\u8005\u806f\u76df5",
+    "id": 80
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u05d4\u05e0\u05d5\u05e7\u05de\u05d9\u05dd: \u05e2\u05dc\u05d9\u05d9\u05ea\u05d5 \u05e9\u05dc \u05d3\u05d5\u05e7\u05d8\u05d5\u05e8 \u05d3\u05d5\u05dd",
+    "id": 81
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u041c\u0441\u0442\u0438\u0442\u0435\u043b\u0438: \u0421\u0443\u0434\u043d\u044b\u0439 \u0434\u0435\u043d\u044c",
+    "id": 82
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u041c\u0441\u0442\u0438\u0442\u0435\u043b\u0438 5",
+    "id": 83
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Bossz\u00fa\u00e1ll\u00f3k: \u00cdt\u00e9letnap",
+    "id": 84
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u5fa9\u4ec7\u8005\u806f\u76df\uff1a\u672b\u65e5\u964d\u81e8",
+    "id": 85
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Marvel Studios Vingadores: Doutor Destino",
+    "id": 86
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u300e\u30a2\u30d9\u30f3\u30b8\u30e3\u30fc\u30ba\uff0f\u30c9\u30a5\u30fc\u30e0\u30ba\u30c7\u30a4\u300f",
+    "id": 87
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u5fa9\u4ec7\u8005\u806f\u76df\uff1a\u672b\u65e5\u5d1b\u8d77",
+    "id": 88
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Avengers : Docteur Doom",
+    "id": 89
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Ker\u0161ytojai. Daktaro Doomo i\u0161kilimas",
+    "id": 90
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u05d4\u05e0\u05d5\u05e7\u05de\u05d9\u05dd: \u05d9\u05d5\u05dd \u05d4\u05d3\u05d9\u05df",
+    "id": 91
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Avengers: K\u0131yamet G\u00fcn\u00fc",
+    "id": 92
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u0395\u03ba\u03b4\u03b9\u03ba\u03b7\u03c4\u03ad\u03c2: \u0397 \u0386\u03bd\u03bf\u03b4\u03bf\u03c2 \u03c4\u03bf\u03c5 Doctor Doom",
+    "id": 93
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u05d4\u05e0\u05d5\u05e7\u05de\u05d9\u05dd 5",
+    "id": 94
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Ker\u0161ytojai 5",
+    "id": 95
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Ker\u0161ytojai. Kang\u0173 dinastija",
+    "id": 96
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "\u0627\u0646\u062a\u0642\u0627\u0645\u200c \u062c\u0648\u06cc\u0627\u0646: \u0631\u0648\u0632 \u0642\u06cc\u0627\u0645\u062a",
+    "id": 97
+   },
+   {
+    "sourceType": "tmdb",
+    "movieMetadataId": 4,
+    "title": "Yenilmezler: Doomsday",
+    "id": 98
+   }
+  ],
+  "secondaryYearSourceId": 0,
+  "sortTitle": "avengers doomsday",
+  "sizeOnDisk": 0,
+  "status": "announced",
+  "overview": "Beloved heroes from three distinct universes are set on a deadly collision course and face an existential threat unlike anything they've ever encountered.",
+  "inCinemas": "2026-12-16T00:00:00Z",
+  "releaseDate": "2027-03-16T00:00:00Z",
+  "images": [
+   {
+    "coverType": "poster",
+    "url": "/MediaCover/4/poster.jpg?h=d447103dd12e907ad1ce",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/bqAHPSEyRkM4BpkncGFCKjBXf9p.jpg"
+   },
+   {
+    "coverType": "fanart",
+    "url": "/MediaCover/4/fanart.jpg?h=43ba85a8a96fda1c024c",
+    "remoteUrl": "https://image.tmdb.org/t/p/original/rObL4of4eFA8yWaN9pRFo9aOVNi.jpg"
+   }
+  ],
+  "website": "https://www.marvel.com/movies/avengers-doomsday",
+  "year": 2026,
+  "youTubeTrailerId": "X1aFkAkFASk",
+  "studio": "Marvel Studios",
+  "path": "/movies/Avengers - Doomsday (2026)",
+  "qualityProfileId": 1,
+  "hasFile": false,
+  "movieFileId": 0,
+  "monitored": true,
+  "minimumAvailability": "released",
+  "isAvailable": false,
+  "folderName": "/movies/Avengers - Doomsday (2026)",
+  "runtime": 165,
+  "cleanTitle": "avengersdoomsday",
+  "imdbId": "tt21357150",
+  "tmdbId": 1003596,
+  "titleSlug": "1003596",
+  "rootFolderPath": "/movies",
+  "genres": [
+   "Science Fiction",
+   "Action",
+   "Adventure"
+  ],
+  "keywords": [
+   "based on comic",
+   "marvel cinematic universe (mcu)",
+   "multiverse",
+   "sequel",
+   "superhero",
+   "superhero team",
+   "team up"
+  ],
+  "tags": [],
+  "added": "2026-11-04T06:04:12Z",
+  "ratings": {
+   "tmdb": {
+    "votes": 0,
+    "value": 0,
+    "type": "user"
+   }
+  },
+  "collection": {
+   "title": "The Avengers Collection",
+   "tmdbId": 86311
+  },
+  "popularity": 112.5911,
+  "statistics": {
+   "movieFileCount": 0,
+   "sizeOnDisk": 0,
+   "releaseGroups": [],
+   "movieFileQualities": []
+  },
+  "id": 4
+ }
+]

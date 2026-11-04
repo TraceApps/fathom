@@ -53,6 +53,9 @@ import '../screens/seerr_detail_screen.dart';
 import '../screens/seerr_person_screen.dart';
 import '../screens/seerr_season_screen.dart';
 import '../screens/seerr_settings_screen.dart';
+import '../screens/arr_detail_screens.dart';
+import '../screens/arr_screen.dart';
+import '../screens/arr_settings_screen.dart';
 import '../screens/updates_screen.dart';
 import '../models/seerr_result.dart';
 import '../screens/server_connect_screen.dart';
@@ -518,6 +521,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/seerr-settings',
               pageBuilder: (_, _) => _fadePage(const SeerrSettingsScreen())),
+          GoRoute(
+              path: '/arr',
+              pageBuilder: (_, _) => _fadePage(const ArrScreen())),
+          GoRoute(
+              path: '/arr-settings',
+              pageBuilder: (_, _) => _fadePage(const ArrSettingsScreen())),
+          GoRoute(
+              path: '/arr/movie/:id',
+              pageBuilder: (_, state) => _fadePage(ArrMovieScreen(
+                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
+          GoRoute(
+              path: '/arr/series/:id',
+              pageBuilder: (_, state) => _fadePage(ArrSeriesScreen(
+                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
               path: '/updates',
               pageBuilder: (_, _) => _fadePage(const UpdatesScreen())),

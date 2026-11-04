@@ -28,10 +28,12 @@ const backupGroups = <String>[
 ];
 
 /// Preference keys that are secret-adjacent and must never leave the device.
-const _secretPrefKeys = <String>{
+const secretPrefKeys = <String>{
   'mdbListApiKey',
   'seerrApiKey',
   'seerrCookie',
+  'sonarrApiKey',
+  'radarrApiKey',
 };
 
 const _appearanceKeys = <String>{
@@ -82,7 +84,7 @@ Map<String, dynamic> buildSettingsExport(
       (ref.read(preferencesProvider).asData?.value ?? const Prefs()).toJson();
   final exportedPrefs = <String, dynamic>{};
   for (final entry in prefsJson.entries) {
-    if (_secretPrefKeys.contains(entry.key)) continue;
+    if (secretPrefKeys.contains(entry.key)) continue;
     if (groups.contains(_prefGroup(entry.key))) {
       exportedPrefs[entry.key] = entry.value;
     }
@@ -123,7 +125,7 @@ Set<String> groupsInBackup(Map<String, dynamic> data) {
   final prefs = data['preferences'];
   if (prefs is Map) {
     for (final key in prefs.keys) {
-      if (key is String && !_secretPrefKeys.contains(key)) {
+      if (key is String && !secretPrefKeys.contains(key)) {
         found.add(_prefGroup(key));
       }
     }
@@ -166,7 +168,7 @@ Future<ImportSummary> applySettingsImport(
     final current =
         (ref.read(preferencesProvider).asData?.value ?? const Prefs()).toJson();
     for (final entry in Map<String, dynamic>.from(prefsJson).entries) {
-      if (_secretPrefKeys.contains(entry.key)) continue;
+      if (secretPrefKeys.contains(entry.key)) continue;
       if (selectedGroups.contains(_prefGroup(entry.key))) {
         current[entry.key] = entry.value;
         prefsChanged = true;

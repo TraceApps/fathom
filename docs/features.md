@@ -80,6 +80,17 @@ Because Fathom is sideloaded rather than installed from the Play Store, the firs
 - **Ratings that matter to you**: Rotten Tomatoes, IMDb, and community scores, plus Letterboxd, Metacritic, Trakt, and others through MDBList.
 - **Watch together**: SyncPlay-based shared playback that interoperates with the official Jellyfin apps and other clients, not only with other Fathom users.
 
+## Sonarr and Radarr
+
+With Sonarr or Radarr connected (see [First-run setup](setup.md#sonarr-and-radarr)), the **Arr** section brings them into Fathom:
+
+- **Calendar**: episodes airing and movie releases (in cinemas, digital, disc) from both apps, from yesterday through the next four weeks, grouped by day, each marked Downloaded, Missing, Unaired, or Not Released.
+- **Queue**: everything downloading in either app, with progress, time left, quality, and the download client. Imports that need help (blocked or failed) come first, with the app's own explanation. It refreshes every few seconds while it's open.
+- **Movies** and **Shows**: your Radarr and Sonarr libraries as poster grids, with the same colored status bar the apps use. Search, filter (monitored, missing, downloaded, continuing, ended), and sort by title, date added, year, or size.
+- **Detail pages**: a movie's or show's quality profile, path, size, release dates, every season and episode with its file and quality, the file's video, audio, and subtitle details, and its history. **Open in Sonarr** or **Open in Radarr** jumps to the same title in the app's own page.
+
+Searching, adding titles, monitoring, and deleting are coming next, in later Fathom builds.
+
 ## Server administration
 
 Run most of Jellyfin from the app, without opening the web dashboard: manage users, libraries, scheduled tasks, active sessions, playback and transcoding, networking, branding, Live TV and DVR, backups, and plugins. Each plugin's configuration is an in-app form (toggles, fields, and add/remove lists), with a raw-JSON option if you prefer, and plugin logos show in the list.
