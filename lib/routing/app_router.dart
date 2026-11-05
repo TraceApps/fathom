@@ -53,7 +53,10 @@ import '../screens/seerr_detail_screen.dart';
 import '../screens/seerr_person_screen.dart';
 import '../screens/seerr_season_screen.dart';
 import '../screens/seerr_settings_screen.dart';
+import '../models/arr.dart';
+import '../screens/arr_add_screen.dart';
 import '../screens/arr_detail_screens.dart';
+import '../screens/arr_releases_screen.dart';
 import '../screens/arr_screen.dart';
 import '../screens/arr_settings_screen.dart';
 import '../screens/updates_screen.dart';
@@ -531,6 +534,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/arr/movie/:id',
               pageBuilder: (_, state) => _fadePage(ArrMovieScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
+          GoRoute(
+              path: '/arr/add/:kind',
+              pageBuilder: (_, state) => _fadePage(ArrAddScreen(
+                  kind: state.pathParameters['kind'] == 'series'
+                      ? ArrKind.sonarr
+                      : ArrKind.radarr))),
+          GoRoute(
+              path: '/arr/releases',
+              pageBuilder: (_, state) => _fadePage(ArrReleasesScreen(
+                  target: ArrReleaseTarget.fromQuery(
+                      state.uri.queryParameters)))),
           GoRoute(
               path: '/arr/series/:id',
               pageBuilder: (_, state) => _fadePage(ArrSeriesScreen(

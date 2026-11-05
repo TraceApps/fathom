@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../models/arr.dart';
 
+int _int(Object? v) => (v as num?)?.toInt() ?? 0;
+
 class ArrException implements Exception {
   final String message;
   ArrException(this.message);
@@ -48,6 +50,96 @@ abstract class ArrClient {
       throw ArrException(arrErrorMessage(kind, e));
     }
   }
+
+  Future<dynamic> _send(
+    String method,
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+  }) async {
+    try {
+      final r = await _dio.request(
+        _api(path),
+        data: body,
+        queryParameters: query,
+        options: _opts.copyWith(method: method),
+      );
+      return r.data;
+    } on DioException catch (e) {
+      throw ArrException(arrErrorMessage(kind, e));
+    }
+  }
+
+  Future<dynamic> _post(String path, Object? body) =>
+      _send('POST', path, body: body);
+  Future<dynamic> _put(String path, Object? body) =>
+      _send('PUT', path, body: body);
+  Future<dynamic> _delete(String path, [Map<String, dynamic>? query]) =>
+      _send('DELETE', path, query: query);
+
+  /// Starts one of the app's tasks (a search, a refresh, a rename). It runs
+  /// on the server; the answer only says it was queued.
+  Future<void> command(String name, [Map<String, dynamic> args = const {}]) =>
+      _post('command', {'name': name, ...args});
+
+  /// Where the app may put new titles, with the free space on each.
+  Future<List<ArrRootFolder>> rootFolders() async {
+    final data = await _get('rootfolder');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrRootFolder.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// Every release the indexers offer for what [query] names (an episode, a
+  /// season or a movie), with the app's verdict on each. Slow: the app asks
+  /// every indexer before it answers.
+  Future<List<ArrSearchResult>> _releases(Map<String, dynamic> query) async {
+    try {
+      final r = await _dio.get(
+        _api('release'),
+        queryParameters: query,
+        options: _opts.copyWith(receiveTimeout: const Duration(minutes: 3)),
+      );
+      return [
+        for (final m in (r.data as List?) ?? const [])
+          if (m is Map) ArrSearchResult.fromJson(Map<String, dynamic>.from(m)),
+      ];
+    } on DioException catch (e) {
+      throw ArrException(arrErrorMessage(kind, e));
+    }
+  }
+
+  /// Sends a release from an interactive search to the download client.
+  Future<void> grab(ArrSearchResult r) =>
+      _post('release', {'guid': r.guid, 'indexerId': r.indexerId});
+
+  /// Takes a download out of the queue. [blocklist] stops the app taking the
+  /// same release again, and with [searchAgain] it looks for another.
+  Future<void> removeFromQueue(
+    int id, {
+    required bool removeFromClient,
+    required bool blocklist,
+    bool searchAgain = false,
+  }) => _delete('queue/$id', {
+    'removeFromClient': removeFromClient,
+    'blocklist': blocklist,
+    if (blocklist) 'skipRedownload': !searchAgain,
+  });
+
+  /// What renaming would change: each file's current and new name.
+  Future<List<ArrRename>> renamePreview(int id);
+
+  /// Whether the app renames files at all (Settings, Media Management). Off,
+  /// a rename preview is always empty.
+  Future<bool> renamingOn() async {
+    final data = await _get('config/naming');
+    final key = kind == ArrKind.sonarr ? 'renameEpisodes' : 'renameMovies';
+    return data is Map && data[key] == true;
+  }
+
+  /// Renames the files the preview listed.
+  Future<void> rename(int id, List<int> fileIds);
 
   /// Which app answers at this address, and its version. Throws when it isn't
   /// the app this client is for, so a Radarr address typed in the Sonarr box
@@ -216,6 +308,119 @@ class SonarrClient extends ArrClient {
     ]..sort((a, b) => (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)));
   }
 
+  /// The show exactly as Sonarr keeps it, for sending back changed.
+  Future<Map<String, dynamic>> seriesRaw(int id) async =>
+      Map<String, dynamic>.from(await _get('series/$id') as Map);
+
+  /// Saves a changed show. [raw] is what [seriesRaw] gave, edited.
+  Future<void> updateSeries(Map<String, dynamic> raw) async {
+    final id = _int(raw['id']);
+    await _put('series/$id', raw);
+  }
+
+  /// Monitors or stops monitoring a show, and with it every season, as
+  /// Sonarr's own toggle does.
+  Future<void> setSeriesMonitored(int id, bool monitored) async {
+    final raw = await seriesRaw(id);
+    raw['monitored'] = monitored;
+    await updateSeries(raw);
+  }
+
+  Future<void> setSeasonMonitored(
+    int seriesId,
+    int seasonNumber,
+    bool monitored,
+  ) async {
+    final raw = await seriesRaw(seriesId);
+    for (final s in (raw['seasons'] as List?) ?? const []) {
+      if (s is Map && s['seasonNumber'] == seasonNumber) {
+        s['monitored'] = monitored;
+      }
+    }
+    await updateSeries(raw);
+  }
+
+  Future<void> setEpisodesMonitored(List<int> ids, bool monitored) =>
+      _put('episode/monitor', {'episodeIds': ids, 'monitored': monitored});
+
+  Future<void> searchSeries(int id) =>
+      command('SeriesSearch', {'seriesId': id});
+  Future<void> searchSeason(int id, int seasonNumber) =>
+      command('SeasonSearch', {'seriesId': id, 'seasonNumber': seasonNumber});
+  Future<void> searchEpisodes(List<int> ids) =>
+      command('EpisodeSearch', {'episodeIds': ids});
+  Future<void> refreshSeries(int id) =>
+      command('RefreshSeries', {'seriesId': id});
+
+  Future<List<ArrSearchResult>> releasesForEpisode(int episodeId) =>
+      _releases({'episodeId': episodeId});
+  Future<List<ArrSearchResult>> releasesForSeason(int id, int seasonNumber) =>
+      _releases({'seriesId': id, 'seasonNumber': seasonNumber});
+
+  @override
+  Future<List<ArrRename>> renamePreview(int id) async {
+    final data = await _get('rename', {'seriesId': id});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrRename.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  @override
+  Future<void> rename(int id, List<int> fileIds) =>
+      command('RenameFiles', {'seriesId': id, 'files': fileIds});
+
+  /// Shows matching [term] (a name, or tvdb:12345), whether or not Sonarr
+  /// has them. Each comes with the raw entry [addSeries] needs.
+  Future<List<ArrLookup<ArrSeries>>> lookup(String term) async {
+    final data = await _get('series/lookup', {'term': term});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map)
+          ArrLookup(
+            ArrSeries.fromJson(Map<String, dynamic>.from(m)),
+            Map<String, dynamic>.from(m),
+          ),
+    ];
+  }
+
+  Future<ArrSeries> addSeries(
+    Map<String, dynamic> lookupRaw, {
+    required int qualityProfileId,
+    required String rootFolderPath,
+    required String monitor, // all, future, missing, existing, pilot, ...
+    required String seriesType, // standard, daily, anime
+    required bool seasonFolder,
+    required bool search,
+  }) async {
+    final body = Map<String, dynamic>.from(lookupRaw)
+      ..remove('id')
+      ..['qualityProfileId'] = qualityProfileId
+      ..['rootFolderPath'] = rootFolderPath
+      ..['monitored'] = monitor != 'none'
+      ..['seriesType'] = seriesType
+      ..['seasonFolder'] = seasonFolder
+      ..['addOptions'] = {
+        'monitor': monitor,
+        'searchForMissingEpisodes': search,
+        'searchForCutoffUnmetEpisodes': false,
+      };
+    return ArrSeries.fromJson(
+      Map<String, dynamic>.from(await _post('series', body) as Map),
+    );
+  }
+
+  Future<void> deleteSeries(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _delete('series/$id', {
+    'deleteFiles': deleteFiles,
+    'addImportListExclusion': addExclusion,
+  });
+
+  Future<void> deleteEpisodeFile(int id) => _delete('episodefile/$id');
+
   @override
   Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end) async {
     final data = await _get('calendar', {
@@ -255,6 +460,90 @@ class RadarrClient extends ArrClient {
         if (m is Map) ArrHistoryItem.fromJson(Map<String, dynamic>.from(m)),
     ]..sort((a, b) => (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)));
   }
+
+  /// The movie exactly as Radarr keeps it, for sending back changed.
+  Future<Map<String, dynamic>> movieRaw(int id) async =>
+      Map<String, dynamic>.from(await _get('movie/$id') as Map);
+
+  /// Saves a changed movie. [raw] is what [movieRaw] gave, edited.
+  Future<void> updateMovie(Map<String, dynamic> raw) async {
+    final id = _int(raw['id']);
+    await _put('movie/$id', raw);
+  }
+
+  Future<void> setMovieMonitored(int id, bool monitored) async {
+    final raw = await movieRaw(id);
+    raw['monitored'] = monitored;
+    await updateMovie(raw);
+  }
+
+  Future<void> searchMovie(int id) => command('MoviesSearch', {
+    'movieIds': [id],
+  });
+  Future<void> refreshMovie(int id) => command('RefreshMovie', {
+    'movieIds': [id],
+  });
+
+  Future<List<ArrSearchResult>> releasesForMovie(int id) =>
+      _releases({'movieId': id});
+
+  @override
+  Future<List<ArrRename>> renamePreview(int id) async {
+    final data = await _get('rename', {'movieId': id});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrRename.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  @override
+  Future<void> rename(int id, List<int> fileIds) =>
+      command('RenameFiles', {'movieId': id, 'files': fileIds});
+
+  /// Movies matching [term] (a name, or tmdb:12345, imdb:tt...), whether or
+  /// not Radarr has them.
+  Future<List<ArrLookup<ArrMovie>>> lookup(String term) async {
+    final data = await _get('movie/lookup', {'term': term});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map)
+          ArrLookup(
+            ArrMovie.fromJson(Map<String, dynamic>.from(m)),
+            Map<String, dynamic>.from(m),
+          ),
+    ];
+  }
+
+  Future<ArrMovie> addMovie(
+    Map<String, dynamic> lookupRaw, {
+    required int qualityProfileId,
+    required String rootFolderPath,
+    required String monitor, // movieOnly, movieAndCollection, none
+    required String minimumAvailability, // announced, inCinemas, released
+    required bool search,
+  }) async {
+    final body = Map<String, dynamic>.from(lookupRaw)
+      ..remove('id')
+      ..['qualityProfileId'] = qualityProfileId
+      ..['rootFolderPath'] = rootFolderPath
+      ..['monitored'] = monitor != 'none'
+      ..['minimumAvailability'] = minimumAvailability
+      ..['addOptions'] = {'monitor': monitor, 'searchForMovie': search};
+    return ArrMovie.fromJson(
+      Map<String, dynamic>.from(await _post('movie', body) as Map),
+    );
+  }
+
+  Future<void> deleteMovie(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _delete('movie/$id', {
+    'deleteFiles': deleteFiles,
+    'addImportExclusion': addExclusion,
+  });
+
+  Future<void> deleteMovieFile(int id) => _delete('moviefile/$id');
 
   @override
   Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end) async {

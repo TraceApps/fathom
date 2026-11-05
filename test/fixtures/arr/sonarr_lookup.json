@@ -1,0 +1,270 @@
+[
+ {
+  "title": "Breaking Bad",
+  "sortTitle": "breaking bad",
+  "status": "ended",
+  "ended": true,
+  "overview": "When Walter White, a chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of two years left to live, he chooses to enter a dangerous world of drugs and crime with the intent to secure his family's financial security.",
+  "network": "AMC",
+  "airTime": "21:00",
+  "images": [
+   {
+    "coverType": "banner",
+    "url": "/MediaCover/2/banner.jpg?lastWrite=639294243205563116",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/graphical/81189-g21.jpg"
+   },
+   {
+    "coverType": "poster",
+    "url": "/MediaCover/2/poster.jpg?lastWrite=639294243207233172",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/posters/81189-10.jpg"
+   },
+   {
+    "coverType": "fanart",
+    "url": "/MediaCover/2/fanart.jpg?lastWrite=639294243208113201",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/fanart/original/81189-21.jpg"
+   },
+   {
+    "coverType": "clearlogo",
+    "url": "/MediaCover/2/clearlogo.png?lastWrite=639294243208753222",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/81189/clearlogo/611b4df33bac5.png"
+   }
+  ],
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "remotePoster": "https://artworks.thetvdb.com/banners/posters/81189-10.jpg",
+  "seasons": [
+   {
+    "seasonNumber": 0,
+    "monitored": false
+   },
+   {
+    "seasonNumber": 1,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 2,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 3,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 4,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 5,
+    "monitored": true
+   }
+  ],
+  "year": 2008,
+  "path": "/tv/Breaking Bad",
+  "qualityProfileId": 1,
+  "seasonFolder": true,
+  "monitored": true,
+  "monitorNewItems": "all",
+  "useSceneNumbering": false,
+  "runtime": 48,
+  "tvdbId": 81189,
+  "tvRageId": 18164,
+  "tvMazeId": 169,
+  "tmdbId": 1396,
+  "firstAired": "2008-01-20T00:00:00Z",
+  "lastAired": "2013-09-29T00:00:00Z",
+  "seriesType": "standard",
+  "cleanTitle": "breakingbad",
+  "imdbId": "tt0903747",
+  "titleSlug": "breaking-bad",
+  "folder": "Breaking Bad",
+  "certification": "TV-MA",
+  "genres": [
+   "Crime",
+   "Drama",
+   "Thriller",
+   "Western"
+  ],
+  "tags": [],
+  "added": "2026-11-04T21:25:19Z",
+  "ratings": {
+   "votes": 2700920,
+   "value": 9.5
+  },
+  "statistics": {
+   "seasonCount": 5,
+   "episodeFileCount": 0,
+   "episodeCount": 0,
+   "totalEpisodeCount": 0,
+   "sizeOnDisk": 0,
+   "percentOfEpisodes": 0
+  },
+  "languageProfileId": 1,
+  "id": 2
+ },
+ {
+  "title": "Breaking Band",
+  "sortTitle": "breaking band",
+  "status": "ended",
+  "ended": true,
+  "overview": "Six emerging musicians are each paired with one rock legend, who provides guidance to help the up and comers work to achieve their dreams of stardom. Mentors Dave Navarro, Moby, Sebastian Bach, Robin Zander, Belinda Carlisle, and Mark McGrath share invaluable advice and collaborate with their proteges before deciding whether to join them on stage for a live performance at YouTube Space LA.",
+  "network": "AXS TV",
+  "airTime": "21:30",
+  "images": [],
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "seasons": [
+   {
+    "seasonNumber": 0,
+    "monitored": false
+   },
+   {
+    "seasonNumber": 1,
+    "monitored": true
+   }
+  ],
+  "year": 2016,
+  "qualityProfileId": 0,
+  "seasonFolder": false,
+  "monitored": true,
+  "monitorNewItems": "all",
+  "useSceneNumbering": false,
+  "runtime": 30,
+  "tvdbId": 306432,
+  "tvRageId": 0,
+  "tvMazeId": 6101,
+  "tmdbId": 0,
+  "firstAired": "2016-01-24T00:00:00Z",
+  "lastAired": "2016-02-28T00:00:00Z",
+  "seriesType": "standard",
+  "cleanTitle": "breakingband",
+  "imdbId": "tt4854852",
+  "titleSlug": "breaking-band",
+  "folder": "Breaking Band",
+  "genres": [
+   "Musical",
+   "Reality"
+  ],
+  "tags": [],
+  "added": "0001-01-01T00:00:00Z",
+  "ratings": {
+   "votes": 11,
+   "value": 6.4
+  },
+  "statistics": {
+   "seasonCount": 1,
+   "episodeFileCount": 0,
+   "episodeCount": 0,
+   "totalEpisodeCount": 0,
+   "sizeOnDisk": 0,
+   "percentOfEpisodes": 0
+  },
+  "languageProfileId": 1
+ },
+ {
+  "title": "Bradley & Barney Walsh: Breaking Dad",
+  "sortTitle": "bradley barney walsh breaking dad",
+  "status": "continuing",
+  "ended": false,
+  "overview": "Actor Bradley Walsh and his 20-year-old son Barney are hitting the road together for a brand-new four-part series, travelling over 2000 miles from Los Angeles to New Orleans.",
+  "network": "ITV1",
+  "airTime": "20:00",
+  "images": [
+   {
+    "coverType": "banner",
+    "url": "/MediaCoverProxy/a3b4581d8f3c2b2fe679f6d28504382726d0d38554f799745bedde11adc8ee26/67ec2f1a2b3d8.jpg",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/357539/banners/67ec2f1a2b3d8.jpg"
+   },
+   {
+    "coverType": "poster",
+    "url": "/MediaCoverProxy/d372590ded1af8a22308ee044888a54f3817f82e831b88d4f07e56b79bef45c2/60ef7c4f4f42d.jpg",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/357539/posters/60ef7c4f4f42d.jpg"
+   },
+   {
+    "coverType": "fanart",
+    "url": "/MediaCoverProxy/202f2f0c6bcc4294a92e0eae43c7337c21c0b03a543d1cd82ad7fd97547d5b0d/67ece38e63eeb.jpg",
+    "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/357539/backgrounds/67ece38e63eeb.jpg"
+   }
+  ],
+  "originalLanguage": {
+   "id": 1,
+   "name": "English"
+  },
+  "remotePoster": "https://artworks.thetvdb.com/banners/v4/series/357539/posters/60ef7c4f4f42d.jpg",
+  "seasons": [
+   {
+    "seasonNumber": 0,
+    "monitored": false
+   },
+   {
+    "seasonNumber": 1,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 2,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 3,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 4,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 5,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 6,
+    "monitored": true
+   },
+   {
+    "seasonNumber": 7,
+    "monitored": true
+   }
+  ],
+  "year": 2019,
+  "qualityProfileId": 0,
+  "seasonFolder": false,
+  "monitored": true,
+  "monitorNewItems": "all",
+  "useSceneNumbering": false,
+  "runtime": 28,
+  "tvdbId": 357539,
+  "tvRageId": 0,
+  "tvMazeId": 39967,
+  "tmdbId": 85466,
+  "firstAired": "2019-01-02T00:00:00Z",
+  "lastAired": "2026-06-12T00:00:00Z",
+  "seriesType": "standard",
+  "cleanTitle": "bradleybarneywalshbreakingdad",
+  "imdbId": "tt9516768",
+  "titleSlug": "bradley-and-barney-walsh-breaking-dad",
+  "folder": "Bradley & Barney Walsh - Breaking Dad",
+  "genres": [
+   "Comedy",
+   "Documentary",
+   "Reality"
+  ],
+  "tags": [],
+  "added": "0001-01-01T00:00:00Z",
+  "ratings": {
+   "votes": 217,
+   "value": 7.4
+  },
+  "statistics": {
+   "seasonCount": 7,
+   "episodeFileCount": 0,
+   "episodeCount": 0,
+   "totalEpisodeCount": 0,
+   "sizeOnDisk": 0,
+   "percentOfEpisodes": 0
+  },
+  "languageProfileId": 1
+ }
+]

@@ -172,3 +172,46 @@ final sonarrSeriesHistoryProvider = FutureProvider.autoDispose
       if (c == null) return const [];
       return c.history(seriesId);
     });
+
+ArrClient? arrClientOf(Ref ref, ArrKind kind) => kind == ArrKind.sonarr
+    ? ref.watch(sonarrClientProvider)
+    : ref.watch(radarrClientProvider);
+
+/// The client for [kind], read once (for actions, not for rebuilding).
+ArrClient? arrClient(WidgetRef ref, ArrKind kind) => kind == ArrKind.sonarr
+    ? ref.read(sonarrClientProvider)
+    : ref.read(radarrClientProvider);
+
+/// Root folders for one app, for adding a title.
+final arrRootFoldersProvider = FutureProvider.autoDispose
+    .family<List<ArrRootFolder>, ArrKind>((ref, kind) async {
+      final c = arrClientOf(ref, kind);
+      if (c == null) return const [];
+      return c.rootFolders();
+    });
+
+/// Quality profiles for one app, in the app's order, for pickers.
+final arrQualityProfileListProvider = FutureProvider.autoDispose
+    .family<List<ArrQualityProfile>, ArrKind>((ref, kind) async {
+      final c = arrClientOf(ref, kind);
+      if (c == null) return const [];
+      return c.qualityProfiles();
+    });
+
+/// After a change to a movie: everything that shows it reloads.
+void arrMovieChanged(WidgetRef ref, int id) {
+  ref.invalidate(radarrMovieProvider(id));
+  ref.invalidate(radarrMovieHistoryProvider(id));
+  ref.invalidate(radarrMoviesProvider);
+  ref.invalidate(arrCalendarProvider);
+}
+
+/// After a change to a show: everything that shows it reloads.
+void arrSeriesChanged(WidgetRef ref, int id) {
+  ref.invalidate(sonarrSeriesProvider(id));
+  ref.invalidate(sonarrEpisodesProvider(id));
+  ref.invalidate(sonarrEpisodeFilesProvider(id));
+  ref.invalidate(sonarrSeriesHistoryProvider(id));
+  ref.invalidate(sonarrSeriesListProvider);
+  ref.invalidate(arrCalendarProvider);
+}

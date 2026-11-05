@@ -1,0 +1,468 @@
+[
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.2160p.WEB-DL.DDP5.1.H.265-NTb",
+    "quality": {
+      "quality": {
+        "id": 18,
+        "name": "WEBDL-2160p",
+        "source": "web",
+        "resolution": 2160
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 1501,
+    "age": 5,
+    "ageHours": 120.00020859686111,
+    "ageMinutes": 7200.012515815,
+    "size": 1875000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "NTb",
+    "releaseHash": "",
+    "title": "Breaking.Bad.S01E03.2160p.WEB-DL.DDP5.1.H.265-NTb",
+    "fullSeason": false,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "languageWeight": 0,
+    "seriesTitle": "Breaking Bad",
+    "episodeNumbers": [
+      3
+    ],
+    "absoluteEpisodeNumbers": [],
+    "mappedSeasonNumber": 1,
+    "mappedEpisodeNumbers": [
+      3
+    ],
+    "mappedAbsoluteEpisodeNumbers": [
+      3
+    ],
+    "mappedSeriesId": 2,
+    "mappedEpisodeInfo": [
+      {
+        "id": 911,
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "absoluteEpisodeNumber": 3,
+        "title": "...And the Bag's in the River"
+      }
+    ],
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [
+      "WEBDL-2160p is not wanted in profile"
+    ],
+    "publishDate": "2026-10-30T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.2160p.WEB-DL.DDP5.1.H.265-NTb",
+    "episodeRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 0,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "usenet",
+    "indexerFlags": 0,
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.1080p.BluRay.x264-GRP",
+    "quality": {
+      "quality": {
+        "id": 7,
+        "name": "Bluray-1080p",
+        "source": "bluray",
+        "resolution": 1080
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 1201,
+    "age": 30,
+    "ageHours": 720.0002086038334,
+    "ageMinutes": 43200.01251623167,
+    "size": 1187500000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GRP",
+    "releaseHash": "",
+    "title": "Breaking.Bad.S01E03.1080p.BluRay.x264-GRP",
+    "fullSeason": false,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "languageWeight": 0,
+    "seriesTitle": "Breaking Bad",
+    "episodeNumbers": [
+      3
+    ],
+    "absoluteEpisodeNumbers": [],
+    "mappedSeasonNumber": 1,
+    "mappedEpisodeNumbers": [
+      3
+    ],
+    "mappedAbsoluteEpisodeNumbers": [
+      3
+    ],
+    "mappedSeriesId": 2,
+    "mappedEpisodeInfo": [
+      {
+        "id": 911,
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "absoluteEpisodeNumber": 3,
+        "title": "...And the Bag's in the River"
+      }
+    ],
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [],
+    "publishDate": "2026-10-05T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.1080p.BluRay.x264-GRP",
+    "episodeRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 1,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "usenet",
+    "indexerFlags": 0,
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.1080p.WEB-DL.DD5.1.H.264-NTb",
+    "quality": {
+      "quality": {
+        "id": 3,
+        "name": "WEBDL-1080p",
+        "source": "web",
+        "resolution": 1080
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 1101,
+    "age": 400,
+    "ageHours": 9600.000208605194,
+    "ageMinutes": 576000.0125163117,
+    "size": 525000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "NTb",
+    "releaseHash": "",
+    "title": "Breaking.Bad.S01E03.1080p.WEB-DL.DD5.1.H.264-NTb",
+    "fullSeason": false,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "languageWeight": 0,
+    "seriesTitle": "Breaking Bad",
+    "episodeNumbers": [
+      3
+    ],
+    "absoluteEpisodeNumbers": [],
+    "mappedSeasonNumber": 1,
+    "mappedEpisodeNumbers": [
+      3
+    ],
+    "mappedAbsoluteEpisodeNumbers": [
+      3
+    ],
+    "mappedSeriesId": 2,
+    "mappedEpisodeInfo": [
+      {
+        "id": 911,
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "absoluteEpisodeNumber": 3,
+        "title": "...And the Bag's in the River"
+      }
+    ],
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [],
+    "publishDate": "2025-09-30T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.1080p.WEB-DL.DD5.1.H.264-NTb",
+    "episodeRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 2,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "usenet",
+    "indexerFlags": 0,
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.German.1080p.WEB.x264-GER",
+    "quality": {
+      "quality": {
+        "id": 3,
+        "name": "WEBDL-1080p",
+        "source": "web",
+        "resolution": 1080
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 1101,
+    "age": 12,
+    "ageHours": 288.00020860641666,
+    "ageMinutes": 17280.012516385,
+    "size": 387500000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GER",
+    "releaseHash": "",
+    "title": "Breaking.Bad.S01E03.German.1080p.WEB.x264-GER",
+    "fullSeason": false,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "languages": [
+      {
+        "id": 4,
+        "name": "German"
+      }
+    ],
+    "languageWeight": 0,
+    "seriesTitle": "Breaking Bad",
+    "episodeNumbers": [
+      3
+    ],
+    "absoluteEpisodeNumbers": [],
+    "mappedSeasonNumber": 1,
+    "mappedEpisodeNumbers": [
+      3
+    ],
+    "mappedAbsoluteEpisodeNumbers": [
+      3
+    ],
+    "mappedSeriesId": 2,
+    "mappedEpisodeInfo": [
+      {
+        "id": 911,
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "absoluteEpisodeNumber": 3,
+        "title": "...And the Bag's in the River"
+      }
+    ],
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [],
+    "publishDate": "2026-10-23T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.German.1080p.WEB.x264-GER",
+    "episodeRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 3,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "usenet",
+    "indexerFlags": 0,
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.720p.HDTV.x264-LOL",
+    "quality": {
+      "quality": {
+        "id": 4,
+        "name": "HDTV-720p",
+        "source": "television",
+        "resolution": 720
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 601,
+    "age": 2,
+    "ageHours": 48.00020860727778,
+    "ageMinutes": 2880.0125164383335,
+    "size": 150000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "LOL",
+    "releaseHash": "",
+    "title": "Breaking.Bad.S01E03.720p.HDTV.x264-LOL",
+    "fullSeason": false,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "languageWeight": 0,
+    "seriesTitle": "Breaking Bad",
+    "episodeNumbers": [
+      3
+    ],
+    "absoluteEpisodeNumbers": [],
+    "mappedSeasonNumber": 1,
+    "mappedEpisodeNumbers": [
+      3
+    ],
+    "mappedAbsoluteEpisodeNumbers": [
+      3
+    ],
+    "mappedSeriesId": 2,
+    "mappedEpisodeInfo": [
+      {
+        "id": 911,
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "absoluteEpisodeNumber": 3,
+        "title": "...And the Bag's in the River"
+      }
+    ],
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [
+      "143.1 MB is smaller than minimum allowed 144.0 MB (for 48min)"
+    ],
+    "publishDate": "2026-11-02T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.720p.HDTV.x264-LOL",
+    "episodeRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 4,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "usenet",
+    "indexerFlags": 0,
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.CAM.x264-BAD",
+    "quality": {
+      "quality": {
+        "id": 1,
+        "name": "SDTV",
+        "source": "television",
+        "resolution": 480
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 101,
+    "age": 1,
+    "ageHours": 24.000208608277777,
+    "ageMinutes": 1440.0125164966666,
+    "size": 112500000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "BAD",
+    "releaseHash": "",
+    "title": "Breaking.Bad.S01E03.CAM.x264-BAD",
+    "fullSeason": false,
+    "sceneSource": false,
+    "seasonNumber": 1,
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "languageWeight": 0,
+    "seriesTitle": "Breaking Bad",
+    "episodeNumbers": [
+      3
+    ],
+    "absoluteEpisodeNumbers": [],
+    "mappedSeasonNumber": 1,
+    "mappedEpisodeNumbers": [
+      3
+    ],
+    "mappedAbsoluteEpisodeNumbers": [
+      3
+    ],
+    "mappedSeriesId": 2,
+    "mappedEpisodeInfo": [
+      {
+        "id": 911,
+        "seasonNumber": 1,
+        "episodeNumber": 3,
+        "absoluteEpisodeNumber": 3,
+        "title": "...And the Bag's in the River"
+      }
+    ],
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tvdbId": 0,
+    "tvRageId": 0,
+    "rejections": [],
+    "publishDate": "2026-11-03T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Breaking.Bad.S01E03.CAM.x264-BAD",
+    "episodeRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 5,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "usenet",
+    "indexerFlags": 0,
+    "isDaily": false,
+    "isAbsoluteNumbering": false,
+    "isPossibleSpecialEpisode": false,
+    "special": false
+  }
+]

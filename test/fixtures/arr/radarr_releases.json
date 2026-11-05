@@ -1,0 +1,330 @@
+[
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+    "quality": {
+      "quality": {
+        "id": 18,
+        "name": "WEBDL-2160p",
+        "source": "webdl",
+        "resolution": 2160,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "history": {
+      "grabbed": "2026-11-04T21:32:11Z"
+    },
+    "qualityWeight": 2101,
+    "age": 5,
+    "ageHours": 120.00018564180556,
+    "ageMinutes": 7200.011138513333,
+    "size": 15000000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "NTb",
+    "releaseHash": "",
+    "title": "Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+    "sceneSource": false,
+    "movieTitles": [
+      "Project Hail Mary"
+    ],
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "mappedMovieId": 2,
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [],
+    "publishDate": "2026-10-30T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+    "movieRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 0,
+    "edition": "",
+    "protocol": "usenet",
+    "indexerFlags": []
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.1080p.BluRay.x264-GRP",
+    "quality": {
+      "quality": {
+        "id": 7,
+        "name": "Bluray-1080p",
+        "source": "bluray",
+        "resolution": 1080,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "qualityWeight": 1801,
+    "age": 30,
+    "ageHours": 720.0001856484166,
+    "ageMinutes": 43200.011138906666,
+    "size": 9500000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GRP",
+    "releaseHash": "",
+    "title": "Project.Hail.Mary.2026.1080p.BluRay.x264-GRP",
+    "sceneSource": false,
+    "movieTitles": [
+      "Project Hail Mary"
+    ],
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "mappedMovieId": 2,
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [],
+    "publishDate": "2026-10-05T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.1080p.BluRay.x264-GRP",
+    "movieRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 1,
+    "edition": "",
+    "protocol": "usenet",
+    "indexerFlags": []
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.German.1080p.WEB.x264-GER",
+    "quality": {
+      "quality": {
+        "id": 3,
+        "name": "WEBDL-1080p",
+        "source": "webdl",
+        "resolution": 1080,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "qualityWeight": 1701,
+    "age": 12,
+    "ageHours": 288.0001856516389,
+    "ageMinutes": 17280.0111391,
+    "size": 3100000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseHash": "",
+    "title": "Project.Hail.Mary.2026.German.1080p.WEB.x264-GER",
+    "sceneSource": false,
+    "movieTitles": [
+      "Project Hail Mary"
+    ],
+    "languages": [
+      {
+        "id": 4,
+        "name": "German"
+      }
+    ],
+    "mappedMovieId": 2,
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [
+      "Original Language (English) is wanted, but found German"
+    ],
+    "publishDate": "2026-10-23T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.German.1080p.WEB.x264-GER",
+    "movieRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 2,
+    "edition": "",
+    "protocol": "usenet",
+    "indexerFlags": []
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.1080p.WEB-DL.DD5.1.H.264-NTb",
+    "quality": {
+      "quality": {
+        "id": 3,
+        "name": "WEBDL-1080p",
+        "source": "webdl",
+        "resolution": 1080,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "qualityWeight": 1701,
+    "age": 400,
+    "ageHours": 9600.000185656278,
+    "ageMinutes": 576000.0111393783,
+    "size": 4200000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "NTb",
+    "releaseHash": "",
+    "title": "Project.Hail.Mary.2026.1080p.WEB-DL.DD5.1.H.264-NTb",
+    "sceneSource": false,
+    "movieTitles": [
+      "Project Hail Mary"
+    ],
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "mappedMovieId": 2,
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [],
+    "publishDate": "2025-09-30T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.1080p.WEB-DL.DD5.1.H.264-NTb",
+    "movieRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 3,
+    "edition": "",
+    "protocol": "usenet",
+    "indexerFlags": []
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.720p.HDTV.x264-LOL",
+    "quality": {
+      "quality": {
+        "id": 4,
+        "name": "HDTV-720p",
+        "source": "tv",
+        "resolution": 720,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "qualityWeight": 1301,
+    "age": 2,
+    "ageHours": 48.00018565808333,
+    "ageMinutes": 2880.0111394866667,
+    "size": 1200000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "LOL",
+    "releaseHash": "",
+    "title": "Project.Hail.Mary.2026.720p.HDTV.x264-LOL",
+    "sceneSource": false,
+    "movieTitles": [
+      "Project Hail Mary"
+    ],
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "mappedMovieId": 2,
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [],
+    "publishDate": "2026-11-02T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.720p.HDTV.x264-LOL",
+    "movieRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 4,
+    "edition": "",
+    "protocol": "usenet",
+    "indexerFlags": []
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.CAM.x264-BAD",
+    "quality": {
+      "quality": {
+        "id": 25,
+        "name": "CAM",
+        "source": "cam",
+        "resolution": 0,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "customFormats": [],
+    "customFormatScore": 0,
+    "qualityWeight": 201,
+    "age": 1,
+    "ageHours": 24.00018565975,
+    "ageMinutes": 1440.0111395866666,
+    "size": 900000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "BAD",
+    "releaseHash": "",
+    "title": "Project.Hail.Mary.2026.CAM.x264-BAD",
+    "sceneSource": false,
+    "movieTitles": [
+      "Project Hail Mary"
+    ],
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "mappedMovieId": 2,
+    "approved": true,
+    "temporarilyRejected": false,
+    "rejected": false,
+    "tmdbId": 0,
+    "imdbId": 0,
+    "rejections": [],
+    "publishDate": "2026-11-03T21:36:35Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.CAM.x264-BAD",
+    "movieRequested": true,
+    "downloadAllowed": true,
+    "releaseWeight": 5,
+    "edition": "",
+    "protocol": "usenet",
+    "indexerFlags": []
+  }
+]

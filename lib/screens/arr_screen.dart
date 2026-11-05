@@ -11,6 +11,7 @@ import '../models/arr.dart';
 import '../routing/app_shell.dart';
 import '../state/arr_providers.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/arr_actions.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
@@ -488,6 +489,20 @@ class _QueueCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              if (client != null)
+                IconButton(
+                  tooltip: l.arrRemoveFromQueue,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () async {
+                    if (await showArrQueueRemoveDialog(
+                      context,
+                      client: client,
+                      item: item,
+                    )) {
+                      ref.invalidate(arrQueueProvider);
+                    }
+                  },
+                ),
             ],
           ),
         ),
@@ -602,6 +617,8 @@ class _MoviesTabState extends ConsumerState<_MoviesTab> {
       ],
       onFilter: (f) => setState(() => _filter = f),
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
+      addLabel: l.arrAddMovie,
+      onAdd: () => context.push('/arr/add/movie'),
       body: async.when(
         loading: () => const SliverFillRemaining(
           hasScrollBody: false,
@@ -716,6 +733,8 @@ class _ShowsTabState extends ConsumerState<_ShowsTab> {
       ],
       onFilter: (f) => setState(() => _filter = f),
       onRefresh: () => ref.refresh(sonarrSeriesListProvider.future),
+      addLabel: l.arrAddShow,
+      onAdd: () => context.push('/arr/add/series'),
       body: async.when(
         loading: () => const SliverFillRemaining(
           hasScrollBody: false,
@@ -783,8 +802,12 @@ class _LibraryFrame extends StatelessWidget {
   final ValueChanged<_Filter> onFilter;
   final Future<void> Function() onRefresh;
   final Widget body; // a sliver
+  final String addLabel;
+  final VoidCallback onAdd;
 
   const _LibraryFrame({
+    required this.addLabel,
+    required this.onAdd,
     required this.search,
     required this.hint,
     required this.onSearch,
@@ -862,6 +885,12 @@ class _LibraryFrame extends StatelessWidget {
                           child: Text(sortLabel(s)),
                         ),
                     ],
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton.filledTonal(
+                    tooltip: addLabel,
+                    icon: const Icon(Icons.add_rounded),
+                    onPressed: onAdd,
                   ),
                 ],
               ),

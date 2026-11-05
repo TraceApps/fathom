@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:fathom/api/arr_client.dart';
 import 'package:fathom/models/arr.dart';
+import 'package:fathom/screens/arr_releases_screen.dart';
 import 'package:fathom/services/settings_backup.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/preferences.dart';
@@ -187,6 +188,121 @@ void main() {
           'Could not reach Sonarr.');
       expect(arrErrorMessage(ArrKind.radarr, _error(404, '<html>')),
           "Radarr isn't at this address (404).");
+    });
+  });
+
+  group('interactive search', () {
+    List<ArrSearchResult> read(String name) => [
+      for (final m in _fixture(name) as List) ArrSearchResult.fromJson(m),
+    ];
+
+    test("Sonarr's releases keep its verdict and ranking data", () {
+      final list = read('sonarr_releases');
+      expect(list, hasLength(6));
+      final uhd = list.firstWhere((r) => r.title.contains('2160p'));
+      expect(uhd.rejected, isTrue);
+      expect(uhd.rejections, ['WEBDL-2160p is not wanted in profile']);
+      expect(uhd.quality, 'WEBDL-2160p');
+      expect(uhd.qualityWeight, greaterThan(0));
+      expect(uhd.protocol, 'usenet');
+      expect(uhd.isTorrent, isFalse);
+      expect(uhd.indexerId, greaterThan(0));
+      expect(uhd.guid, isNotEmpty);
+      expect(uhd.ageHours, closeTo(120, 1));
+      final ok = list.firstWhere((r) => r.title.contains('BluRay'));
+      expect(ok.rejected, isFalse);
+      expect(ok.rejections, isEmpty);
+      expect(ok.downloadAllowed, isTrue);
+    });
+
+    test("Radarr's rejections and languages read the same way", () {
+      final list = read('radarr_releases');
+      final german = list.firstWhere((r) => r.title.contains('German'));
+      expect(german.rejected, isTrue);
+      expect(german.rejections.single, contains('German'));
+      expect(german.languages, ['German']);
+    });
+
+    test('rejections sent as objects still read', () {
+      final r = ArrSearchResult.fromJson({
+        'guid': 'g',
+        'indexerId': 1,
+        'title': 't',
+        'rejected': true,
+        'rejections': [
+          {'reason': 'Not an upgrade', 'type': 'permanent'},
+        ],
+        'protocol': 'torrent',
+        'seeders': 12,
+        'leechers': 3,
+      });
+      expect(r.rejections, ['Not an upgrade']);
+      expect(r.isTorrent, isTrue);
+      expect(r.seeders, 12);
+    });
+
+    test('ages read like the apps show them', () {
+      expect(arrAge(0.5), '30m');
+      expect(arrAge(5), '5h');
+      expect(arrAge(120), '5d');
+      expect(arrAge(24 * 800), '2y');
+    });
+
+    test('the search page finds its target again from the address', () {
+      for (final t in [
+        const ArrReleaseTarget.movie(4),
+        const ArrReleaseTarget.season(2, 0),
+        const ArrReleaseTarget.episode(2, 31),
+      ]) {
+        final back = ArrReleaseTarget.fromQuery(
+          Uri.parse(t.location).queryParameters,
+        )!;
+        expect(back.kind, t.kind);
+        expect(back.movieId, t.movieId);
+        expect(back.seriesId, t.seriesId);
+        expect(back.seasonNumber, t.seasonNumber);
+        expect(back.episodeId, t.episodeId);
+      }
+      expect(ArrReleaseTarget.fromQuery(const {}), isNull);
+      expect(ArrReleaseTarget.fromQuery(const {'series': '2'}), isNull);
+    });
+  });
+
+  group('adding', () {
+    test('lookups say what is already in the library', () {
+      final shows = [
+        for (final m in _fixture('sonarr_lookup') as List)
+          ArrLookup(ArrSeries.fromJson(m), Map<String, dynamic>.from(m)),
+      ];
+      final bb = shows.firstWhere((s) => s.item.title == 'Breaking Bad');
+      expect(bb.inLibrary, isTrue);
+      expect(bb.existingId, 2);
+      expect(shows.where((s) => !s.inLibrary), isNotEmpty);
+      final movies = [
+        for (final m in _fixture('radarr_lookup') as List)
+          ArrLookup(ArrMovie.fromJson(m), Map<String, dynamic>.from(m)),
+      ];
+      expect(movies.first.item.title, 'The Matrix');
+      expect(movies.first.inLibrary, isFalse);
+    });
+
+    test('root folders come with their free space', () {
+      final roots = [
+        for (final m in _fixture('sonarr_rootfolder') as List)
+          ArrRootFolder.fromJson(m),
+      ];
+      expect(roots.single.path, '/tv');
+      expect(roots.single.freeSpace, greaterThan(0));
+    });
+
+    test('a rename names the file and both paths', () {
+      final r = ArrRename.fromJson({
+        'episodeFileId': 4,
+        'existingPath': 'Season 1/breaking.bad.s01e02.mkv',
+        'newPath': 'Season 1/Breaking Bad - S01E02.mkv',
+      });
+      expect(r.fileId, 4);
+      expect(ArrRename.fromJson({'movieFileId': 9}).fileId, 9);
     });
   });
 

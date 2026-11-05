@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/arr_client.dart';
@@ -8,11 +9,14 @@ import '../models/arr.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/arr_actions.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/error_view.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/meta_pill.dart';
+import '../widgets/ui_common.dart';
+import 'arr_releases_screen.dart';
 
 /// A movie in Radarr: where it stands, its file and its history.
 class ArrMovieScreen extends ConsumerWidget {
@@ -40,6 +44,8 @@ class ArrMovieScreen extends ConsumerWidget {
                   ?.value ??
               const {};
           final history = ref.watch(radarrMovieHistoryProvider(id));
+          final wide = MediaQuery.sizeOf(context).width >= 620;
+          final actions = _movieActions(context, ref, client, m);
           final meta = [
             if (m.year != null) '${m.year}',
             if ((m.runtime ?? 0) > 0)
@@ -65,6 +71,7 @@ class ArrMovieScreen extends ConsumerWidget {
                     color: arrStateColor(m.state, theme.colorScheme),
                   ),
                   placeholderIcon: Icons.movie_rounded,
+                  actions: wide ? actions(true) : null,
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -72,8 +79,7 @@ class ArrMovieScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (client != null)
-                          _OpenIn(client: client, slug: m.titleSlug),
+                        if (!wide) actions(false),
                         if (m.overview?.isNotEmpty ?? false) ...[
                           const SizedBox(height: 16),
                           Text(
@@ -128,9 +134,23 @@ class ArrMovieScreen extends ConsumerWidget {
                         const SizedBox(height: 20),
                         Text(l.arrFile, style: arrSectionStyle(theme)),
                         const SizedBox(height: 8),
-                        if (m.movieFile != null)
-                          ArrFileCard(file: m.movieFile!)
-                        else
+                        if (m.movieFile != null) ...[
+                          ArrFileCard(file: m.movieFile!),
+                          if (client != null)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: _DeleteFileButton(
+                                fileName:
+                                    m.movieFile!.relativePath ??
+                                    m.movieFile!.path ??
+                                    '',
+                                app: client.kind.appName,
+                                delete: () =>
+                                    client.deleteMovieFile(m.movieFile!.id),
+                                after: () => arrMovieChanged(ref, id),
+                              ),
+                            ),
+                        ] else
                           Text(
                             l.arrNoFile,
                             style: theme.textTheme.bodyMedium?.copyWith(
@@ -189,6 +209,8 @@ class ArrSeriesScreen extends ConsumerWidget {
               arrDuration(Duration(minutes: s.runtime!)),
           ].join(' · ');
           final state = s.ended ? ArrState.ended : ArrState.continuing;
+          final wide = MediaQuery.sizeOf(context).width >= 620;
+          final actions = _seriesActions(context, ref, client, s);
           // Newest season first, specials at the end, as Sonarr lists them.
           final seasons = [
             ...s.seasons.where((x) => x.seasonNumber > 0),
@@ -230,6 +252,7 @@ class ArrSeriesScreen extends ConsumerWidget {
                     ],
                   ),
                   placeholderIcon: Icons.live_tv_rounded,
+                  actions: wide ? actions(true) : null,
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -237,8 +260,7 @@ class ArrSeriesScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (client != null)
-                          _OpenIn(client: client, slug: s.titleSlug),
+                        if (!wide) actions(false),
                         if (s.overview?.isNotEmpty ?? false) ...[
                           const SizedBox(height: 16),
                           Text(
@@ -298,6 +320,8 @@ class ArrSeriesScreen extends ConsumerWidget {
                   SliverList.builder(
                     itemCount: seasons.length,
                     itemBuilder: (context, i) => _SeasonTile(
+                      client: client,
+                      seriesId: id,
                       season: seasons[i],
                       episodes:
                           [
@@ -341,8 +365,10 @@ class _Header extends StatelessWidget {
   final String? cert;
   final Widget status;
   final IconData placeholderIcon;
+  final Widget? actions;
 
   const _Header({
+    this.actions,
     required this.client,
     required this.images,
     required this.title,
@@ -402,6 +428,7 @@ class _Header extends StatelessWidget {
               ),
               cert: (cert?.isNotEmpty ?? false) ? CertBadge(text: cert!) : null,
               metaLine: meta,
+              actions: actions,
             ),
           ],
         ),
@@ -410,24 +437,274 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// Opens the title in the app's own web page, for what Fathom doesn't do
-/// yet. Not on TV, which has no browser to open it in.
-class _OpenIn extends StatelessWidget {
-  final ArrClient client;
-  final String? slug;
-  const _OpenIn({required this.client, required this.slug});
+Future<void> _openIn(ArrClient client, String? slug) => launchUrl(
+  Uri.parse(client.webUrl(slug)),
+  mode: LaunchMode.externalApplication,
+);
+
+/// A movie's actions; call with true for the header's round buttons.
+Widget Function(bool header) _movieActions(
+  BuildContext context,
+  WidgetRef ref,
+  RadarrClient? client,
+  ArrMovie m,
+) {
+  final l = AppLocalizations.of(context);
+  if (client == null) return (_) => const SizedBox.shrink();
+  void changed() => arrMovieChanged(ref, m.id);
+  final main = [
+    ArrAction(
+      icon: Icons.search_rounded,
+      label: l.arrSearchMovie,
+      primary: true,
+      onTap: () => arrRun(
+        context,
+        () => client.searchMovie(m.id),
+        done: l.arrSearchStarted(client.kind.appName),
+      ),
+    ),
+    ArrAction(
+      icon: Icons.manage_search_rounded,
+      label: l.arrInteractiveSearch,
+      onTap: () => context.push(ArrReleaseTarget.movie(m.id).location),
+    ),
+    ArrAction(
+      icon: m.monitored
+          ? Icons.bookmark_rounded
+          : Icons.bookmark_border_rounded,
+      label: m.monitored ? l.arrUnmonitor : l.arrMonitor,
+      onTap: () async {
+        if (await arrRun(
+          context,
+          () => client.setMovieMonitored(m.id, !m.monitored),
+          done: m.monitored ? l.arrNowUnmonitored : l.arrNowMonitored,
+        )) {
+          changed();
+        }
+      },
+    ),
+    ArrAction(
+      icon: Icons.edit_rounded,
+      label: l.arrEdit,
+      onTap: () async {
+        if (await showArrEditDialog(
+          context,
+          client: client,
+          id: m.id,
+          title: m.title,
+          images: m.images,
+        )) {
+          changed();
+        }
+      },
+    ),
+  ];
+  final more = [
+    ArrAction(
+      icon: Icons.sync_rounded,
+      label: l.arrRefreshScan,
+      onTap: () async {
+        if (await arrRun(
+          context,
+          () => client.refreshMovie(m.id),
+          done: l.arrRefreshStarted(client.kind.appName),
+        )) {
+          Future.delayed(const Duration(seconds: 4), changed);
+        }
+      },
+    ),
+    if (m.hasFile)
+      ArrAction(
+        icon: Icons.drive_file_rename_outline_rounded,
+        label: l.arrRenameFiles,
+        onTap: () async {
+          if (await showArrRenameDialog(
+            context,
+            client: client,
+            id: m.id,
+            title: m.title,
+            images: m.images,
+          )) {
+            Future.delayed(const Duration(seconds: 3), changed);
+          }
+        },
+      ),
+    if (!isTvDevice && m.titleSlug != null)
+      ArrAction(
+        icon: Icons.open_in_new_rounded,
+        label: l.arrOpenIn(client.kind.appName),
+        onTap: () => _openIn(client, m.titleSlug),
+      ),
+    ArrAction(
+      icon: Icons.delete_rounded,
+      label: l.commonDelete,
+      destructive: true,
+      onTap: () async {
+        if (await showArrDeleteDialog(
+              context,
+              client: client,
+              id: m.id,
+              title: m.title,
+              images: m.images,
+              sizeOnDisk: m.sizeOnDisk,
+            ) &&
+            context.mounted) {
+          ref.invalidate(radarrMoviesProvider);
+          ref.invalidate(arrCalendarProvider);
+          context.pop();
+        }
+      },
+    ),
+  ];
+  return (header) =>
+      ArrActionBar(main: main, more: more, header: header, title: m.title);
+}
+
+/// A show's actions; call with true for the header's round buttons.
+Widget Function(bool header) _seriesActions(
+  BuildContext context,
+  WidgetRef ref,
+  SonarrClient? client,
+  ArrSeries s,
+) {
+  final l = AppLocalizations.of(context);
+  if (client == null) return (_) => const SizedBox.shrink();
+  void changed() => arrSeriesChanged(ref, s.id);
+  final main = [
+    ArrAction(
+      icon: Icons.search_rounded,
+      label: l.arrSearchMonitored,
+      primary: true,
+      onTap: () => arrRun(
+        context,
+        () => client.searchSeries(s.id),
+        done: l.arrSearchStarted(client.kind.appName),
+      ),
+    ),
+    ArrAction(
+      icon: s.monitored
+          ? Icons.bookmark_rounded
+          : Icons.bookmark_border_rounded,
+      label: s.monitored ? l.arrUnmonitor : l.arrMonitor,
+      onTap: () async {
+        if (await arrRun(
+          context,
+          () => client.setSeriesMonitored(s.id, !s.monitored),
+          done: s.monitored ? l.arrNowUnmonitored : l.arrNowMonitored,
+        )) {
+          changed();
+        }
+      },
+    ),
+    ArrAction(
+      icon: Icons.edit_rounded,
+      label: l.arrEdit,
+      onTap: () async {
+        if (await showArrEditDialog(
+          context,
+          client: client,
+          id: s.id,
+          title: s.title,
+          images: s.images,
+        )) {
+          changed();
+        }
+      },
+    ),
+  ];
+  final more = [
+    ArrAction(
+      icon: Icons.sync_rounded,
+      label: l.arrRefreshScan,
+      onTap: () async {
+        if (await arrRun(
+          context,
+          () => client.refreshSeries(s.id),
+          done: l.arrRefreshStarted(client.kind.appName),
+        )) {
+          Future.delayed(const Duration(seconds: 4), changed);
+        }
+      },
+    ),
+    if (s.episodeFileCount > 0)
+      ArrAction(
+        icon: Icons.drive_file_rename_outline_rounded,
+        label: l.arrRenameFiles,
+        onTap: () async {
+          if (await showArrRenameDialog(
+            context,
+            client: client,
+            id: s.id,
+            title: s.title,
+            images: s.images,
+          )) {
+            Future.delayed(const Duration(seconds: 3), changed);
+          }
+        },
+      ),
+    if (!isTvDevice && s.titleSlug != null)
+      ArrAction(
+        icon: Icons.open_in_new_rounded,
+        label: l.arrOpenIn(client.kind.appName),
+        onTap: () => _openIn(client, s.titleSlug),
+      ),
+    ArrAction(
+      icon: Icons.delete_rounded,
+      label: l.commonDelete,
+      destructive: true,
+      onTap: () async {
+        if (await showArrDeleteDialog(
+              context,
+              client: client,
+              id: s.id,
+              title: s.title,
+              images: s.images,
+              sizeOnDisk: s.sizeOnDisk,
+            ) &&
+            context.mounted) {
+          ref.invalidate(sonarrSeriesListProvider);
+          ref.invalidate(arrCalendarProvider);
+          context.pop();
+        }
+      },
+    ),
+  ];
+  return (header) =>
+      ArrActionBar(main: main, more: more, header: header, title: s.title);
+}
+
+/// Deletes one file from disk after asking.
+class _DeleteFileButton extends StatelessWidget {
+  final String fileName;
+  final String app;
+  final Future<void> Function() delete;
+  final VoidCallback after;
+  const _DeleteFileButton({
+    required this.fileName,
+    required this.app,
+    required this.delete,
+    required this.after,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (isTvDevice || slug == null) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
-    return HoverPillButton(
-      icon: Icons.open_in_new_rounded,
-      label: l.arrOpenIn(client.kind.appName),
-      onTap: () => launchUrl(
-        Uri.parse(client.webUrl(slug)),
-        mode: LaunchMode.externalApplication,
-      ),
+    final scheme = Theme.of(context).colorScheme;
+    return TextButton.icon(
+      style: TextButton.styleFrom(foregroundColor: scheme.error),
+      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+      label: Text(l.arrDeleteFile),
+      onPressed: () async {
+        final go = await confirm(
+          context,
+          title: l.arrDeleteFileTitle,
+          message: l.arrDeleteFileMessage(fileName, app),
+          confirmLabel: l.commonDelete,
+          destructive: true,
+        );
+        if (!go || !context.mounted) return;
+        if (await arrRun(context, delete, done: l.arrFileDeleted)) after();
+      },
     );
   }
 }
@@ -450,13 +727,17 @@ class _ErrorPage extends StatelessWidget {
 }
 
 /// A season of a show, opening into its episodes.
-class _SeasonTile extends StatelessWidget {
+class _SeasonTile extends ConsumerWidget {
+  final SonarrClient? client;
+  final int seriesId;
   final ArrSeason season;
   final List<ArrEpisode> episodes;
   final Map<int, ArrFile> files;
   final bool initiallyExpanded;
 
   const _SeasonTile({
+    required this.client,
+    required this.seriesId,
     required this.season,
     required this.episodes,
     required this.files,
@@ -464,10 +745,14 @@ class _SeasonTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final c = client;
+    final name = season.seasonNumber == 0
+        ? l.arrSpecials
+        : l.arrSeason(season.seasonNumber);
     final complete =
         season.episodeCount > 0 &&
         season.episodeFileCount >= season.episodeCount;
@@ -486,16 +771,34 @@ class _SeasonTile extends StatelessWidget {
         child: ExpansionTile(
           initiallyExpanded: initiallyExpanded,
           shape: const Border(),
-          leading: Icon(
-            season.monitored
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_border_rounded,
-            color: season.monitored ? scheme.primary : scheme.outline,
+          leading: IconButton(
+            tooltip: season.monitored ? l.arrUnmonitor : l.arrMonitor,
+            icon: Icon(
+              season.monitored
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              color: season.monitored ? scheme.primary : scheme.outline,
+            ),
+            onPressed: c == null
+                ? null
+                : () async {
+                    if (await arrRun(
+                      context,
+                      () => c.setSeasonMonitored(
+                        seriesId,
+                        season.seasonNumber,
+                        !season.monitored,
+                      ),
+                      done: season.monitored
+                          ? l.arrNowUnmonitored
+                          : l.arrNowMonitored,
+                    )) {
+                      arrSeriesChanged(ref, seriesId);
+                    }
+                  },
           ),
           title: Text(
-            season.seasonNumber == 0
-                ? l.arrSpecials
-                : l.arrSeason(season.seasonNumber),
+            name,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           subtitle: Text(
@@ -504,23 +807,50 @@ class _SeasonTile extends StatelessWidget {
               if (season.sizeOnDisk > 0) arrSize(season.sizeOnDisk),
             ].join(' · '),
           ),
-          trailing: SizedBox(
-            width: 44,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: season.episodeCount == 0
-                    ? 0
-                    : season.episodeFileCount / season.episodeCount,
-                minHeight: 5,
-                backgroundColor: scheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation(color),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 44,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: season.episodeCount == 0
+                        ? 0
+                        : season.episodeFileCount / season.episodeCount,
+                    minHeight: 5,
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation(color),
+                  ),
+                ),
               ),
-            ),
+              if (c != null) ...[
+                IconButton(
+                  tooltip: l.arrSearchSeason,
+                  icon: const Icon(Icons.search_rounded),
+                  onPressed: () => arrRun(
+                    context,
+                    () => c.searchSeason(seriesId, season.seasonNumber),
+                    done: l.arrSearchStarted(c.kind.appName),
+                  ),
+                ),
+                IconButton(
+                  tooltip: l.arrInteractiveSearch,
+                  icon: const Icon(Icons.manage_search_rounded),
+                  onPressed: () => context.push(
+                    ArrReleaseTarget.season(
+                      seriesId,
+                      season.seasonNumber,
+                    ).location,
+                  ),
+                ),
+              ],
+            ],
           ),
           children: [
             for (final e in episodes)
               _EpisodeRow(
+                client: c,
                 episode: e,
                 file: e.episodeFileId == null ? null : files[e.episodeFileId],
               ),
@@ -532,9 +862,14 @@ class _SeasonTile extends StatelessWidget {
 }
 
 class _EpisodeRow extends StatelessWidget {
+  final SonarrClient? client;
   final ArrEpisode episode;
   final ArrFile? file;
-  const _EpisodeRow({required this.episode, required this.file});
+  const _EpisodeRow({
+    required this.client,
+    required this.episode,
+    required this.file,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -576,77 +911,151 @@ class _EpisodeRow extends StatelessWidget {
                   : l.arrAirs(arrDate(context, date)),
             ),
       trailing: ArrChip(label: label, color: color),
-      onTap: () => _showEpisode(context, episode, file),
+      onTap: () => _showEpisode(context, client, episode, file),
     );
   }
 }
 
-void _showEpisode(BuildContext context, ArrEpisode e, ArrFile? file) {
+void _showEpisode(
+  BuildContext context,
+  SonarrClient? client,
+  ArrEpisode e,
+  ArrFile? file,
+) {
   final l = AppLocalizations.of(context);
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (context) {
-      final theme = Theme.of(context);
-      return DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.92,
-        builder: (context, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-          children: [
-            Text(
-              e.code,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
+    builder: (context) => Consumer(
+      builder: (context, ref, _) {
+        final theme = Theme.of(context);
+        final c = client;
+        void changed() => arrSeriesChanged(ref, e.seriesId);
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          maxChildSize: 0.92,
+          builder: (context, controller) => ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+            children: [
+              Text(
+                e.code,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
               ),
-            ),
-            Text(
-              e.title ?? '',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              Text(
+                e.title ?? '',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            if (e.airDate != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '${arrDate(context, e.airDate!)} · ${arrTime(context, e.airDate!)}',
+              if (e.airDate != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '${arrDate(context, e.airDate!)} · ${arrTime(context, e.airDate!)}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              if (e.overview?.isNotEmpty ?? false) ...[
+                const SizedBox(height: 14),
+                Text(
+                  e.overview!,
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                ),
+              ],
+              if (c != null) ...[
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    HoverPillButton(
+                      primary: true,
+                      icon: Icons.search_rounded,
+                      label: l.arrSearchEpisode,
+                      onTap: () => arrRun(
+                        context,
+                        () => c.searchEpisodes([e.id]),
+                        done: l.arrSearchStarted(c.kind.appName),
+                      ),
+                    ),
+                    HoverPillButton(
+                      icon: Icons.manage_search_rounded,
+                      label: l.arrInteractiveSearch,
+                      onTap: () {
+                        final target = ArrReleaseTarget.episode(
+                          e.seriesId,
+                          e.id,
+                        ).location;
+                        final router = GoRouter.of(context);
+                        Navigator.pop(context);
+                        router.push(target);
+                      },
+                    ),
+                    HoverPillButton(
+                      icon: e.monitored
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      label: e.monitored ? l.arrUnmonitor : l.arrMonitor,
+                      onTap: () async {
+                        if (await arrRun(
+                              context,
+                              () =>
+                                  c.setEpisodesMonitored([e.id], !e.monitored),
+                              done: e.monitored
+                                  ? l.arrNowUnmonitored
+                                  : l.arrNowMonitored,
+                            ) &&
+                            context.mounted) {
+                          changed();
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 18),
+              ArrFact(
+                label: l.arrMonitored,
+                value: e.monitored ? l.arrYes : l.arrNo,
+              ),
+              const SizedBox(height: 14),
+              Text(l.arrFile, style: arrSectionStyle(theme)),
+              const SizedBox(height: 8),
+              if (file != null) ...[
+                ArrFileCard(file: file),
+                if (c != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _DeleteFileButton(
+                      fileName: file.relativePath ?? file.path ?? '',
+                      app: c.kind.appName,
+                      delete: () => c.deleteEpisodeFile(file.id),
+                      after: () {
+                        changed();
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                    ),
+                  ),
+              ] else
+                Text(
+                  l.arrNoFile,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ),
-            if (e.overview?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 14),
-              Text(
-                e.overview!,
-                style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
-              ),
             ],
-            const SizedBox(height: 18),
-            ArrFact(
-              label: l.arrMonitored,
-              value: e.monitored ? l.arrYes : l.arrNo,
-            ),
-            const SizedBox(height: 14),
-            Text(l.arrFile, style: arrSectionStyle(theme)),
-            const SizedBox(height: 8),
-            if (file != null)
-              ArrFileCard(file: file)
-            else
-              Text(
-                l.arrNoFile,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-          ],
-        ),
-      );
-    },
+          ),
+        );
+      },
+    ),
   );
 }
 

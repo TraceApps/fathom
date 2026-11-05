@@ -11,6 +11,7 @@ extension ArrKindName on ArrKind {
 
 DateTime? _date(Object? v) =>
     v is String && v.isNotEmpty ? DateTime.tryParse(v)?.toLocal() : null;
+
 /// Movie release dates are days, sent as midnight UTC. Kept as that day;
 /// turning them into local time would move them a day earlier west of UTC.
 DateTime? _day(Object? v) {
@@ -167,6 +168,7 @@ class ArrMovie {
   final String? certification;
   final List<String> genres;
   final int? qualityProfileId;
+  final String? minimumAvailability; // announced, inCinemas, released
   final String? path;
   final List<ArrImage> images;
   final DateTime? added;
@@ -197,6 +199,7 @@ class ArrMovie {
     this.certification,
     this.genres = const [],
     this.qualityProfileId,
+    this.minimumAvailability,
     this.path,
     this.images = const [],
     this.added,
@@ -235,6 +238,7 @@ class ArrMovie {
       certification: j['certification'] as String?,
       genres: _strings(j['genres']),
       qualityProfileId: _intOrNull(j['qualityProfileId']),
+      minimumAvailability: j['minimumAvailability'] as String?,
       path: j['path'] as String?,
       images: _images(j['images']),
       added: _date(j['added']),
@@ -320,6 +324,7 @@ class ArrSeries {
   final int? qualityProfileId;
   final String? path;
   final String? seriesType; // standard, daily, anime
+  final bool seasonFolder;
   final List<ArrImage> images;
   final List<ArrSeason> seasons;
   final int episodeFileCount;
@@ -351,6 +356,7 @@ class ArrSeries {
     this.qualityProfileId,
     this.path,
     this.seriesType,
+    this.seasonFolder = true,
     this.images = const [],
     this.seasons = const [],
     this.episodeFileCount = 0,
@@ -385,6 +391,7 @@ class ArrSeries {
       qualityProfileId: _intOrNull(j['qualityProfileId']),
       path: j['path'] as String?,
       seriesType: j['seriesType'] as String?,
+      seasonFolder: j['seasonFolder'] as bool? ?? true,
       images: _images(j['images']),
       seasons: [for (final m in _maps(j['seasons'])) ArrSeason.fromJson(m)]
         ..sort((a, b) => b.seasonNumber.compareTo(a.seasonNumber)),
@@ -714,5 +721,142 @@ class ArrStatus {
   factory ArrStatus.fromJson(Map<String, dynamic> j) => ArrStatus(
     appName: j['appName'] as String? ?? j['instanceName'] as String? ?? '',
     version: j['version'] as String? ?? '',
+  );
+}
+
+/// A folder where the app puts new titles.
+class ArrRootFolder {
+  final int id;
+  final String path;
+  final int? freeSpace;
+  final bool accessible;
+  const ArrRootFolder({
+    required this.id,
+    required this.path,
+    this.freeSpace,
+    this.accessible = true,
+  });
+
+  factory ArrRootFolder.fromJson(Map<String, dynamic> j) => ArrRootFolder(
+    id: _int(j['id']),
+    path: j['path'] as String? ?? '',
+    freeSpace: _intOrNull(j['freeSpace']),
+    accessible: j['accessible'] as bool? ?? true,
+  );
+}
+
+/// A title from a lookup, with the raw entry the app wants back to add it.
+/// [item]'s id is 0 unless the app already has it.
+class ArrLookup<T> {
+  final T item;
+  final Map<String, dynamic> raw;
+  const ArrLookup(this.item, this.raw);
+
+  int get existingId => _int(raw['id']);
+  bool get inLibrary => existingId > 0;
+}
+
+/// A release an indexer offers, from an interactive search, with the app's
+/// verdict on it.
+class ArrSearchResult {
+  final String guid;
+  final int indexerId;
+  final String title;
+  final String? indexer;
+  final String? quality;
+  final int qualityWeight;
+  final int size;
+  final double? ageHours;
+  final String protocol; // torrent, usenet
+  final int? seeders;
+  final int? leechers;
+  final int customFormatScore;
+  final List<String> customFormats;
+  final List<String> languages;
+  final bool rejected;
+  final List<String> rejections;
+  final bool downloadAllowed;
+  final String? releaseGroup;
+  final String? infoUrl;
+  final bool fullSeason;
+
+  const ArrSearchResult({
+    required this.guid,
+    required this.indexerId,
+    required this.title,
+    this.indexer,
+    this.quality,
+    this.qualityWeight = 0,
+    this.size = 0,
+    this.ageHours,
+    this.protocol = 'unknown',
+    this.seeders,
+    this.leechers,
+    this.customFormatScore = 0,
+    this.customFormats = const [],
+    this.languages = const [],
+    this.rejected = false,
+    this.rejections = const [],
+    this.downloadAllowed = true,
+    this.releaseGroup,
+    this.infoUrl,
+    this.fullSeason = false,
+  });
+
+  factory ArrSearchResult.fromJson(Map<String, dynamic> j) => ArrSearchResult(
+    guid: j['guid'] as String? ?? '',
+    indexerId: _int(j['indexerId']),
+    title: j['title'] as String? ?? '',
+    indexer: j['indexer'] as String?,
+    quality: _qualityName(j['quality']),
+    qualityWeight: _int(j['qualityWeight']),
+    size: _int(j['size']),
+    ageHours:
+        (j['ageHours'] as num?)?.toDouble() ??
+        (j['age'] == null ? null : (j['age'] as num).toDouble() * 24),
+    protocol: j['protocol'] as String? ?? 'unknown',
+    seeders: _intOrNull(j['seeders']),
+    leechers: _intOrNull(j['leechers']),
+    customFormatScore: _int(j['customFormatScore']),
+    customFormats: [
+      for (final m in _maps(j['customFormats']))
+        if (m['name'] is String) m['name'] as String,
+    ],
+    languages: [
+      for (final m in _maps(j['languages']))
+        if (m['name'] is String) m['name'] as String,
+    ],
+    rejected: j['rejected'] as bool? ?? false,
+    rejections: [
+      for (final r in (j['rejections'] as List?) ?? const [])
+        if (r is String)
+          r
+        else if (r is Map && r['reason'] is String)
+          r['reason'] as String,
+    ],
+    downloadAllowed: j['downloadAllowed'] as bool? ?? true,
+    releaseGroup: j['releaseGroup'] as String?,
+    infoUrl: j['infoUrl'] as String?,
+    fullSeason: j['fullSeason'] as bool? ?? false,
+  );
+
+  bool get isTorrent => protocol == 'torrent';
+}
+
+/// A file a rename would change.
+class ArrRename {
+  final int fileId;
+  final String existingPath;
+  final String newPath;
+  const ArrRename({
+    required this.fileId,
+    required this.existingPath,
+    required this.newPath,
+  });
+
+  factory ArrRename.fromJson(Map<String, dynamic> j) => ArrRename(
+    fileId: _int(j['episodeFileId'] ?? j['movieFileId']),
+    existingPath: j['existingPath'] as String? ?? '',
+    newPath: j['newPath'] as String? ?? '',
   );
 }

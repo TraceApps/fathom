@@ -39,7 +39,7 @@ Fathom brings your whole Jellyfin setup into one window: movies, shows, music, a
 - **Run your server from the app**: users, libraries, scheduled tasks, transcoding, Live TV and DVR, and more, without the web dashboard.
 - **YouTube, built in** (optional): search, subscriptions, local playlists, SponsorBlock, DeArrow, downloads, theater mode. No account, no ads.
 - **Requests and ratings**: Seerr browse-and-request with manage-in-place, plus Rotten Tomatoes, IMDb, and more.
-- **Sonarr and Radarr** (optional): a calendar of what's airing, the download queue, and your shows and movies with every file's details, from both apps in one place.
+- **Sonarr and Radarr** (optional): a calendar of what's airing, the download queue, and your shows and movies with every file's details, from both apps in one place. Search automatically or pick a release by hand, add titles, monitor, edit, rename, and delete.
 - **Internet radio** with live time-shift, **casting**, **watch together** over SyncPlay, **picture-in-picture**, and light / dark / AMOLED themes.
 
 See the [feature tour](https://traceapps.github.io/fathom/features/) for the full list.

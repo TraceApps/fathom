@@ -85,11 +85,22 @@ Because Fathom is sideloaded rather than installed from the Play Store, the firs
 With Sonarr or Radarr connected (see [First-run setup](setup.md#sonarr-and-radarr)), the **Arr** section brings them into Fathom:
 
 - **Calendar**: episodes airing and movie releases (in cinemas, digital, disc) from both apps, from yesterday through the next four weeks, grouped by day, each marked Downloaded, Missing, Unaired, or Not Released.
-- **Queue**: everything downloading in either app, with progress, time left, quality, and the download client. Imports that need help (blocked or failed) come first, with the app's own explanation. It refreshes every few seconds while it's open.
+- **Queue**: everything downloading in either app, with progress, time left, quality, and the download client. Imports that need help (blocked or failed) come first, with the app's own explanation. It refreshes every few seconds while it's open. The **×** on a download removes it, with the choice to also remove it from the download client, blocklist the release so it's never grabbed again, and search for another right away.
 - **Movies** and **Shows**: your Radarr and Sonarr libraries as poster grids, with the same colored status bar the apps use. Search, filter (monitored, missing, downloaded, continuing, ended), and sort by title, date added, year, or size.
-- **Detail pages**: a movie's or show's quality profile, path, size, release dates, every season and episode with its file and quality, the file's video, audio, and subtitle details, and its history. **Open in Sonarr** or **Open in Radarr** jumps to the same title in the app's own page.
+- **Detail pages**: a movie's or show's quality profile, path, size, release dates, every season and episode with its file and quality, the file's video, audio, and subtitle details, and its history.
 
-Searching, adding titles, monitoring, and deleting are coming next, in later Fathom builds.
+What you can do from a movie or show:
+
+- **Search**: **Search Movie**, or **Search Monitored** for a show, has the app search your indexers and grab the best release it finds. Each season has its own search button, and so does each episode (tap the episode).
+- **Interactive Search**: lists every release your indexers offer for a movie, a season, or an episode, the way the apps' own Interactive Search does: quality, size, age, indexer, Usenet or torrent (with seeders and leechers), custom format score, and the app's verdict. Releases the app rejected say why, and **Grab** still lets you take one after confirming. Sort by Best Match (the app's own ranking), Quality, Size, Age, or Seeders, and hide rejected releases if you like.
+- **Monitor** or **Unmonitor** a movie, a whole show, a season (its bookmark), or an episode.
+- **Edit**: the quality profile and monitoring, plus Minimum Availability for a movie, or Series Type and Season Folders for a show.
+- Under **More**: **Refresh & Scan**, **Rename Files** (shows each file's current and new name first; it needs renaming turned on in the app's Settings, Media Management), **Open in Sonarr** or **Open in Radarr**, and **Delete**, with the choice to delete the files too and to keep import lists from adding it again.
+- **Delete File** under a file removes just that file from disk.
+
+**Add Movie** and **Add Show** (the **+** next to the search box) search online by name, or exactly by `tmdb:`, `imdb:` or `tvdb:` id. Titles the app already has say **In Library** and open their page. Adding asks for the root folder (with its free space), what to monitor, the quality profile, and Minimum Availability for a movie or Series Type and Season Folders for a show, and can start a search right away. Fathom remembers your choices for the next one while it's open.
+
+The apps' one-time setup (indexers, download clients, custom formats, and media management rules) stays in their own web pages.
 
 ## Server administration
 

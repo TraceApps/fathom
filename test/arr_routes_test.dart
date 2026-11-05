@@ -22,13 +22,16 @@ void main() {
     expect(sonarrAt, greaterThan(0));
     expect(radarrAt, greaterThan(sonarrAt));
 
-    final call = RegExp(r"_get\(\s*'([^']*)'");
+    // _get/_post/_put/_delete('path'), plus _api('path') for a GET made
+    // directly (the slow release search).
+    final call = RegExp(r"_(get|post|put|delete|api)\(\s*'([^']*)'");
     final checked = <String>[];
     final unknown = <String>[];
     for (final m in call.allMatches(src)) {
       // '$id' and '${x.y}' segments are the spec's {id}.
-      final path = '/api/v3/${m.group(1)!.replaceAll(RegExp(r'\$\{[^}]*\}|\$\w+'), '{}')}';
-      final route = 'GET $path';
+      final path = '/api/v3/${m.group(2)!.replaceAll(RegExp(r'\$\{[^}]*\}|\$\w+'), '{}')}';
+      final method = m.group(1) == 'api' ? 'GET' : m.group(1)!.toUpperCase();
+      final route = '$method $path';
       final apps = m.start > radarrAt
           ? {'radarr': radarr}
           : m.start > sonarrAt
@@ -39,7 +42,7 @@ void main() {
         if (!a.value.contains(route)) unknown.add('${a.key}: $route');
       }
     }
-    expect(checked.length, greaterThan(14), reason: 'the scan found too few calls');
+    expect(checked.length, greaterThan(40), reason: 'the scan found too few calls');
     expect(unknown, isEmpty, reason: 'Not in the app\'s API:\n${unknown.join('\n')}');
   });
 }
