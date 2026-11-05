@@ -1173,11 +1173,21 @@
 <p>With Sonarr or Radarr connected (see <a href="../setup/#sonarr-and-radarr">First-run setup</a>), the <strong>Arr</strong> section brings them into Fathom:</p>
 <ul>
 <li><strong>Calendar</strong>: episodes airing and movie releases (in cinemas, digital, disc) from both apps, from yesterday through the next four weeks, grouped by day, each marked Downloaded, Missing, Unaired, or Not Released.</li>
-<li><strong>Queue</strong>: everything downloading in either app, with progress, time left, quality, and the download client. Imports that need help (blocked or failed) come first, with the app's own explanation. It refreshes every few seconds while it's open.</li>
+<li><strong>Queue</strong>: everything downloading in either app, with progress, time left, quality, and the download client. Imports that need help (blocked or failed) come first, with the app's own explanation. It refreshes every few seconds while it's open. The <strong>×</strong> on a download removes it, with the choice to also remove it from the download client, blocklist the release so it's never grabbed again, and search for another right away.</li>
 <li><strong>Movies</strong> and <strong>Shows</strong>: your Radarr and Sonarr libraries as poster grids, with the same colored status bar the apps use. Search, filter (monitored, missing, downloaded, continuing, ended), and sort by title, date added, year, or size.</li>
-<li><strong>Detail pages</strong>: a movie's or show's quality profile, path, size, release dates, every season and episode with its file and quality, the file's video, audio, and subtitle details, and its history. <strong>Open in Sonarr</strong> or <strong>Open in Radarr</strong> jumps to the same title in the app's own page.</li>
+<li><strong>Detail pages</strong>: a movie's or show's quality profile, path, size, release dates, every season and episode with its file and quality, the file's video, audio, and subtitle details, and its history.</li>
 </ul>
-<p>Searching, adding titles, monitoring, and deleting are coming next, in later Fathom builds.</p>
+<p>What you can do from a movie or show:</p>
+<ul>
+<li><strong>Search</strong>: <strong>Search Movie</strong>, or <strong>Search Monitored</strong> for a show, has the app search your indexers and grab the best release it finds. Each season has its own search button, and so does each episode (tap the episode).</li>
+<li><strong>Interactive Search</strong>: lists every release your indexers offer for a movie, a season, or an episode, the way the apps' own Interactive Search does: quality, size, age, indexer, Usenet or torrent (with seeders and leechers), custom format score, and the app's verdict. Releases the app rejected say why, and <strong>Grab</strong> still lets you take one after confirming. Sort by Best Match (the app's own ranking), Quality, Size, Age, or Seeders, and hide rejected releases if you like.</li>
+<li><strong>Monitor</strong> or <strong>Unmonitor</strong> a movie, a whole show, a season (its bookmark), or an episode.</li>
+<li><strong>Edit</strong>: the quality profile and monitoring, plus Minimum Availability for a movie, or Series Type and Season Folders for a show.</li>
+<li>Under <strong>More</strong>: <strong>Refresh &amp; Scan</strong>, <strong>Rename Files</strong> (shows each file's current and new name first; it needs renaming turned on in the app's Settings, Media Management), <strong>Open in Sonarr</strong> or <strong>Open in Radarr</strong>, and <strong>Delete</strong>, with the choice to delete the files too and to keep import lists from adding it again.</li>
+<li><strong>Delete File</strong> under a file removes just that file from disk.</li>
+</ul>
+<p><strong>Add Movie</strong> and <strong>Add Show</strong> (the <strong>+</strong> next to the search box) search online by name, or exactly by <code>tmdb:</code>, <code>imdb:</code> or <code>tvdb:</code> id. Titles the app already has say <strong>In Library</strong> and open their page. Adding asks for the root folder (with its free space), what to monitor, the quality profile, and Minimum Availability for a movie or Series Type and Season Folders for a show, and can start a search right away. Fathom remembers your choices for the next one while it's open.</p>
+<p>The apps' one-time setup (indexers, download clients, custom formats, and media management rules) stays in their own web pages.</p>
 <h2 id="server-administration">Server administration<a class="headerlink" href="#server-administration" title="Permanent link">&para;</a></h2>
 <p>Run most of Jellyfin from the app, without opening the web dashboard: manage users, libraries, scheduled tasks, active sessions, playback and transcoding, networking, branding, Live TV and DVR, backups, and plugins. Each plugin's configuration is an in-app form (toggles, fields, and add/remove lists), with a raw-JSON option if you prefer, and plugin logos show in the list.</p>
 <p><strong>Backups</strong> (on servers that offer them): create a backup of the server, choosing whether to include metadata, subtitles, and trickplay images alongside the database, see what each backup holds and the server version it was made on, and restore one. Backups are stored on the server itself. Restoring restarts the server and replaces everything changed since the backup was made, and should only be done onto the same Jellyfin version the backup came from.</p>
@@ -1215,7 +1225,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 4, 2026 07:20:27 UTC">November 4, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 5, 2026 07:20:13 UTC">November 5, 2026</span>
   </span>
 
     
