@@ -11,6 +11,7 @@ import '../models/arr.dart';
 import '../routing/app_shell.dart';
 import '../state/arr_providers.dart';
 import '../widgets/app_spinner.dart';
+import 'arr_activity_screens.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
@@ -50,6 +51,8 @@ class ArrScreen extends ConsumerWidget {
     final tabs = <(String, Widget)>[
       (l.arrCalendar, const _CalendarTab()),
       (l.arrQueue, const _QueueTab()),
+      (l.arrWanted, const ArrWantedTab()),
+      (l.arrHistory, const ArrHistoryTab()),
       if (radarr) (l.arrMovies, const _MoviesTab()),
       if (sonarr) (l.arrShows, const _ShowsTab()),
     ];
@@ -62,13 +65,19 @@ class ArrScreen extends ConsumerWidget {
           leading: mobileDrawerLeading(context),
           title: const Text('Arr'),
           actions: [
+            ArrHealthButton(onTap: () => context.push('/arr/health')),
             IconButton(
               tooltip: l.browseSettings,
               icon: const Icon(Icons.settings_rounded),
               onPressed: () => context.push('/arr-settings'),
             ),
           ],
-          bottom: TabBar(tabs: [for (final t in tabs) Tab(text: t.$1)]),
+          // Six tabs don't fit a phone side by side; they scroll there.
+          bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [for (final t in tabs) Tab(text: t.$1)],
+          ),
         ),
         body: TabBarView(
           children: [for (final t in tabs) RepaintBoundary(child: t.$2)],
@@ -196,7 +205,7 @@ class _CalendarRow extends ConsumerWidget {
             null => '',
           };
     return InkWell(
-      onTap: () => _openTitle(
+      onTap: () => arrOpenTitle(
         context,
         entry.kind,
         entry.kind == ArrKind.sonarr ? entry.seriesId : entry.movieId,
@@ -269,11 +278,6 @@ class _CalendarRow extends ConsumerWidget {
       ),
     );
   }
-}
-
-void _openTitle(BuildContext context, ArrKind kind, int? id) {
-  if (id == null) return;
-  context.push(kind == ArrKind.sonarr ? '/arr/series/$id' : '/arr/movie/$id');
 }
 
 // ---------------------------------------------------------------- Queue
@@ -396,7 +400,7 @@ class _QueueCard extends ConsumerWidget {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _openTitle(
+        onTap: () => arrOpenTitle(
           context,
           item.kind,
           item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,

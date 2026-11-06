@@ -86,6 +86,8 @@ With Sonarr or Radarr connected (see [First-run setup](setup.md#sonarr-and-radar
 
 - **Calendar**: episodes airing and movie releases (in cinemas, digital, disc) from both apps, from yesterday through the next four weeks, grouped by day, each marked Downloaded, Missing, Unaired, or Not Released.
 - **Queue**: everything downloading in either app, with progress, time left, quality, and the download client. Imports that need help (blocked or failed) come first, with the app's own explanation. It refreshes every few seconds while it's open. The **×** on a download removes it, with the choice to also remove it from the download client, blocklist the release so it's never grabbed again, and search for another right away.
+- **Wanted**: monitored episodes and movies that are **Missing**, or whose file is below the quality profile's cutoff (**Cutoff Unmet**, with the quality you have now for episodes), newest first. The search button on each searches for that one, and **Search All** searches for everything on the list. Radarr also lists monitored movies that aren't out yet; they're marked Not Released and come last.
+- **History**: everything both apps have done lately (grabs, imports, failed downloads, deletions, renames), newest first, with the release name, quality, and indexer or reason. A grab's **⋮** menu has **Mark as Failed**, which blocklists that release and, if the app is set to, searches for another.
 - **Movies** and **Shows**: your Radarr and Sonarr libraries as poster grids, with the same colored status bar the apps use. Search, filter (monitored, missing, downloaded, continuing, ended), and sort by title, date added, year, or size.
 - **Detail pages**: a movie's or show's quality profile, path, size, release dates, every season and episode with its file and quality, the file's video, audio, and subtitle details, and its history.
 
@@ -99,6 +101,10 @@ What you can do from a movie or show:
 - **Delete File** under a file removes just that file from disk.
 
 **Add Movie** and **Add Show** (the **+** next to the search box) search online by name, or exactly by `tmdb:`, `imdb:` or `tvdb:` id. Titles the app already has say **In Library** and open their page. Adding asks for the root folder (with its free space), what to monitor, the quality profile, and Minimum Availability for a movie or Series Type and Season Folders for a show, and can start a search right away. Fathom remembers your choices for the next one while it's open.
+
+**Health**, the shield at the top of the Arr section, shows each app's version and what its own health check has found, such as an indexer that keeps failing or a missing root folder, with **Learn More** linking to the app's wiki page about it. A badge counts the warnings and errors.
+
+**From a Jellyfin movie or show**: when Radarr (movies) or Sonarr (shows) is connected, the **⋮** menu on the title's page finds it there by its TMDB or TVDB id. If the app has it, **Manage in Radarr** or **Manage in Sonarr** opens its page in the Arr section, and **Search Movie** (or **Search Monitored**, for missing episodes) and, for a movie, **Interactive Search**, for a better copy, start right there. If the app doesn't have it, **Add to Radarr** or **Add to Sonarr** opens Add Movie or Add Show with that title already found. Jellyfin titles without the id don't show these.
 
 The apps' one-time setup (indexers, download clients, custom formats, and media management rules) stays in their own web pages.
 

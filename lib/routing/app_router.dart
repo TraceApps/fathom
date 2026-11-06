@@ -54,6 +54,7 @@ import '../screens/seerr_person_screen.dart';
 import '../screens/seerr_season_screen.dart';
 import '../screens/seerr_settings_screen.dart';
 import '../models/arr.dart';
+import '../screens/arr_activity_screens.dart';
 import '../screens/arr_add_screen.dart';
 import '../screens/arr_detail_screens.dart';
 import '../screens/arr_releases_screen.dart';
@@ -539,7 +540,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, state) => _fadePage(ArrAddScreen(
                   kind: state.pathParameters['kind'] == 'series'
                       ? ArrKind.sonarr
-                      : ArrKind.radarr))),
+                      : ArrKind.radarr,
+                  term: state.uri.queryParameters['term']))),
+          GoRoute(
+              path: '/arr/health',
+              pageBuilder: (_, _) => _fadePage(const ArrHealthScreen())),
           GoRoute(
               path: '/arr/releases',
               pageBuilder: (_, state) => _fadePage(ArrReleasesScreen(

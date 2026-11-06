@@ -665,34 +665,67 @@ class ArrCalendarEntry {
 enum ArrRelease { cinemas, digital, physical }
 
 /// One event in a title's history: grabbed, imported, failed, deleted...
+/// From the History tab it also carries the title it belongs to.
 class ArrHistoryItem {
+  final ArrKind? kind;
   final int id;
   final DateTime? date;
   final String eventType;
   final String? sourceTitle;
   final String? quality;
   final int? episodeId;
+  final int? seriesId;
+  final int? movieId;
+  final String? title; // the show or movie, when the app sent it along
+  final String? episodeCode;
+  final String? episodeTitle;
+  final List<ArrImage> images;
   final Map<String, dynamic> data;
 
   const ArrHistoryItem({
     required this.id,
     required this.eventType,
+    this.kind,
     this.date,
     this.sourceTitle,
     this.quality,
     this.episodeId,
+    this.seriesId,
+    this.movieId,
+    this.title,
+    this.episodeCode,
+    this.episodeTitle,
+    this.images = const [],
     this.data = const {},
   });
 
-  factory ArrHistoryItem.fromJson(Map<String, dynamic> j) => ArrHistoryItem(
-    id: _int(j['id']),
-    date: _date(j['date']),
-    eventType: j['eventType'] as String? ?? 'unknown',
-    sourceTitle: j['sourceTitle'] as String?,
-    quality: _qualityName(j['quality']),
-    episodeId: _intOrNull(j['episodeId']),
-    data: j['data'] is Map ? Map<String, dynamic>.from(j['data']) : const {},
-  );
+  factory ArrHistoryItem.fromJson(Map<String, dynamic> j, [ArrKind? kind]) {
+    final series = j['series'] is Map
+        ? ArrSeries.fromJson(Map<String, dynamic>.from(j['series']))
+        : null;
+    final movie = j['movie'] is Map
+        ? ArrMovie.fromJson(Map<String, dynamic>.from(j['movie']))
+        : null;
+    final episode = j['episode'] is Map
+        ? ArrEpisode.fromJson(Map<String, dynamic>.from(j['episode']))
+        : null;
+    return ArrHistoryItem(
+      kind: kind,
+      id: _int(j['id']),
+      date: _date(j['date']),
+      eventType: j['eventType'] as String? ?? 'unknown',
+      sourceTitle: j['sourceTitle'] as String?,
+      quality: _qualityName(j['quality']),
+      episodeId: _intOrNull(j['episodeId']),
+      seriesId: _intOrNull(j['seriesId']),
+      movieId: _intOrNull(j['movieId']),
+      title: series?.title ?? movie?.title,
+      episodeCode: episode?.code,
+      episodeTitle: episode?.title,
+      images: series?.images ?? movie?.images ?? const [],
+      data: j['data'] is Map ? Map<String, dynamic>.from(j['data']) : const {},
+    );
+  }
 
   /// The download client, indexer or reason the app recorded, if any.
   String? get detail =>
@@ -701,6 +734,119 @@ class ArrHistoryItem {
               data['indexer'] ??
               data['downloadClient'])
           as String?;
+
+  /// A grab can be marked failed: the app blocklists the release and looks
+  /// for another.
+  bool get canMarkFailed => eventType == 'grabbed';
+}
+
+/// A monitored episode or movie from Wanted: missing, or below the quality
+/// profile's cutoff.
+class ArrWantedItem {
+  final ArrKind kind;
+  final String title; // the show or movie
+  final String? episodeCode;
+  final String? episodeTitle;
+  final DateTime? date; // air date, or the movie's release
+  final int? year;
+  final int? seriesId;
+  final int? movieId;
+  final int? episodeId;
+  final String? quality; // what's there now (cutoff unmet)
+  final bool available; // out, so a search can find it
+  final List<ArrImage> images;
+
+  const ArrWantedItem({
+    required this.kind,
+    required this.title,
+    this.episodeCode,
+    this.episodeTitle,
+    this.date,
+    this.year,
+    this.seriesId,
+    this.movieId,
+    this.episodeId,
+    this.quality,
+    this.available = true,
+    this.images = const [],
+  });
+
+  /// Sonarr's Wanted lists episodes (asked with includeSeries, and with
+  /// includeEpisodeFile for cutoff unmet).
+  factory ArrWantedItem.fromEpisode(Map<String, dynamic> j) {
+    final e = ArrEpisode.fromJson(j);
+    final file = j['episodeFile'];
+    return ArrWantedItem(
+      kind: ArrKind.sonarr,
+      title: e.series?.title ?? '',
+      episodeCode: e.code,
+      episodeTitle: e.title,
+      date: e.airDate,
+      seriesId: e.seriesId,
+      episodeId: e.id,
+      quality: file is Map ? _qualityName(file['quality']) : null,
+      images: e.series?.images ?? const [],
+    );
+  }
+
+  /// Radarr's Wanted lists movies.
+  factory ArrWantedItem.fromMovie(Map<String, dynamic> j) {
+    final m = ArrMovie.fromJson(j);
+    return ArrWantedItem(
+      kind: ArrKind.radarr,
+      title: m.title,
+      date: m.digitalRelease ?? m.physicalRelease ?? m.inCinemas,
+      year: m.year,
+      movieId: m.id,
+      quality: m.movieFile?.quality,
+      // Radarr lists monitored movies that aren't out yet too.
+      available: m.isAvailable,
+      images: m.images,
+    );
+  }
+}
+
+/// One page of a list the app pages through, and how many there are in all.
+class ArrPage<T> {
+  final List<T> items;
+  final int total;
+  const ArrPage(this.items, this.total);
+}
+
+/// Something the app's own health check found: an indexer down, a disk
+/// filling up, an update waiting...
+class ArrHealth {
+  final ArrKind kind;
+  final String source;
+  final String type; // ok, notice, warning, error
+  final String message;
+  final String? wikiUrl;
+
+  const ArrHealth({
+    required this.kind,
+    required this.source,
+    required this.type,
+    required this.message,
+    this.wikiUrl,
+  });
+
+  factory ArrHealth.fromJson(ArrKind kind, Map<String, dynamic> j) {
+    final wiki = j['wikiUrl'];
+    return ArrHealth(
+      kind: kind,
+      source: j['source'] as String? ?? '',
+      type: j['type'] as String? ?? 'notice',
+      message: j['message'] as String? ?? '',
+      // Older versions send a Uri object rather than a string.
+      wikiUrl: wiki is String
+          ? wiki
+          : wiki is Map
+          ? wiki['fullUri'] as String?
+          : null,
+    );
+  }
+
+  bool get isProblem => type == 'warning' || type == 'error';
 }
 
 class ArrQualityProfile {

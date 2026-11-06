@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../api/arr_client.dart';
@@ -255,3 +256,38 @@ class ArrErrorBanner extends StatelessWidget {
 /// Section heading on Arr pages.
 TextStyle? arrSectionStyle(ThemeData theme) =>
     theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
+
+/// Opens Fathom's own page for a show or movie.
+void arrOpenTitle(BuildContext context, ArrKind kind, int? id) {
+  if (id == null) return;
+  context.push(kind == ArrKind.sonarr ? '/arr/series/$id' : '/arr/movie/$id');
+}
+
+/// How a history event reads: its name, icon and color, the way the apps
+/// show them.
+(String, IconData, Color) arrHistoryEvent(
+  AppLocalizations l,
+  ColorScheme scheme,
+  String eventType,
+) => switch (eventType) {
+  'grabbed' => (
+    l.arrEventGrabbed,
+    Icons.cloud_download_rounded,
+    arrUnreleasedColor,
+  ),
+  'downloadFolderImported' || 'seriesFolderImported' || 'movieFolderImported' =>
+    (l.arrEventImported, Icons.download_done_rounded, arrDownloadedColor),
+  'downloadFailed' => (l.arrEventFailed, Icons.error_rounded, arrMissingColor),
+  'episodeFileDeleted' || 'movieFileDeleted' => (
+    l.arrEventDeleted,
+    Icons.delete_rounded,
+    arrMissingColor,
+  ),
+  'episodeFileRenamed' || 'movieFileRenamed' => (
+    l.arrEventRenamed,
+    Icons.drive_file_rename_outline_rounded,
+    scheme.outline,
+  ),
+  'downloadIgnored' => (l.arrEventIgnored, Icons.block_rounded, scheme.outline),
+  _ => (l.arrEventOther, Icons.history_rounded, scheme.outline),
+};

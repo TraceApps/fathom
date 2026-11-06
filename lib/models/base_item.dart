@@ -178,6 +178,7 @@ class BaseItemDto {
   final TrickplayInfo? trickplayInfo; // best-resolution scrub-preview geometry
   final int? trickplayWidth; // resolution key for the trickplay tile URL
   final String? tmdbId; // TMDB id from ProviderIds, for external ratings
+  final String? tvdbId; // TVDB id from ProviderIds, for finding a show in Sonarr
 
   const BaseItemDto({
     required this.id,
@@ -231,6 +232,7 @@ class BaseItemDto {
     this.trickplayInfo,
     this.trickplayWidth,
     this.tmdbId,
+    this.tvdbId,
   });
 
   /// Seerr media type for external ratings lookups: 'movie' or 'tv'.
@@ -375,6 +377,7 @@ class BaseItemDto {
       trickplayInfo: trickplay?.$1,
       trickplayWidth: trickplay?.$2,
       tmdbId: (json['ProviderIds'] as Map?)?['Tmdb']?.toString(),
+      tvdbId: (json['ProviderIds'] as Map?)?['Tvdb']?.toString(),
     );
   }
 

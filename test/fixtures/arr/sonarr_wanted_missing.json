@@ -1,0 +1,481 @@
+{
+  "page": 1,
+  "pageSize": 2,
+  "sortKey": "episodes.airDateUtc",
+  "sortDirection": "descending",
+  "totalRecords": 884,
+  "records": [
+    {
+      "seriesId": 1,
+      "tvdbId": 12004769,
+      "episodeFileId": 0,
+      "seasonNumber": 38,
+      "episodeNumber": 5,
+      "title": "Testing 1-2-3",
+      "airDate": "2026-11-01",
+      "airDateUtc": "2026-11-02T01:00:00Z",
+      "runtime": 22,
+      "overview": "In what she argues is not an attempt to get extra time on tests, Lisa has herself evaluated for three types of neurodiversity... which remind her of behaviors she's witnessed in Principal Skinner, Comic Book Guy and Homer. Perhaps these atypical behaviors aren't as atypical as we think.",
+      "hasFile": false,
+      "monitored": true,
+      "unverifiedSceneNumbering": false,
+      "series": {
+        "title": "The Simpsons",
+        "sortTitle": "simpsons",
+        "status": "continuing",
+        "ended": false,
+        "overview": "Set in Springfield, the average American town, the show focuses on the antics and everyday adventures of the Simpson family; Homer, Marge, Bart, Lisa and Maggie, as well as a virtual cast of thousands. Since the beginning, the series has been a pop culture icon, attracting hundreds of celebrities to guest star. The show has also made name for itself in its fearless satirical take on politics, media and American life in general.",
+        "network": "FOX",
+        "airTime": "20:00",
+        "images": [
+          {
+            "coverType": "banner",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/graphical/71663-g13.jpg"
+          },
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/posters/71663-15.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/fanart/original/71663-10.jpg"
+          },
+          {
+            "coverType": "clearlogo",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/71663/clearlogo/611b473e14b3f.png"
+          }
+        ],
+        "originalLanguage": {
+          "id": 1,
+          "name": "English"
+        },
+        "seasons": [
+          {
+            "seasonNumber": 0,
+            "monitored": false
+          },
+          {
+            "seasonNumber": 1,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 2,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 3,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 4,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 5,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 6,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 7,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 8,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 9,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 10,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 11,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 12,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 13,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 14,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 15,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 16,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 17,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 18,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 19,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 20,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 21,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 22,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 23,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 24,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 25,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 26,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 27,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 28,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 29,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 30,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 31,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 32,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 33,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 34,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 35,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 36,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 37,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 38,
+            "monitored": true
+          }
+        ],
+        "year": 1989,
+        "path": "/tv/The Simpsons",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "useSceneNumbering": false,
+        "runtime": 24,
+        "tvdbId": 71663,
+        "tvRageId": 6190,
+        "tvMazeId": 83,
+        "tmdbId": 456,
+        "firstAired": "1989-12-17T00:00:00Z",
+        "lastAired": "2027-01-03T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "thesimpsons",
+        "imdbId": "tt0096697",
+        "titleSlug": "the-simpsons",
+        "certification": "TV-PG",
+        "genres": [
+          "Animation",
+          "Comedy"
+        ],
+        "tags": [],
+        "added": "2026-11-06T05:32:28Z",
+        "ratings": {
+          "votes": 474942,
+          "value": 8.6
+        },
+        "languageProfileId": 1,
+        "id": 1
+      },
+      "id": 880
+    },
+    {
+      "seriesId": 1,
+      "tvdbId": 12004755,
+      "episodeFileId": 0,
+      "seasonNumber": 38,
+      "episodeNumber": 4,
+      "title": "Treehouse of Horror XXXVII",
+      "airDate": "2026-10-25",
+      "airDateUtc": "2026-10-26T00:00:00Z",
+      "runtime": 22,
+      "overview": "In this year's extra-scary, ultra-spooky Treehouse of Horror, Marge gets a horrifying new perspective on marriage; Bart and Santa's Little Helper embark on a bone-chilling adventure; and Homer takes a driving lesson.",
+      "hasFile": false,
+      "monitored": true,
+      "unverifiedSceneNumbering": false,
+      "series": {
+        "title": "The Simpsons",
+        "sortTitle": "simpsons",
+        "status": "continuing",
+        "ended": false,
+        "overview": "Set in Springfield, the average American town, the show focuses on the antics and everyday adventures of the Simpson family; Homer, Marge, Bart, Lisa and Maggie, as well as a virtual cast of thousands. Since the beginning, the series has been a pop culture icon, attracting hundreds of celebrities to guest star. The show has also made name for itself in its fearless satirical take on politics, media and American life in general.",
+        "network": "FOX",
+        "airTime": "20:00",
+        "images": [
+          {
+            "coverType": "banner",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/graphical/71663-g13.jpg"
+          },
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/posters/71663-15.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/fanart/original/71663-10.jpg"
+          },
+          {
+            "coverType": "clearlogo",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/71663/clearlogo/611b473e14b3f.png"
+          }
+        ],
+        "originalLanguage": {
+          "id": 1,
+          "name": "English"
+        },
+        "seasons": [
+          {
+            "seasonNumber": 0,
+            "monitored": false
+          },
+          {
+            "seasonNumber": 1,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 2,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 3,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 4,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 5,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 6,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 7,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 8,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 9,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 10,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 11,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 12,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 13,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 14,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 15,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 16,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 17,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 18,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 19,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 20,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 21,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 22,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 23,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 24,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 25,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 26,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 27,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 28,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 29,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 30,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 31,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 32,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 33,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 34,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 35,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 36,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 37,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 38,
+            "monitored": true
+          }
+        ],
+        "year": 1989,
+        "path": "/tv/The Simpsons",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "useSceneNumbering": false,
+        "runtime": 24,
+        "tvdbId": 71663,
+        "tvRageId": 6190,
+        "tvMazeId": 83,
+        "tmdbId": 456,
+        "firstAired": "1989-12-17T00:00:00Z",
+        "lastAired": "2027-01-03T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "thesimpsons",
+        "imdbId": "tt0096697",
+        "titleSlug": "the-simpsons",
+        "certification": "TV-PG",
+        "genres": [
+          "Animation",
+          "Comedy"
+        ],
+        "tags": [],
+        "added": "2026-11-06T05:32:28Z",
+        "ratings": {
+          "votes": 474942,
+          "value": 8.6
+        },
+        "languageProfileId": 1,
+        "id": 1
+      },
+      "id": 879
+    }
+  ]
+}

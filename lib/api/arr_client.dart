@@ -186,6 +186,56 @@ abstract class ArrClient {
   /// What's airing or being released between [start] and [end].
   Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end);
 
+  /// Monitored titles with nothing downloaded yet that are out, newest first.
+  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50});
+
+  /// Monitored titles below their quality profile's cutoff.
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({int pageSize = 50});
+
+  /// Searches for everything missing, or everything below its cutoff. Runs
+  /// on the server and can take a while on a big library.
+  Future<void> searchAllMissing();
+  Future<void> searchAllCutoffUnmet();
+
+  /// What the app has done lately across the whole library, newest first.
+  Future<ArrPage<ArrHistoryItem>> recentHistory({int pageSize = 50}) async {
+    final data = await _get('history', {
+      'page': 1,
+      'pageSize': pageSize,
+      'sortKey': 'date',
+      'sortDirection': 'descending',
+      if (kind == ArrKind.sonarr) ...{
+        'includeSeries': true,
+        'includeEpisode': true,
+      } else
+        'includeMovie': true,
+    });
+    return _page(data, (m) => ArrHistoryItem.fromJson(m, kind));
+  }
+
+  /// Marks a grab as failed: the app blocklists the release and, if it's
+  /// set to, searches for another.
+  Future<void> markFailed(int historyId) =>
+      _post('history/failed/$historyId', null);
+
+  /// What the app's health check has found right now.
+  Future<List<ArrHealth>> health() async {
+    final data = await _get('health');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrHealth.fromJson(kind, Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  ArrPage<T> _page<T>(Object? data, T Function(Map<String, dynamic> m) parse) {
+    final map = data is Map ? data : const {};
+    final records = [
+      for (final m in (map['records'] as List?) ?? const [])
+        if (m is Map) parse(Map<String, dynamic>.from(m)),
+    ];
+    return ArrPage(records, _int(map['totalRecords']));
+  }
+
   /// A picture of a title, of [type] (poster, fanart, banner), at about
   /// [width] pixels where the source can be asked for a size.
   String? imageUrl(List<ArrImage> images, String type, {int width = 500}) {
@@ -421,6 +471,46 @@ class SonarrClient extends ArrClient {
 
   Future<void> deleteEpisodeFile(int id) => _delete('episodefile/$id');
 
+  /// The show Sonarr has for this TVDB id, if it has it.
+  Future<ArrSeries?> seriesByTvdb(int tvdbId) async {
+    final data = await _get('series', {'tvdbId': tvdbId});
+    for (final m in (data as List?) ?? const []) {
+      if (m is Map) return ArrSeries.fromJson(Map<String, dynamic>.from(m));
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _wantedQuery(int pageSize, {bool cutoff = false}) => {
+    'page': 1,
+    'pageSize': pageSize,
+    'sortKey': 'episodes.airDateUtc',
+    'sortDirection': 'descending',
+    'includeSeries': true,
+    if (cutoff) 'includeEpisodeFile': true,
+    'monitored': true,
+  };
+
+  @override
+  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50}) async => _page(
+    await _get('wanted/missing', _wantedQuery(pageSize)),
+    ArrWantedItem.fromEpisode,
+  );
+
+  @override
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({int pageSize = 50}) async =>
+      _page(
+        await _get('wanted/cutoff', _wantedQuery(pageSize, cutoff: true)),
+        ArrWantedItem.fromEpisode,
+      );
+
+  @override
+  Future<void> searchAllMissing() =>
+      command('MissingEpisodeSearch', {'monitored': true});
+
+  @override
+  Future<void> searchAllCutoffUnmet() =>
+      command('CutoffUnmetEpisodeSearch', {'monitored': true});
+
   @override
   Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end) async {
     final data = await _get('calendar', {
@@ -544,6 +634,44 @@ class RadarrClient extends ArrClient {
   });
 
   Future<void> deleteMovieFile(int id) => _delete('moviefile/$id');
+
+  /// The movie Radarr has for this TMDB id, if it has it.
+  Future<ArrMovie?> movieByTmdb(int tmdbId) async {
+    final data = await _get('movie', {'tmdbId': tmdbId});
+    for (final m in (data as List?) ?? const []) {
+      if (m is Map) return ArrMovie.fromJson(Map<String, dynamic>.from(m));
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _wantedQuery(int pageSize, {bool cutoff = false}) => {
+    'page': 1,
+    'pageSize': pageSize,
+    'sortKey': 'movieMetadata.digitalRelease',
+    'sortDirection': 'descending',
+    'monitored': true,
+  };
+
+  @override
+  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50}) async => _page(
+    await _get('wanted/missing', _wantedQuery(pageSize)),
+    ArrWantedItem.fromMovie,
+  );
+
+  @override
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({int pageSize = 50}) async =>
+      _page(
+        await _get('wanted/cutoff', _wantedQuery(pageSize, cutoff: true)),
+        ArrWantedItem.fromMovie,
+      );
+
+  @override
+  Future<void> searchAllMissing() =>
+      command('MissingMoviesSearch', {'monitored': true});
+
+  @override
+  Future<void> searchAllCutoffUnmet() =>
+      command('CutoffUnmetMoviesSearch', {'monitored': true});
 
   @override
   Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end) async {

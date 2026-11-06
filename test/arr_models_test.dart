@@ -8,6 +8,7 @@ import 'package:fathom/screens/arr_releases_screen.dart';
 import 'package:fathom/services/settings_backup.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Recorded from Sonarr 4.0.20 and Radarr 6.4.4 (test servers seeded with
@@ -319,4 +320,196 @@ void main() {
     expect(json['sonarrApiKey'], 's');
     expect(json['radarrApiKey'], 'r');
   });
+
+  group('Wanted', () {
+    test('Sonarr missing: episodes with their show, newest first', () {
+      final j = _fixture('sonarr_wanted_missing') as Map<String, dynamic>;
+      expect(j['totalRecords'], 884);
+      final w = [
+        for (final r in j['records'] as List)
+          ArrWantedItem.fromEpisode(Map<String, dynamic>.from(r)),
+      ];
+      expect(w.first.kind, ArrKind.sonarr);
+      expect(w.first.title, 'The Simpsons');
+      expect(w.first.episodeCode, 'S38E05');
+      expect(w.first.episodeTitle, 'Testing 1-2-3');
+      expect(w.first.episodeId, 880);
+      expect(w.first.seriesId, isNotNull);
+      expect(w.first.available, isTrue);
+      expect(w.first.images, isNotEmpty);
+      expect(w.first.date!.isAfter(w[1].date!), isTrue);
+    });
+
+    test('Sonarr cutoff unmet carries the quality there now', () {
+      final j = _fixture('sonarr_wanted_cutoff') as Map<String, dynamic>;
+      final w = ArrWantedItem.fromEpisode(
+        Map<String, dynamic>.from((j['records'] as List).single),
+      );
+      expect(w.title, 'Breaking Bad');
+      expect(w.episodeCode, 'S01E03');
+      expect(w.quality, 'WEBDL-720p');
+    });
+
+    test('Radarr missing includes movies not out yet, marked so', () {
+      final j = _fixture('radarr_wanted_missing') as Map<String, dynamic>;
+      final w = [
+        for (final r in j['records'] as List)
+          ArrWantedItem.fromMovie(Map<String, dynamic>.from(r)),
+      ];
+      expect(w.map((x) => x.title), [
+        'Spider-Man: Brand New Day',
+        'Project Hail Mary',
+        'Avengers: Doomsday',
+      ]);
+      expect(w.first.available, isTrue);
+      expect(w.first.date, DateTime(2026, 10, 6));
+      expect(w.first.year, 2026);
+      expect(w.first.movieId, isNotNull);
+      expect(w.last.available, isFalse);
+      // No digital or disc date yet: the cinema date stands in.
+      expect(w.last.date, DateTime(2026, 12, 16));
+    });
+  });
+
+  test('Wanted puts what is not out yet last, not first as the newest',
+      () async {
+    final container = ProviderContainer(overrides: [
+      sonarrClientProvider.overrideWithValue(null),
+      radarrClientProvider.overrideWithValue(_FakeRadarr(const [], 0, wanted: [
+        ArrWantedItem(
+          kind: ArrKind.radarr,
+          title: 'Coming',
+          date: DateTime(2026, 12, 16),
+          available: false,
+        ),
+        ArrWantedItem(
+          kind: ArrKind.radarr,
+          title: 'Out',
+          date: DateTime(2026, 10, 6),
+        ),
+      ])),
+    ]);
+    addTearDown(container.dispose);
+    final m = await container.read(
+      arrWantedProvider((ArrWantedList.missing, arrPageSize)).future,
+    );
+    expect(m.items.map((w) => w.title), ['Out', 'Coming']);
+  });
+
+  group('History', () {
+    test('Sonarr history names the show and episode', () {
+      final j = _fixture('sonarr_recent_history') as Map<String, dynamic>;
+      final h = ArrHistoryItem.fromJson(
+        Map<String, dynamic>.from((j['records'] as List).first),
+        ArrKind.sonarr,
+      );
+      expect(h.kind, ArrKind.sonarr);
+      expect(h.eventType, 'grabbed');
+      expect(h.canMarkFailed, isTrue);
+      expect(h.title, 'Severance');
+      expect(h.episodeCode, 'S02E10');
+      expect(h.quality, 'Bluray-1080p');
+      expect(h.sourceTitle, 'Severance.S02.1080p.BluRay.x264-GRP');
+      expect(h.detail, 'Rig');
+      expect(h.seriesId, isNotNull);
+      expect(h.images, isNotEmpty);
+    });
+
+    test('Radarr history names the movie', () {
+      final j = _fixture('radarr_recent_history') as Map<String, dynamic>;
+      final h = ArrHistoryItem.fromJson(
+        Map<String, dynamic>.from((j['records'] as List).first),
+        ArrKind.radarr,
+      );
+      expect(h.title, 'Avengers: Doomsday');
+      expect(h.movieId, 4);
+      expect(h.episodeCode, isNull);
+    });
+
+    test('a title page\'s history still reads without the title', () {
+      final h = ArrHistoryItem.fromJson({
+        'id': 1,
+        'eventType': 'downloadFolderImported',
+        'date': '2026-11-01T10:00:00Z',
+      });
+      expect(h.kind, isNull);
+      expect(h.title, isNull);
+      expect(h.canMarkFailed, isFalse);
+    });
+
+    test('both apps merge newest first, and Load More knows there is more',
+        () async {
+      ArrHistoryItem at(ArrKind k, int id, int day) => ArrHistoryItem(
+            kind: k,
+            id: id,
+            eventType: 'grabbed',
+            date: DateTime(2026, 11, day),
+          );
+      final container = ProviderContainer(overrides: [
+        sonarrClientProvider.overrideWithValue(_FakeSonarr([
+          at(ArrKind.sonarr, 1, 5),
+          at(ArrKind.sonarr, 2, 2),
+        ], 10)),
+        radarrClientProvider.overrideWithValue(_FakeRadarr([
+          at(ArrKind.radarr, 3, 4),
+          at(ArrKind.radarr, 4, 1),
+        ], 2)),
+      ]);
+      addTearDown(container.dispose);
+      final m = await container.read(arrRecentHistoryProvider(3).future);
+      expect(m.items.map((h) => h.id), [1, 3, 2]);
+      expect(m.total, 12);
+      expect(m.hasMore, isTrue);
+      expect(m.errors, isEmpty);
+    });
+  });
+
+  test('health checks read with their wiki link', () {
+    final list = _fixture('sonarr_health') as List;
+    final h = ArrHealth.fromJson(
+      ArrKind.sonarr,
+      Map<String, dynamic>.from(list.single),
+    );
+    expect(h.source, 'DownloadClientCheck');
+    expect(h.type, 'warning');
+    expect(h.isProblem, isTrue);
+    expect(h.message, 'No download client is available');
+    expect(h.wikiUrl,
+        'https://wiki.servarr.com/sonarr/system#no-download-client-is-available');
+    expect(
+      ArrHealth.fromJson(ArrKind.radarr, {
+        'type': 'notice',
+        'message': 'x',
+        'wikiUrl': {'fullUri': 'https://wiki.servarr.com/x'},
+      }).wikiUrl,
+      'https://wiki.servarr.com/x',
+    );
+    expect(
+      ArrHealth.fromJson(ArrKind.radarr, {'type': 'notice'}).isProblem,
+      isFalse,
+    );
+  });
+}
+
+class _FakeSonarr extends SonarrClient {
+  final List<ArrHistoryItem> items;
+  final int total;
+  _FakeSonarr(this.items, this.total) : super('http://sonarr', 'k');
+  @override
+  Future<ArrPage<ArrHistoryItem>> recentHistory({int pageSize = 50}) async =>
+      ArrPage(items.take(pageSize).toList(), total);
+}
+
+class _FakeRadarr extends RadarrClient {
+  final List<ArrHistoryItem> items;
+  final int total;
+  final List<ArrWantedItem> wanted;
+  _FakeRadarr(this.items, this.total, {this.wanted = const []})
+      : super('http://radarr', 'k');
+  @override
+  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50}) async =>
+      ArrPage(wanted, wanted.length);
+  @override
+  Future<ArrPage<ArrHistoryItem>> recentHistory({int pageSize = 50}) async =>
+      ArrPage(items.take(pageSize).toList(), total);
 }

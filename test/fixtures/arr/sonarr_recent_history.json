@@ -1,0 +1,306 @@
+{
+  "page": 1,
+  "pageSize": 2,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 876,
+  "records": [
+    {
+      "episodeId": 1010,
+      "seriesId": 3,
+      "sourceTitle": "Severance.S02.1080p.BluRay.x264-GRP",
+      "languages": [
+        {
+          "id": 1,
+          "name": "English"
+        }
+      ],
+      "quality": {
+        "quality": {
+          "id": 7,
+          "name": "Bluray-1080p",
+          "source": "bluray",
+          "resolution": 1080
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-06T05:37:38Z",
+      "eventType": "grabbed",
+      "data": {
+        "indexer": "Rig",
+        "nzbInfoUrl": null,
+        "releaseGroup": "GRP",
+        "age": "30",
+        "ageHours": "720.0000669010556",
+        "ageMinutes": "43200.004014088336",
+        "publishedDate": "2026-10-07T05:37:38Z",
+        "downloadClient": "Usenet Blackhole",
+        "downloadClientName": "Blackhole",
+        "size": "9500000000",
+        "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Severance.S02.1080p.BluRay.x264-GRP",
+        "guid": "http://host.docker.internal:19696/getnzb?id=Severance.S02.1080p.BluRay.x264-GRP",
+        "tvdbId": "0",
+        "tvRageId": "0",
+        "imdbId": null,
+        "protocol": "1",
+        "customFormatScore": "0",
+        "seriesMatchType": "Title",
+        "releaseSource": "UserInvokedSearch",
+        "indexerFlags": "0",
+        "releaseType": "SeasonPack"
+      },
+      "episode": {
+        "seriesId": 3,
+        "tvdbId": 10592768,
+        "episodeFileId": 0,
+        "seasonNumber": 2,
+        "episodeNumber": 10,
+        "title": "Cold Harbor",
+        "airDate": "2025-03-20",
+        "airDateUtc": "2025-03-21T01:00:00Z",
+        "lastSearchTime": "2026-11-06T05:37:38Z",
+        "runtime": 76,
+        "finaleType": "season",
+        "overview": "Mark forms a shaky alliance in an all-or-nothing play, while the team makes a dangerous last stand.",
+        "hasFile": false,
+        "monitored": true,
+        "unverifiedSceneNumbering": false,
+        "id": 1010
+      },
+      "series": {
+        "title": "Severance",
+        "sortTitle": "severance",
+        "status": "continuing",
+        "ended": false,
+        "overview": "Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives. When a mysterious colleague appears outside of work, it begins a journey to discover the truth about their jobs.",
+        "network": "Apple TV",
+        "airTime": "21:00",
+        "images": [
+          {
+            "coverType": "banner",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/banners/67d3854a3f3f2.jpg"
+          },
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/posters/621096b26f0e2.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/backgrounds/61bdee7c62d99.jpg"
+          },
+          {
+            "coverType": "clearlogo",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/clearlogo/67deb201804b5.png"
+          }
+        ],
+        "originalLanguage": {
+          "id": 1,
+          "name": "English"
+        },
+        "seasons": [
+          {
+            "seasonNumber": 0,
+            "monitored": false
+          },
+          {
+            "seasonNumber": 1,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 2,
+            "monitored": true
+          }
+        ],
+        "year": 2022,
+        "path": "/tv/Severance",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "useSceneNumbering": false,
+        "runtime": 49,
+        "tvdbId": 371980,
+        "tvRageId": 0,
+        "tvMazeId": 44933,
+        "tmdbId": 95396,
+        "firstAired": "2022-02-18T00:00:00Z",
+        "lastAired": "2025-03-20T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "severance",
+        "imdbId": "tt11280740",
+        "titleSlug": "severance",
+        "certification": "TV-MA",
+        "genres": [
+          "Drama",
+          "Mystery",
+          "Science Fiction",
+          "Thriller"
+        ],
+        "tags": [],
+        "added": "2026-11-06T05:32:31Z",
+        "ratings": {
+          "votes": 414628,
+          "value": 8.6
+        },
+        "languageProfileId": 1,
+        "id": 3
+      },
+      "id": 876
+    },
+    {
+      "episodeId": 1009,
+      "seriesId": 3,
+      "sourceTitle": "Severance.S02.1080p.BluRay.x264-GRP",
+      "languages": [
+        {
+          "id": 1,
+          "name": "English"
+        }
+      ],
+      "quality": {
+        "quality": {
+          "id": 7,
+          "name": "Bluray-1080p",
+          "source": "bluray",
+          "resolution": 1080
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-06T05:37:38Z",
+      "eventType": "grabbed",
+      "data": {
+        "indexer": "Rig",
+        "nzbInfoUrl": null,
+        "releaseGroup": "GRP",
+        "age": "30",
+        "ageHours": "720.0000664354723",
+        "ageMinutes": "43200.003986155",
+        "publishedDate": "2026-10-07T05:37:38Z",
+        "downloadClient": "Usenet Blackhole",
+        "downloadClientName": "Blackhole",
+        "size": "9500000000",
+        "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Severance.S02.1080p.BluRay.x264-GRP",
+        "guid": "http://host.docker.internal:19696/getnzb?id=Severance.S02.1080p.BluRay.x264-GRP",
+        "tvdbId": "0",
+        "tvRageId": "0",
+        "imdbId": null,
+        "protocol": "1",
+        "customFormatScore": "0",
+        "seriesMatchType": "Title",
+        "releaseSource": "UserInvokedSearch",
+        "indexerFlags": "0",
+        "releaseType": "SeasonPack"
+      },
+      "episode": {
+        "seriesId": 3,
+        "tvdbId": 10592766,
+        "episodeFileId": 0,
+        "seasonNumber": 2,
+        "episodeNumber": 9,
+        "title": "The After Hours",
+        "airDate": "2025-03-13",
+        "airDateUtc": "2025-03-14T01:00:00Z",
+        "lastSearchTime": "2026-11-06T05:37:38Z",
+        "runtime": 45,
+        "overview": "Mark and Devon team with an ally. Helly investigates further.",
+        "hasFile": false,
+        "monitored": true,
+        "unverifiedSceneNumbering": false,
+        "id": 1009
+      },
+      "series": {
+        "title": "Severance",
+        "sortTitle": "severance",
+        "status": "continuing",
+        "ended": false,
+        "overview": "Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives. When a mysterious colleague appears outside of work, it begins a journey to discover the truth about their jobs.",
+        "network": "Apple TV",
+        "airTime": "21:00",
+        "images": [
+          {
+            "coverType": "banner",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/banners/67d3854a3f3f2.jpg"
+          },
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/posters/621096b26f0e2.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/backgrounds/61bdee7c62d99.jpg"
+          },
+          {
+            "coverType": "clearlogo",
+            "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/371980/clearlogo/67deb201804b5.png"
+          }
+        ],
+        "originalLanguage": {
+          "id": 1,
+          "name": "English"
+        },
+        "seasons": [
+          {
+            "seasonNumber": 0,
+            "monitored": false
+          },
+          {
+            "seasonNumber": 1,
+            "monitored": true
+          },
+          {
+            "seasonNumber": 2,
+            "monitored": true
+          }
+        ],
+        "year": 2022,
+        "path": "/tv/Severance",
+        "qualityProfileId": 1,
+        "seasonFolder": true,
+        "monitored": true,
+        "monitorNewItems": "all",
+        "useSceneNumbering": false,
+        "runtime": 49,
+        "tvdbId": 371980,
+        "tvRageId": 0,
+        "tvMazeId": 44933,
+        "tmdbId": 95396,
+        "firstAired": "2022-02-18T00:00:00Z",
+        "lastAired": "2025-03-20T00:00:00Z",
+        "seriesType": "standard",
+        "cleanTitle": "severance",
+        "imdbId": "tt11280740",
+        "titleSlug": "severance",
+        "certification": "TV-MA",
+        "genres": [
+          "Drama",
+          "Mystery",
+          "Science Fiction",
+          "Thriller"
+        ],
+        "tags": [],
+        "added": "2026-11-06T05:32:31Z",
+        "ratings": {
+          "votes": 414628,
+          "value": 8.6
+        },
+        "languageProfileId": 1,
+        "id": 3
+      },
+      "id": 875
+    }
+  ]
+}

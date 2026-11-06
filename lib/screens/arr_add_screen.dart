@@ -37,7 +37,10 @@ class _Found {
 /// Finds a movie (Radarr) or show (Sonarr) online and adds it.
 class ArrAddScreen extends ConsumerStatefulWidget {
   final ArrKind kind;
-  const ArrAddScreen({super.key, required this.kind});
+
+  /// What to search for first, such as `tmdb:603` from a Jellyfin page.
+  final String? term;
+  const ArrAddScreen({super.key, required this.kind, this.term});
 
   @override
   ConsumerState<ArrAddScreen> createState() => _ArrAddScreenState();
@@ -50,6 +53,18 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
   String _asked = '';
 
   bool get _shows => widget.kind == ArrKind.sonarr;
+
+  @override
+  void initState() {
+    super.initState();
+    final term = widget.term;
+    if (term != null && term.isNotEmpty) {
+      _search.text = term;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _run();
+      });
+    }
+  }
 
   @override
   void dispose() {

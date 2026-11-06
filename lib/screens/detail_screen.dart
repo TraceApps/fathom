@@ -14,6 +14,8 @@ import '../state/library_providers.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
 import '../state/seerr_providers.dart';
+import '../state/arr_providers.dart';
+import '../models/arr.dart';
 import '../state/session_controller.dart';
 import '../state/watchlist.dart';
 import '../widgets/add_to_playlist.dart';
@@ -1287,6 +1289,11 @@ class _ItemMenu extends ConsumerWidget {
         session.canDelete;
     final canRefresh = (user?.isAdministrator ?? false) || session.isAdmin;
     // "Add to Playlist" is available to everyone; refresh/delete are gated.
+    final arrKey = _arrKey(item);
+    final match = arrKey == null
+        ? null
+        : ref.watch(arrMatchProvider(arrKey)).asData?.value;
+    final app = match?.kind.appName;
 
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert_rounded),
@@ -1300,6 +1307,45 @@ class _ItemMenu extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        // Sonarr and Radarr, when connected: the title's page there, a
+        // search for what's missing or a better copy, or adding it.
+        if (match != null && match.id != null) ...[
+          PopupMenuItem(
+            value: 'arr-manage',
+            child: ListTile(
+              leading: const Icon(Icons.dns_rounded),
+              title: Text(l.arrManageIn(app!)),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem(
+            value: 'arr-search',
+            child: ListTile(
+              leading: const Icon(Icons.search_rounded),
+              title: Text(match.kind == ArrKind.radarr
+                  ? l.arrSearchMovie
+                  : l.arrSearchMonitored),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          if (match.kind == ArrKind.radarr)
+            PopupMenuItem(
+              value: 'arr-interactive',
+              child: ListTile(
+                leading: const Icon(Icons.manage_search_rounded),
+                title: Text(l.arrInteractiveSearch),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+        ] else if (match != null)
+          PopupMenuItem(
+            value: 'arr-add',
+            child: ListTile(
+              leading: const Icon(Icons.add_rounded),
+              title: Text(l.arrAddTo(app!)),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         if (canRefresh)
           PopupMenuItem(
             value: 'refresh',
@@ -1356,6 +1402,10 @@ class _ItemMenu extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final client = ref.read(jellyfinClientProvider);
     final messenger = ScaffoldMessenger.of(context);
+    if (value.startsWith('arr-')) {
+      await _arrAction(context, ref, value);
+      return;
+    }
     if (value == 'playlist') {
       await showAddToPlaylistSheet(
         context,
@@ -1399,6 +1449,63 @@ class _ItemMenu extends ConsumerWidget {
       } catch (e) {
         showErrorOn(messenger, e);
       }
+    }
+  }
+}
+
+/// Which app manages [item] and the id it's known by there: TMDB for a
+/// movie (Radarr), TVDB for a show (Sonarr). Null for anything else.
+({ArrKind kind, int providerId})? _arrKey(BaseItemDto item) {
+  if (item.type == 'Movie') {
+    final id = int.tryParse(item.tmdbId ?? '');
+    return id == null ? null : (kind: ArrKind.radarr, providerId: id);
+  }
+  if (item.isSeries) {
+    final id = int.tryParse(item.tvdbId ?? '');
+    return id == null ? null : (kind: ArrKind.sonarr, providerId: id);
+  }
+  return null;
+}
+
+extension on _ItemMenu {
+  Future<void> _arrAction(
+    BuildContext context,
+    WidgetRef ref,
+    String value,
+  ) async {
+    final key = _arrKey(item);
+    if (key == null) return;
+    final match = ref.read(arrMatchProvider(key)).asData?.value;
+    if (match == null) return;
+    final l = AppLocalizations.of(context);
+    final id = match.id;
+    final movie = match.kind == ArrKind.radarr;
+    switch (value) {
+      case 'arr-manage':
+        if (id != null) {
+          context.push(movie ? '/arr/movie/$id' : '/arr/series/$id');
+        }
+      case 'arr-interactive':
+        if (id != null) context.push('/arr/releases?movie=$id');
+      case 'arr-add':
+        final term = movie ? 'tmdb:${key.providerId}' : 'tvdb:${key.providerId}';
+        context.push(
+          '/arr/add/${movie ? 'movie' : 'series'}?term=${Uri.encodeQueryComponent(term)}',
+        );
+      case 'arr-search':
+        if (id == null) return;
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          if (movie) {
+            await ref.read(radarrClientProvider)?.searchMovie(id);
+          } else {
+            await ref.read(sonarrClientProvider)?.searchSeries(id);
+          }
+          showSnackOn(messenger, l.arrSearchStarted(match.kind.appName),
+              kind: SnackKind.success);
+        } catch (e) {
+          showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+        }
     }
   }
 }

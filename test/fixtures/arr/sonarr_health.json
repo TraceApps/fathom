@@ -1,0 +1,8 @@
+[
+  {
+    "source": "DownloadClientCheck",
+    "type": "warning",
+    "message": "No download client is available",
+    "wikiUrl": "https://wiki.servarr.com/sonarr/system#no-download-client-is-available"
+  }
+]

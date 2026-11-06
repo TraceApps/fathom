@@ -1184,41 +1184,7 @@ class _HistoryRow extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final (String label, IconData icon, Color color) = switch (item.eventType) {
-      'grabbed' => (
-        l.arrEventGrabbed,
-        Icons.cloud_download_rounded,
-        arrUnreleasedColor,
-      ),
-      'downloadFolderImported' ||
-      'seriesFolderImported' ||
-      'movieFolderImported' => (
-        l.arrEventImported,
-        Icons.download_done_rounded,
-        arrDownloadedColor,
-      ),
-      'downloadFailed' => (
-        l.arrEventFailed,
-        Icons.error_rounded,
-        arrMissingColor,
-      ),
-      'episodeFileDeleted' || 'movieFileDeleted' => (
-        l.arrEventDeleted,
-        Icons.delete_rounded,
-        arrMissingColor,
-      ),
-      'episodeFileRenamed' || 'movieFileRenamed' => (
-        l.arrEventRenamed,
-        Icons.drive_file_rename_outline_rounded,
-        scheme.outline,
-      ),
-      'downloadIgnored' => (
-        l.arrEventIgnored,
-        Icons.block_rounded,
-        scheme.outline,
-      ),
-      _ => (l.arrEventOther, Icons.history_rounded, scheme.outline),
-    };
+    final (label, icon, color) = arrHistoryEvent(l, scheme, item.eventType);
     final heading = [?episode, label, ?item.quality].join(' · ');
     final sub = [
       ?item.sourceTitle,
