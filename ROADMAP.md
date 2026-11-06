@@ -8,7 +8,7 @@ What's done, what's next, and what's parked. The client is feature-complete for 
 - [ ] **Real-server tests**: run the core flows (sign in, browse, play, resume, mark watched, subtitles) in CI against real Jellyfin servers, old and current, so a break is caught by a failing check rather than by a user.
 - [ ] **Decide 1.0's scope**: Linux, Windows, and Android phones and tablets are in. Android TV is either finished or stays marked experimental.
 - [x] **Translations**: open to everyone on Weblate.
-- [ ] **Sonarr and Radarr in Fathom**: Calendar, Queue, Wanted, History, Health, the libraries with detail pages, searches (automatic and interactive), adding, monitoring, editing, renaming, deleting, and shortcuts from Jellyfin's own pages are in; a design and polish pass is next.
+- [ ] **Sonarr and Radarr in Fathom**: Calendar, Queue, Wanted, History, Health, the libraries with detail pages, searches (automatic and interactive), adding, monitoring, editing, renaming, deleting, and shortcuts from Jellyfin's own pages are in.
 - [ ] **1.0.0 release candidate**: bug fixes only, for a few weeks.
 - [ ] **1.0.0**
 
