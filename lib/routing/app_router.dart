@@ -536,12 +536,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, state) => _fadePage(ArrMovieScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
+              path: '/arr/add',
+              pageBuilder: (_, state) => _fadePage(ArrAddScreen(
+                  term: state.uri.queryParameters['term']))),
+          GoRoute(
               path: '/arr/add/:kind',
               pageBuilder: (_, state) => _fadePage(ArrAddScreen(
                   kind: state.pathParameters['kind'] == 'series'
                       ? ArrKind.sonarr
                       : ArrKind.radarr,
-                  term: state.uri.queryParameters['term']))),
+                  term: state.uri.queryParameters['term'],
+                  folder: state.uri.queryParameters['folder']))),
           GoRoute(
               path: '/arr/health',
               pageBuilder: (_, _) => _fadePage(const ArrHealthScreen())),

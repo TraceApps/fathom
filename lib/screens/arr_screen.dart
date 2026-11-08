@@ -10,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../routing/app_shell.dart';
 import '../state/arr_providers.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import 'arr_activity_screens.dart';
 import '../widgets/arr_actions.dart';
@@ -48,13 +49,14 @@ class ArrScreen extends ConsumerWidget {
         ),
       );
     }
-    final tabs = <(String, Widget)>[
-      (l.arrCalendar, const _CalendarTab()),
-      (l.arrQueue, const _QueueTab()),
-      (l.arrWanted, const ArrWantedTab()),
-      (l.arrHistory, const ArrHistoryTab()),
-      if (radarr) (l.arrMovies, const _MoviesTab()),
-      if (sonarr) (l.arrShows, const _ShowsTab()),
+    // Each tab with the kind of title Add should look for from it.
+    final tabs = <(String, Widget, ArrKind?)>[
+      (l.arrCalendar, const _CalendarTab(), null),
+      (l.arrQueue, const _QueueTab(), null),
+      (l.arrWanted, const ArrWantedTab(), null),
+      (l.arrHistory, const ArrHistoryTab(), null),
+      if (radarr) (l.arrMovies, const _MoviesTab(), ArrKind.radarr),
+      if (sonarr) (l.arrShows, const _ShowsTab(), ArrKind.sonarr),
     ];
     return DefaultTabController(
       // A different set of tabs is a different controller.
@@ -65,6 +67,27 @@ class ArrScreen extends ConsumerWidget {
           leading: mobileDrawerLeading(context),
           title: const Text('Arr'),
           actions: [
+            // Add opens on the kind of the tab it's pressed from; elsewhere
+            // it searches movies and shows together.
+            Builder(
+              builder: (context) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: FilledButton.tonalIcon(
+                  style: kInlineButtonStyle,
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(l.arrAdd),
+                  onPressed: () {
+                    final i = DefaultTabController.of(context).index;
+                    final kind = tabs[i].$3;
+                    context.push(switch (kind) {
+                      ArrKind.radarr => '/arr/add/movie',
+                      ArrKind.sonarr => '/arr/add/series',
+                      null => '/arr/add',
+                    });
+                  },
+                ),
+              ),
+            ),
             ArrHealthButton(onTap: () => context.push('/arr/health')),
             IconButton(
               tooltip: l.browseSettings,
@@ -111,7 +134,7 @@ class _CalendarTab extends ConsumerWidget {
               SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
               if (days.isEmpty)
                 SliverFillRemaining(
-                  hasScrollBody: false,
+                  hasScrollBody: true,
                   child: EmptyState(
                     icon: Icons.event_available_rounded,
                     title: l.arrCalendarEmpty,
@@ -348,7 +371,7 @@ class _QueueTabState extends ConsumerState<_QueueTab>
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
           if (merged.items.isEmpty)
             SliverFillRemaining(
-              hasScrollBody: false,
+              hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.download_done_rounded,
                 title: l.arrQueueEmpty,
@@ -605,7 +628,9 @@ class _MoviesTabState extends ConsumerState<_MoviesTab> {
     final l = AppLocalizations.of(context);
     final client = ref.watch(radarrClientProvider);
     final async = ref.watch(radarrMoviesProvider);
+    final shown = async.whenData(_apply);
     return _LibraryFrame(
+      addRow: shown.asData?.value.isNotEmpty ?? false,
       search: _search,
       hint: l.arrSearchMovies,
       onSearch: () => setState(() {}),
@@ -621,28 +646,45 @@ class _MoviesTabState extends ConsumerState<_MoviesTab> {
       ],
       onFilter: (f) => setState(() => _filter = f),
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
-      addLabel: l.arrAddMovie,
-      onAdd: () => context.push('/arr/add/movie'),
+      kind: ArrKind.radarr,
       body: async.when(
         loading: () => const SliverFillRemaining(
           hasScrollBody: false,
           child: Center(child: AppSpinner()),
         ),
         error: (e, _) => SliverFillRemaining(
-          hasScrollBody: false,
+          hasScrollBody: true,
           child: ErrorView(
             message: e.toString(),
             onRetry: () => ref.invalidate(radarrMoviesProvider),
           ),
         ),
         data: (all) {
-          final list = _apply(all);
+          final list = shown.asData?.value ?? const [];
           if (list.isEmpty) {
             return SliverFillRemaining(
-              hasScrollBody: false,
+              hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.movie_rounded,
                 title: all.isEmpty ? l.arrNoMovies : l.arrNoMatches,
+                action: all.isEmpty
+                    ? FilledButton.icon(
+                        icon: const Icon(Icons.add_rounded),
+                        label: Text(l.arrAddMovie),
+                        onPressed: () => context.push('/arr/add/movie'),
+                      )
+                    : _search.text.trim().isEmpty
+                    ? null
+                    : FilledButton.icon(
+                        icon: const Icon(Icons.add_rounded),
+                        label: Text(l.arrAddTerm(_search.text.trim())),
+                        onPressed: () => context.push(
+                          Uri(
+                            path: '/arr/add/movie',
+                            queryParameters: {'term': _search.text.trim()},
+                          ).toString(),
+                        ),
+                      ),
               ),
             );
           }
@@ -719,8 +761,10 @@ class _ShowsTabState extends ConsumerState<_ShowsTab> {
     final l = AppLocalizations.of(context);
     final client = ref.watch(sonarrClientProvider);
     final async = ref.watch(sonarrSeriesListProvider);
+    final shown = async.whenData(_apply);
     final scheme = Theme.of(context).colorScheme;
     return _LibraryFrame(
+      addRow: shown.asData?.value.isNotEmpty ?? false,
       search: _search,
       hint: l.arrSearchShows,
       onSearch: () => setState(() {}),
@@ -737,28 +781,45 @@ class _ShowsTabState extends ConsumerState<_ShowsTab> {
       ],
       onFilter: (f) => setState(() => _filter = f),
       onRefresh: () => ref.refresh(sonarrSeriesListProvider.future),
-      addLabel: l.arrAddShow,
-      onAdd: () => context.push('/arr/add/series'),
+      kind: ArrKind.sonarr,
       body: async.when(
         loading: () => const SliverFillRemaining(
           hasScrollBody: false,
           child: Center(child: AppSpinner()),
         ),
         error: (e, _) => SliverFillRemaining(
-          hasScrollBody: false,
+          hasScrollBody: true,
           child: ErrorView(
             message: e.toString(),
             onRetry: () => ref.invalidate(sonarrSeriesListProvider),
           ),
         ),
         data: (all) {
-          final list = _apply(all);
+          final list = shown.asData?.value ?? const [];
           if (list.isEmpty) {
             return SliverFillRemaining(
-              hasScrollBody: false,
+              hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.live_tv_rounded,
                 title: all.isEmpty ? l.arrNoShows : l.arrNoMatches,
+                action: all.isEmpty
+                    ? FilledButton.icon(
+                        icon: const Icon(Icons.add_rounded),
+                        label: Text(l.arrAddShow),
+                        onPressed: () => context.push('/arr/add/series'),
+                      )
+                    : _search.text.trim().isEmpty
+                    ? null
+                    : FilledButton.icon(
+                        icon: const Icon(Icons.add_rounded),
+                        label: Text(l.arrAddTerm(_search.text.trim())),
+                        onPressed: () => context.push(
+                          Uri(
+                            path: '/arr/add/series',
+                            queryParameters: {'term': _search.text.trim()},
+                          ).toString(),
+                        ),
+                      ),
               ),
             );
           }
@@ -806,12 +867,16 @@ class _LibraryFrame extends StatelessWidget {
   final ValueChanged<_Filter> onFilter;
   final Future<void> Function() onRefresh;
   final Widget body; // a sliver
-  final String addLabel;
-  final VoidCallback onAdd;
+
+  /// The app new titles are added to, for the "Add" row under a search.
+  final ArrKind kind;
+
+  /// Whether to show that row: not when the empty state already offers it.
+  final bool addRow;
 
   const _LibraryFrame({
-    required this.addLabel,
-    required this.onAdd,
+    required this.kind,
+    required this.addRow,
     required this.search,
     required this.hint,
     required this.onSearch,
@@ -890,18 +955,61 @@ class _LibraryFrame extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(width: 4),
-                  IconButton.filledTonal(
-                    tooltip: addLabel,
-                    icon: const Icon(Icons.add_rounded),
-                    onPressed: onAdd,
-                  ),
                 ],
               ),
             ),
           ),
           body,
+          // Typed something? Offer to look it up online, whether or not the
+          // library had it: "Dune" may match the 1984 film you own when you
+          // were after the new one.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: search,
+            builder: (context, v, _) {
+              final term = v.text.trim();
+              if (term.isEmpty || !addRow) {
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              }
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: _AddTermRow(kind: kind, term: term),
+                ),
+              );
+            },
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Add “Dune”: look it up in Radarr", under a library search.
+class _AddTermRow extends StatelessWidget {
+  final ArrKind kind;
+  final String term;
+  const _AddTermRow({required this.kind, required this.term});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final path = kind == ArrKind.sonarr ? 'series' : 'movie';
+    return Card(
+      margin: EdgeInsets.zero,
+      color: scheme.secondaryContainer.withValues(alpha: 0.5),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: Icon(Icons.add_circle_rounded, color: scheme.primary),
+        title: Text(l.arrAddTerm(term), overflow: TextOverflow.ellipsis),
+        subtitle: Text(l.arrLookUpIn(kind.appName)),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push(
+          Uri(
+            path: '/arr/add/$path',
+            queryParameters: {'term': term},
+          ).toString(),
+        ),
       ),
     );
   }

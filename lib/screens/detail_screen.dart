@@ -1489,8 +1489,14 @@ extension on _ItemMenu {
         if (id != null) context.push('/arr/releases?movie=$id');
       case 'arr-add':
         final term = movie ? 'tmdb:${key.providerId}' : 'tvdb:${key.providerId}';
+        // Its folder on disk, so Add can point the app at it instead of
+        // downloading it all over again.
+        final folder = arrFolderNameOf(item.path, isFile: movie);
         context.push(
-          '/arr/add/${movie ? 'movie' : 'series'}?term=${Uri.encodeQueryComponent(term)}',
+          Uri(
+            path: '/arr/add/${movie ? 'movie' : 'series'}',
+            queryParameters: {'term': term, 'folder': ?folder},
+          ).toString(),
         );
       case 'arr-search':
         if (id == null) return;

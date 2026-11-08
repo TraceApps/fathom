@@ -876,11 +876,16 @@ class ArrRootFolder {
   final String path;
   final int? freeSpace;
   final bool accessible;
+
+  /// Folders inside this one that the app doesn't manage yet: titles already
+  /// on disk, such as ones Jellyfin plays that were never added.
+  final List<ArrFolder> unmappedFolders;
   const ArrRootFolder({
     required this.id,
     required this.path,
     this.freeSpace,
     this.accessible = true,
+    this.unmappedFolders = const [],
   });
 
   factory ArrRootFolder.fromJson(Map<String, dynamic> j) => ArrRootFolder(
@@ -888,6 +893,297 @@ class ArrRootFolder {
     path: j['path'] as String? ?? '',
     freeSpace: _intOrNull(j['freeSpace']),
     accessible: j['accessible'] as bool? ?? true,
+    unmappedFolders: [
+      for (final m in _maps(j['unmappedFolders']))
+        if ((m['path'] as String?)?.isNotEmpty ?? false)
+          ArrFolder(
+            name: m['name'] as String? ?? '',
+            path: m['path'] as String,
+          ),
+    ],
+  );
+}
+
+/// A folder on the app's disk.
+class ArrFolder {
+  final String name;
+  final String path;
+  const ArrFolder({required this.name, required this.path});
+}
+
+/// Lowercase letters and digits only, so "The Matrix 1999 [1080p]" and
+/// "the.matrix.(1999)" compare alike.
+String _folderKey(String s) =>
+    s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+
+/// A folder on disk that seems to hold a title, and how sure that is.
+class ArrFolderMatch {
+  final ArrFolder folder;
+
+  /// The folder's name has the title and its year, or is the exact folder
+  /// Jellyfin plays the title from. When false the name is the title alone
+  /// while the title has a year, which can be a remake (a "Dune" folder that
+  /// holds the 1984 film when adding the 2021 one), so Add asks first.
+  final bool sure;
+  const ArrFolderMatch(this.folder, {required this.sure});
+}
+
+/// The unmanaged folder that already holds [title], if one does.
+///
+/// A folder counts when its name is the title, or the title then its year,
+/// whatever the punctuation: "The Matrix (1999)", "The.Matrix.1999.1080p",
+/// "Breaking Bad". Anything else after the title is another title, so "Dune"
+/// never takes "Dune Part Two". [hint] is the folder's own name when Jellyfin
+/// knows it; it only chooses among folders that already match the title, so a
+/// collection folder ("Kids") or a stale hint never points at a wrong one.
+/// Several candidates left, or none, means no match: Add never guesses.
+ArrFolderMatch? arrExistingFolder(
+  List<ArrRootFolder> roots, {
+  required String title,
+  int? year,
+  String? hint,
+}) {
+  final t = _folderKey(title);
+  if (t.isEmpty) return null;
+  final y = (year ?? 0) > 0 ? '$year' : '';
+  final found = [
+    for (final r in roots)
+      for (final f in r.unmappedFolders)
+        if (_folderKey(f.name).startsWith(t))
+          if (_folderKey(f.name).substring(t.length) case final rest
+              when rest.isEmpty || (y.isNotEmpty && rest.startsWith(y)))
+            (folder: f, withYear: rest.isNotEmpty),
+  ];
+  if (hint != null && hint.isNotEmpty) {
+    final h = hint.toLowerCase();
+    final exact = found.where((c) => c.folder.name.toLowerCase() == h);
+    if (exact.length == 1) {
+      return ArrFolderMatch(exact.first.folder, sure: true);
+    }
+  }
+  if (found.length != 1) return null;
+  final c = found.single;
+  return ArrFolderMatch(c.folder, sure: c.withYear || y.isEmpty);
+}
+
+/// The folder a Jellyfin item lives in, by name, to find it on the Sonarr or
+/// Radarr side where the same disk may be mounted somewhere else. A movie's
+/// path is its file, so its folder is the parent; a show's path is its folder.
+String? arrFolderNameOf(String? path, {required bool isFile}) {
+  if (path == null || path.isEmpty) return null;
+  final parts = path
+      .split(RegExp(r'[\\/]'))
+      .where((p) => p.isNotEmpty)
+      .toList();
+  // A disc rip (BDMV, VIDEO_TS) is a folder itself, with no extension.
+  final video = RegExp(
+    r'\.(mkv|mp4|m4v|avi|mov|wmv|ts|m2ts|mts|iso|img|webm|mpg|mpeg|vob|divx|flv|ogv|3gp|strm)$',
+    caseSensitive: false,
+  );
+  if (isFile && video.hasMatch(parts.lastOrNull ?? '')) {
+    if (parts.length < 2) return null;
+    parts.removeLast();
+  }
+  return parts.isEmpty ? null : parts.last;
+}
+
+/// What Add starts with for a new title. Every field is optional: one that's
+/// missing, or no longer exists on the server, falls back to what most of the
+/// library uses.
+class ArrAddDefaults {
+  final String? rootFolder;
+  final int? qualityProfileId;
+  final String? monitor;
+  final String? minimumAvailability; // Radarr
+  final String? seriesType; // Sonarr
+  final bool? seasonFolder; // Sonarr
+  final bool? search;
+
+  const ArrAddDefaults({
+    this.rootFolder,
+    this.qualityProfileId,
+    this.monitor,
+    this.minimumAvailability,
+    this.seriesType,
+    this.seasonFolder,
+    this.search,
+  });
+
+  bool get isEmpty =>
+      rootFolder == null &&
+      qualityProfileId == null &&
+      monitor == null &&
+      minimumAvailability == null &&
+      seriesType == null &&
+      seasonFolder == null &&
+      search == null;
+
+  factory ArrAddDefaults.fromJson(Map<String, dynamic> j) => ArrAddDefaults(
+    rootFolder: j['rootFolder'] as String?,
+    qualityProfileId: _intOrNull(j['qualityProfileId']),
+    monitor: j['monitor'] as String?,
+    minimumAvailability: j['minimumAvailability'] as String?,
+    seriesType: j['seriesType'] as String?,
+    seasonFolder: j['seasonFolder'] as bool?,
+    search: j['search'] as bool?,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is ArrAddDefaults &&
+      other.rootFolder == rootFolder &&
+      other.qualityProfileId == qualityProfileId &&
+      other.monitor == monitor &&
+      other.minimumAvailability == minimumAvailability &&
+      other.seriesType == seriesType &&
+      other.seasonFolder == seasonFolder &&
+      other.search == search;
+
+  @override
+  int get hashCode => Object.hash(
+    rootFolder,
+    qualityProfileId,
+    monitor,
+    minimumAvailability,
+    seriesType,
+    seasonFolder,
+    search,
+  );
+
+  Map<String, dynamic> toJson() => {
+    if (rootFolder != null) 'rootFolder': rootFolder,
+    if (qualityProfileId != null) 'qualityProfileId': qualityProfileId,
+    if (monitor != null) 'monitor': monitor,
+    if (minimumAvailability != null) 'minimumAvailability': minimumAvailability,
+    if (seriesType != null) 'seriesType': seriesType,
+    if (seasonFolder != null) 'seasonFolder': seasonFolder,
+    if (search != null) 'search': search,
+  };
+}
+
+/// One title the app already manages, reduced to the choices it was added
+/// with, for working out what the library usually uses.
+typedef ArrAddedWith = ({
+  String? path,
+  int? qualityProfileId,
+  String? minimumAvailability,
+  String? seriesType,
+  bool? seasonFolder,
+});
+
+/// Where a starting choice came from.
+enum ArrChoiceSource { saved, library, first }
+
+/// The choices Add opens with.
+class ArrAddChoice {
+  final String? rootFolder;
+  final int? qualityProfileId;
+  final String monitor;
+  final String minimumAvailability;
+  final String seriesType;
+  final bool seasonFolder;
+  final bool search;
+
+  /// Where the quality profile came from, which is the choice people most
+  /// want explained.
+  final ArrChoiceSource profileSource;
+
+  const ArrAddChoice({
+    required this.rootFolder,
+    required this.qualityProfileId,
+    required this.monitor,
+    required this.minimumAvailability,
+    required this.seriesType,
+    required this.seasonFolder,
+    required this.search,
+    required this.profileSource,
+  });
+}
+
+/// The most common non-null value, or null. Ties go to the one seen first.
+T? _mostCommon<T>(Iterable<T?> values) {
+  final counts = <T, int>{};
+  for (final v in values) {
+    if (v != null) counts[v] = (counts[v] ?? 0) + 1;
+  }
+  T? best;
+  var top = 0;
+  counts.forEach((v, n) {
+    if (n > top) {
+      best = v;
+      top = n;
+    }
+  });
+  return best;
+}
+
+/// The root folder a title's path sits in: the longest root that's a prefix,
+/// so `/media/movies-4k` doesn't count as inside `/media/movies`.
+String? arrRootOf(String? path, Iterable<String> roots) {
+  if (path == null) return null;
+  String norm(String p) => p.endsWith('/') || p.endsWith('\\') ? p : '$p/';
+  final p = norm(path);
+  String? best;
+  for (final r in roots) {
+    if (p.startsWith(norm(r)) && (best == null || r.length > best.length)) {
+      best = r;
+    }
+  }
+  return best;
+}
+
+/// What Add starts with: [saved] where it still fits the server, then what
+/// most of [library] uses, then the app's first root folder and profile.
+ArrAddChoice arrStartingChoice({
+  required ArrKind kind,
+  required ArrAddDefaults saved,
+  required List<String> roots,
+  required List<int> profiles,
+  required List<ArrAddedWith> library,
+}) {
+  final shows = kind == ArrKind.sonarr;
+  final root =
+      (saved.rootFolder != null && roots.contains(saved.rootFolder)
+          ? saved.rootFolder
+          : null) ??
+      _mostCommon(library.map((t) => arrRootOf(t.path, roots))) ??
+      (roots.isEmpty ? null : roots.first);
+  final savedProfile =
+      saved.qualityProfileId != null &&
+          profiles.contains(saved.qualityProfileId)
+      ? saved.qualityProfileId
+      : null;
+  final libraryProfile = _mostCommon(
+    library.map(
+      (t) => profiles.contains(t.qualityProfileId) ? t.qualityProfileId : null,
+    ),
+  );
+  final profile =
+      savedProfile ??
+      libraryProfile ??
+      (profiles.isEmpty ? null : profiles.first);
+  return ArrAddChoice(
+    rootFolder: root,
+    qualityProfileId: profile,
+    monitor: saved.monitor ?? (shows ? 'all' : 'movieOnly'),
+    minimumAvailability:
+        saved.minimumAvailability ??
+        _mostCommon(library.map((t) => t.minimumAvailability)) ??
+        'released',
+    seriesType:
+        saved.seriesType ??
+        _mostCommon(library.map((t) => t.seriesType)) ??
+        'standard',
+    seasonFolder:
+        saved.seasonFolder ??
+        _mostCommon(library.map((t) => t.seasonFolder)) ??
+        true,
+    search: saved.search ?? true,
+    profileSource: savedProfile != null
+        ? ArrChoiceSource.saved
+        : libraryProfile != null
+        ? ArrChoiceSource.library
+        : ArrChoiceSource.first,
   );
 }
 

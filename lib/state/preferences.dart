@@ -294,6 +294,9 @@ class Prefs {
   final String sonarrApiKey;
   final String radarrUrl;
   final String radarrApiKey;
+  // What Add starts with for a new show / movie (ArrAddDefaults as JSON).
+  final Map<String, dynamic> sonarrAddDefaults;
+  final Map<String, dynamic> radarrAddDefaults;
 
   /// Order of the Seerr Discover rows, and which are hidden. Matches the
   /// Jellyseerr web home, and is reorderable + toggleable from the Discover
@@ -435,6 +438,8 @@ class Prefs {
     this.sonarrApiKey = '',
     this.radarrUrl = '',
     this.radarrApiKey = '',
+    this.sonarrAddDefaults = const {},
+    this.radarrAddDefaults = const {},
     this.seerrRowOrder = kDefaultSeerrRows,
     this.seerrHiddenRows = const [],
     this.seerrCustomSliders = const [],
@@ -566,6 +571,8 @@ class Prefs {
     String? sonarrApiKey,
     String? radarrUrl,
     String? radarrApiKey,
+    Map<String, dynamic>? sonarrAddDefaults,
+    Map<String, dynamic>? radarrAddDefaults,
     List<String>? seerrRowOrder,
     List<String>? seerrHiddenRows,
     List<Map<String, dynamic>>? seerrCustomSliders,
@@ -711,6 +718,8 @@ class Prefs {
         sonarrApiKey: sonarrApiKey ?? this.sonarrApiKey,
         radarrUrl: radarrUrl ?? this.radarrUrl,
         radarrApiKey: radarrApiKey ?? this.radarrApiKey,
+        sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
+        radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
         seerrRowOrder: seerrRowOrder ?? this.seerrRowOrder,
         seerrHiddenRows: seerrHiddenRows ?? this.seerrHiddenRows,
         seerrCustomSliders: seerrCustomSliders ?? this.seerrCustomSliders,
@@ -842,6 +851,8 @@ class Prefs {
         'sonarrApiKey': sonarrApiKey,
         'radarrUrl': radarrUrl,
         'radarrApiKey': radarrApiKey,
+        'sonarrAddDefaults': sonarrAddDefaults,
+        'radarrAddDefaults': radarrAddDefaults,
         'seerrRowOrder': seerrRowOrder,
         'seerrHiddenRows': seerrHiddenRows,
         'seerrCustomSliders': seerrCustomSliders,
@@ -998,6 +1009,12 @@ class Prefs {
         sonarrApiKey: j['sonarrApiKey'] as String? ?? '',
         radarrUrl: j['radarrUrl'] as String? ?? '',
         radarrApiKey: j['radarrApiKey'] as String? ?? '',
+        sonarrAddDefaults: j['sonarrAddDefaults'] is Map
+            ? Map<String, dynamic>.from(j['sonarrAddDefaults'] as Map)
+            : const {},
+        radarrAddDefaults: j['radarrAddDefaults'] is Map
+            ? Map<String, dynamic>.from(j['radarrAddDefaults'] as Map)
+            : const {},
         seerrRowOrder: (j['seerrRowOrder'] as List?)?.cast<String>() ??
             kDefaultSeerrRows,
         seerrHiddenRows:

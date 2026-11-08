@@ -204,6 +204,90 @@ final arrQualityProfileListProvider = FutureProvider.autoDispose
       return c.qualityProfiles();
     });
 
+/// The saved starting choices for Add in one app.
+ArrAddDefaults arrSavedDefaults(Prefs p, ArrKind kind) =>
+    ArrAddDefaults.fromJson(
+      kind == ArrKind.sonarr ? p.sonarrAddDefaults : p.radarrAddDefaults,
+    );
+
+/// Saves what Add starts with next time in [kind].
+Future<void> saveArrAddDefaults(
+  WidgetRef ref,
+  ArrKind kind,
+  ArrAddDefaults d,
+) => ref
+    .read(preferencesProvider.notifier)
+    .edit(
+      (p) => kind == ArrKind.sonarr
+          ? p.copyWith(sonarrAddDefaults: d.toJson())
+          : p.copyWith(radarrAddDefaults: d.toJson()),
+    );
+
+/// Everything Add needs from one app before it can show its form: the root
+/// folders (with what's already on disk), the quality profiles, and the
+/// choices to start on.
+typedef ArrAddSetup = ({
+  List<ArrRootFolder> roots,
+  List<ArrQualityProfile> profiles,
+  ArrAddChoice choice,
+});
+
+final arrAddSetupProvider = FutureProvider.autoDispose
+    .family<ArrAddSetup, ArrKind>((ref, kind) async {
+      final saved = ref.watch(
+        preferencesProvider.select(
+          (p) => arrSavedDefaults(p.asData?.value ?? const Prefs(), kind),
+        ),
+      );
+      final rootsF = ref.watch(arrRootFoldersProvider(kind).future);
+      final profilesF = ref.watch(arrQualityProfileListProvider(kind).future);
+      // The library only tells us the usual choices; when it can't load,
+      // Add still works from the saved ones or the app's first.
+      Future<List<ArrAddedWith>> library() async {
+        try {
+          if (kind == ArrKind.sonarr) {
+            return [
+              for (final s in await ref.watch(sonarrSeriesListProvider.future))
+                (
+                  path: s.path,
+                  qualityProfileId: s.qualityProfileId,
+                  minimumAvailability: null,
+                  seriesType: s.seriesType,
+                  seasonFolder: s.seasonFolder,
+                ),
+            ];
+          }
+          return [
+            for (final m in await ref.watch(radarrMoviesProvider.future))
+              (
+                path: m.path,
+                qualityProfileId: m.qualityProfileId,
+                minimumAvailability: m.minimumAvailability,
+                seriesType: null,
+                seasonFolder: null,
+              ),
+          ];
+        } catch (_) {
+          return const [];
+        }
+      }
+
+      final lib = await library();
+      final roots = await rootsF;
+      final profiles = await profilesF;
+      return (
+        roots: roots,
+        profiles: profiles,
+        choice: arrStartingChoice(
+          kind: kind,
+          saved: saved,
+          roots: [for (final r in roots) r.path],
+          profiles: [for (final p in profiles) p.id],
+          library: lib,
+        ),
+      );
+    });
+
 /// After a change to a movie: everything that shows it reloads.
 void arrMovieChanged(WidgetRef ref, int id) {
   ref.invalidate(radarrMovieProvider(id));

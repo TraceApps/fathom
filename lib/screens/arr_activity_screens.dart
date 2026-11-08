@@ -116,7 +116,7 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
           if (merged.items.isEmpty)
             SliverFillRemaining(
-              hasScrollBody: false,
+              hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.task_alt_rounded,
                 title: _list == ArrWantedList.missing
@@ -261,7 +261,7 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
           if (merged.items.isEmpty)
             SliverFillRemaining(
-              hasScrollBody: false,
+              hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.history_rounded,
                 title: l.arrNoHistory,

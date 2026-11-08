@@ -1,0 +1,15 @@
+[
+    {
+        "path": "/movies",
+        "accessible": true,
+        "freeSpace": 435330519040,
+        "unmappedFolders": [
+            {
+                "name": "The Matrix 1999 [1080p]",
+                "path": "/movies/The Matrix 1999 [1080p]",
+                "relativePath": "The Matrix 1999 [1080p]"
+            }
+        ],
+        "id": 1
+    }
+]

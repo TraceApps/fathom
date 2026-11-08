@@ -267,12 +267,16 @@ class ArrDropdownField<T> extends StatelessWidget {
   final Map<T, String> options;
   final ValueChanged<T?>? onChanged;
 
+  /// A line under the field, such as where its starting value came from.
+  final String? helper;
+
   const ArrDropdownField({
     super.key,
     required this.label,
     required this.value,
     required this.options,
     required this.onChanged,
+    this.helper,
   });
 
   @override
@@ -289,7 +293,11 @@ class ArrDropdownField<T> extends StatelessWidget {
           DropdownButtonFormField<T>(
             initialValue: options.containsKey(value) ? value : null,
             isExpanded: true,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              helperText: helper,
+              helperMaxLines: 2,
+            ),
             items: [
               for (final e in options.entries)
                 DropdownMenuItem(

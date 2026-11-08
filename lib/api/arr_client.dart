@@ -442,6 +442,7 @@ class SonarrClient extends ArrClient {
     required String seriesType, // standard, daily, anime
     required bool seasonFolder,
     required bool search,
+    String? path,
   }) async {
     final body = Map<String, dynamic>.from(lookupRaw)
       ..remove('id')
@@ -455,6 +456,9 @@ class SonarrClient extends ArrClient {
         'searchForMissingEpisodes': search,
         'searchForCutoffUnmetEpisodes': false,
       };
+    // An existing folder on disk: the app uses it (and the files in it)
+    // instead of making a new one from its naming rules.
+    if (path != null) body['path'] = path;
     return ArrSeries.fromJson(
       Map<String, dynamic>.from(await _post('series', body) as Map),
     );
@@ -611,6 +615,7 @@ class RadarrClient extends ArrClient {
     required String monitor, // movieOnly, movieAndCollection, none
     required String minimumAvailability, // announced, inCinemas, released
     required bool search,
+    String? path,
   }) async {
     final body = Map<String, dynamic>.from(lookupRaw)
       ..remove('id')
@@ -619,6 +624,7 @@ class RadarrClient extends ArrClient {
       ..['monitored'] = monitor != 'none'
       ..['minimumAvailability'] = minimumAvailability
       ..['addOptions'] = {'monitor': monitor, 'searchForMovie': search};
+    if (path != null) body['path'] = path;
     return ArrMovie.fromJson(
       Map<String, dynamic>.from(await _post('movie', body) as Map),
     );

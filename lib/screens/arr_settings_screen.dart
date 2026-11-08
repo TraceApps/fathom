@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../state/arr_providers.dart';
 import '../state/preferences.dart';
+import '../theme/app_theme.dart';
+import 'arr_add_screen.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/tv_keyboard.dart';
@@ -238,9 +241,144 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                 ),
               ],
             ),
+            if (saved && _version != null) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              _DefaultsTile(kind: widget.kind),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Defaults for New Titles": what Add starts with, and a summary of it.
+class _DefaultsTile extends ConsumerWidget {
+  final ArrKind kind;
+  const _DefaultsTile({required this.kind});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final saved = ref.watch(
+      preferencesProvider.select(
+        (p) => arrSavedDefaults(p.asData?.value ?? const Prefs(), kind),
+      ),
+    );
+    final profiles =
+        ref.watch(arrQualityProfileListProvider(kind)).asData?.value ??
+        const <ArrQualityProfile>[];
+    String? profileName;
+    for (final p in profiles) {
+      if (p.id == saved.qualityProfileId) profileName = p.name;
+    }
+    final summary = saved.isEmpty
+        ? l.arrNewTitleDefaultsLibrary
+        : [?profileName, ?saved.rootFolder].join('  ·  ');
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.tune_rounded),
+      title: Text(l.arrNewTitleDefaults),
+      subtitle: Text(summary.isEmpty ? l.arrNewTitleDefaultsHelp : summary),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (_) => _DefaultsDialog(kind: kind, hasSaved: !saved.isEmpty),
+      ),
+    );
+  }
+}
+
+class _DefaultsDialog extends ConsumerStatefulWidget {
+  final ArrKind kind;
+  final bool hasSaved;
+  const _DefaultsDialog({required this.kind, required this.hasSaved});
+
+  @override
+  ConsumerState<_DefaultsDialog> createState() => _DefaultsDialogState();
+}
+
+class _DefaultsDialogState extends ConsumerState<_DefaultsDialog> {
+  ArrChoiceDraft? _draft;
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    await saveArrAddDefaults(
+      ref,
+      widget.kind,
+      _draft!.toDefaults(kind: widget.kind),
+    );
+    if (!mounted) return;
+    Navigator.pop(context);
+    showSnack(context, l.arrDefaultsSaved, kind: SnackKind.success);
+  }
+
+  Future<void> _clear() async {
+    await saveArrAddDefaults(ref, widget.kind, const ArrAddDefaults());
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final async = ref.watch(arrAddSetupProvider(widget.kind));
+    final setup = async.asData?.value;
+    if (setup != null) _draft ??= ArrChoiceDraft.from(setup.choice);
+    final Widget content;
+    if (setup == null && async.hasError) {
+      content = Text(
+        async.error.toString(),
+        style: TextStyle(color: theme.colorScheme.error),
+      );
+    } else if (setup == null) {
+      content = const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: AppSpinner()),
+      );
+    } else if (setup.roots.isEmpty) {
+      content = Text(l.arrNoRootFolder(widget.kind.appName));
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l.arrNewTitleDefaultsHelp,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ArrChoiceFields(
+            kind: widget.kind,
+            setup: setup,
+            draft: _draft!,
+            explainProfile: !widget.hasSaved,
+            onChanged: () => setState(() {}),
+          ),
+        ],
+      );
+    }
+    final ready = setup != null && setup.roots.isNotEmpty && _draft != null;
+    return AlertDialog(
+      title: Text('${widget.kind.appName}: ${l.arrNewTitleDefaults}'),
+      scrollable: true,
+      content: SizedBox(width: 480, child: content),
+      actions: [
+        if (widget.hasSaved)
+          TextButton(onPressed: _clear, child: Text(l.arrClearDefaults)),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          style: kInlineButtonStyle,
+          onPressed: ready ? _save : null,
+          child: Text(l.commonSave),
+        ),
+      ],
     );
   }
 }

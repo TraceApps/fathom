@@ -719,7 +719,7 @@ class _ErrorPage extends StatelessWidget {
     slivers: [
       const SliverAppBar(pinned: true),
       SliverFillRemaining(
-        hasScrollBody: false,
+        hasScrollBody: true,
         child: ErrorView(message: message, onRetry: onRetry),
       ),
     ],
