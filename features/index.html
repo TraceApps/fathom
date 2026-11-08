@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/fathom.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -1188,9 +1188,11 @@
 <li>Under <strong>More</strong>: <strong>Refresh &amp; Scan</strong>, <strong>Rename Files</strong> (shows each file's current and new name first; it needs renaming turned on in the app's Settings, Media Management), <strong>Open in Sonarr</strong> or <strong>Open in Radarr</strong>, and <strong>Delete</strong>, with the choice to delete the files too and to keep import lists from adding it again.</li>
 <li><strong>Delete File</strong> under a file removes just that file from disk.</li>
 </ul>
-<p><strong>Add Movie</strong> and <strong>Add Show</strong> (the <strong>+</strong> next to the search box) search online by name, or exactly by <code>tmdb:</code>, <code>imdb:</code> or <code>tvdb:</code> id. Titles the app already has say <strong>In Library</strong> and open their page. Adding asks for the root folder (with its free space), what to monitor, the quality profile, and Minimum Availability for a movie or Series Type and Season Folders for a show, and can start a search right away. Fathom remembers your choices for the next one while it's open.</p>
+<p><strong>Add</strong>, at the top of the Arr section, finds new movies and shows online. From the Movies or Shows tab it looks for that kind; from the other tabs it searches both apps at once, with <strong>All</strong>, <strong>Movies</strong> and <strong>Shows</strong> to narrow it down. Search by name, or exactly by id: <code>imdb:</code> asks both apps, <code>tmdb:</code> looks up movies and <code>tvdb:</code> looks up shows. Searching your library in the Movies or Shows tab also offers <strong>Add "…"</strong> to look up what you typed. Titles the app already has say <strong>In Library</strong> and open their page.</p>
+<p>Adding asks for the root folder (with its free space), the quality profile, what to monitor, and Minimum Availability for a movie or Series Type and Season Folders for a show, and can start a search right away. It starts on your saved defaults, or, until you have some, on what most of your library already uses (the quality profile says which), so a new title gets the same quality as the rest. What you pick is saved as the starting point for the next one, the way the apps' own web pages work, and you can set it yourself in Settings &gt; Sonarr &amp; Radarr &gt; <strong>Defaults for New Titles</strong>.</p>
+<p>If the title is already on the server's disk in a folder the app doesn't manage, such as a movie Jellyfin plays that was never added to Radarr, its search result says <strong>On Disk</strong> and Add shows <strong>Already on Disk</strong> with the folder. Adding uses that folder and the files in it instead of making a new one, so nothing downloads twice, and starting a search is left unticked. Turn the switch off to have the app make its own folder instead.</p>
 <p><strong>Health</strong>, the shield at the top of the Arr section, shows each app's version and what its own health check has found, such as an indexer that keeps failing or a missing root folder, with <strong>Learn More</strong> linking to the app's wiki page about it. A badge counts the warnings and errors.</p>
-<p><strong>From a Jellyfin movie or show</strong>: when Radarr (movies) or Sonarr (shows) is connected, the <strong>⋮</strong> menu on the title's page finds it there by its TMDB or TVDB id. If the app has it, <strong>Manage in Radarr</strong> or <strong>Manage in Sonarr</strong> opens its page in the Arr section, and <strong>Search Movie</strong> (or <strong>Search Monitored</strong>, for missing episodes) and, for a movie, <strong>Interactive Search</strong>, for a better copy, start right there. If the app doesn't have it, <strong>Add to Radarr</strong> or <strong>Add to Sonarr</strong> opens Add Movie or Add Show with that title already found. Jellyfin titles without the id don't show these.</p>
+<p><strong>From a Jellyfin movie or show</strong>: when Radarr (movies) or Sonarr (shows) is connected, the <strong>⋮</strong> menu on the title's page finds it there by its TMDB or TVDB id. If the app has it, <strong>Manage in Radarr</strong> or <strong>Manage in Sonarr</strong> opens its page in the Arr section, and <strong>Search Movie</strong> (or <strong>Search Monitored</strong>, for missing episodes) and, for a movie, <strong>Interactive Search</strong>, for a better copy, start right there. If the app doesn't have it, <strong>Add to Radarr</strong> or <strong>Add to Sonarr</strong> opens straight into adding that title, using its folder on disk when the app can see it. Jellyfin titles without the id don't show these.</p>
 <p>The apps' one-time setup (indexers, download clients, custom formats, and media management rules) stays in their own web pages.</p>
 <h2 id="server-administration">Server administration<a class="headerlink" href="#server-administration" title="Permanent link">&para;</a></h2>
 <p>Run most of Jellyfin from the app, without opening the web dashboard: manage users, libraries, scheduled tasks, active sessions, playback and transcoding, networking, branding, Live TV and DVR, backups, and plugins. Each plugin's configuration is an in-app form (toggles, fields, and add/remove lists), with a raw-JSON option if you prefer, and plugin logos show in the list.</p>
@@ -1229,7 +1231,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 6, 2026 05:56:44 UTC">November 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 8, 2026 21:52:31 UTC">November 8, 2026</span>
   </span>
 
     
@@ -1332,7 +1334,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.action.edit", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
