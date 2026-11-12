@@ -86,6 +86,28 @@ void main() {
     expect(find.text('Why Tim Left the U.S.'), findsOneWidget);
   });
 
+  // A tablet in landscape showed the right group (Next, CC, settings,
+  // fullscreen) stranded mid-bar: the pill's Flexible(flex: 3) kept three
+  // quarters of the free room beside a flex-1 Spacer. The right group must sit
+  // exactly where it does without chapters, flush right.
+  for (final width in [800.0, 1000.0, 1280.0, 2000.0]) {
+    testWidgets('the right group stays flush right at ${width.toInt()}px', (
+      tester,
+    ) async {
+      await pump(tester, width, chapters: const [], onChapters: () {});
+      final without = tester
+          .getTopRight(find.byIcon(Icons.settings_rounded))
+          .dx;
+      await pump(tester, width, onChapters: () {});
+      expect(find.text('Why Tim Left the U.S.'), findsOneWidget);
+      final withPill = tester
+          .getTopRight(find.byIcon(Icons.settings_rounded))
+          .dx;
+      expect(withPill, moreOrLessEquals(without, epsilon: 0.5));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('no chapters, no pill', (tester) async {
     await pump(tester, 1280, chapters: const []);
     expect(find.text('Why Tim Left the U.S.'), findsNothing);

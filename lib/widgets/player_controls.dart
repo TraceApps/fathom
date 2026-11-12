@@ -979,21 +979,27 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                               onInteract: _show,
                               compact: true,
                             ),
+                          // The pill takes the spare room but hugs its left
+                          // edge, so the right group stays flush right. (A
+                          // Flexible beside a Spacer split the room 3:1.)
                           if (!widget.isLive && widget.chapters.isNotEmpty)
-                            Flexible(
-                              flex: 3,
-                              child: _ChapterPill(
-                                player: _p,
-                                chapters: widget.chapters,
-                                onTap: widget.onChapters == null
-                                    ? null
-                                    : () {
-                                        widget.onChapters!();
-                                        _show();
-                                      },
+                            Expanded(
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: _ChapterPill(
+                                  player: _p,
+                                  chapters: widget.chapters,
+                                  onTap: widget.onChapters == null
+                                      ? null
+                                      : () {
+                                          widget.onChapters!();
+                                          _show();
+                                        },
+                                ),
                               ),
-                            ),
-                          const Spacer(),
+                            )
+                          else
+                            const Spacer(),
                           if (widget.onPrevious != null)
                             _BarButton(
                                 icon: Icons.skip_previous_rounded,
@@ -1097,21 +1103,27 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                             onInteract: _show,
                             compact: compactVolume,
                           ),
+                        // The pill takes the spare room but hugs its left
+                        // edge, so the right group stays flush right. (A
+                        // Flexible beside a Spacer split the room 3:1.)
                         if (!widget.isLive && widget.chapters.isNotEmpty)
-                          Flexible(
-                            flex: 3,
-                            child: _ChapterPill(
-                              player: _p,
-                              chapters: widget.chapters,
-                              onTap: widget.onChapters == null
-                                  ? null
-                                  : () {
-                                      widget.onChapters!();
-                                      _show();
-                                    },
+                          Expanded(
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: _ChapterPill(
+                                player: _p,
+                                chapters: widget.chapters,
+                                onTap: widget.onChapters == null
+                                    ? null
+                                    : () {
+                                        widget.onChapters!();
+                                        _show();
+                                      },
+                              ),
                             ),
-                          ),
-                        const Spacer(),
+                          )
+                        else
+                          const Spacer(),
                         // Right cluster: Previous/Next lead it, then the
                         // track/nav pickers and view controls.
                         if (widget.onPrevious != null)
