@@ -10,6 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../services/youtube_dropout.dart';
 import '../services/youtube_streams.dart';
 import '../routing/route_observer.dart';
 import '../state/audio_player.dart';
@@ -195,6 +196,23 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   // the video-startup cost. Flip _perfDiag off to silence it.
   static const bool _perfDiag = false;
   StreamSubscription<PlayerLog>? _mpvLogSub;
+  // Stream dropouts (see YtDropoutWatch): resolve fresh links and carry on
+  // from the same spot instead of skipping to the next video.
+  StreamSubscription<PlayerLog>? _dropSub;
+  final YtDropoutWatch _dropout = YtDropoutWatch();
+  YtQuality? _openQuality; // the rendition _playAdaptive last opened
+  Future<bool>? _recovery; // the reload under way, shared by every caller
+  Timer? _recoveryWatchdog;
+  // Contexts inside media_kit's controls trees (windowed and fullscreen), so
+  // fullscreen can be left when this player goes away.
+  final Set<BuildContext> _controlsContexts = {};
+  DateTime? _handedOverAt; // onEnded/onNext called: the next video may follow
+  // Set when a video hands over while fullscreen, so the next one goes
+  // straight back into fullscreen instead of dropping out at every video.
+  // Timed, so a handover with no next video can't send a later one in.
+  static DateTime? _carryFullscreenAt;
+  // Players on screen, so a replaced one can send its successor fullscreen.
+  static final Set<_YoutubeVideoPlayerState> _alive = {};
   String? _probeUrl;
   int _probeBitrate = 0;
   bool _fellBack = false;
@@ -235,6 +253,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   @override
   void initState() {
     super.initState();
+    _alive.add(this);
     // Reopening a minimized video: take back its live player from the dock so
     // playback never restarts. The dock's player/controller are plain fields we
     // can read here, but every state change is deferred to a post-frame
@@ -263,7 +282,11 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
           ? Player(
               configuration:
                   const PlayerConfiguration(logLevel: MPVLogLevel.v))
-          : Player();
+          // Warnings carry the refused-reconnect message the dropout
+          // recovery listens for (errors alone don't include it).
+          : Player(
+              configuration:
+                  const PlayerConfiguration(logLevel: MPVLogLevel.warn));
       _controller = VideoController(_player);
       _reclaimed = false;
       if (_perfDiag) {
@@ -306,11 +329,21 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         if (!_ready && mounted) setState(() => _ready = true);
       }
     });
-    _completedSub = _player.stream.completed.listen((done) {
+    _dropSub = _player.stream.log.listen((e) {
+      // Acting on the refused reconnect saves the seconds of silence before
+      // the video track runs out too.
+      if (_dropout.refusedAfterReconnect(e.prefix, e.text)) {
+        debugPrint('[yt] stream refused: ${e.text.trim()}');
+        unawaited(_recoverStream());
+      }
+    });
+    _completedSub = _player.stream.completed.listen((done) async {
       if (!done) return;
-      // The sleep timer is set to stop at the end of this video.
-      if (ref.read(sleepTimerProvider.notifier).consumeEndOfItem()) return;
-      widget.onEnded?.call();
+      // mpv reports a dropped stream as the end of the video. Well short of
+      // the real end, reload instead of moving on. A reload already under way
+      // (started from the log) is waited for, and if it fails, this ends.
+      if (_endedEarly() && await _recoverStream()) return;
+      await _finish();
     });
     if (widget.onProgress != null) {
       _progressTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -349,7 +382,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         onPlay: _player.play,
         onPause: _player.pause,
         onStop: _player.pause,
-        onNext: widget.onNext != null ? () async => widget.onNext!() : null,
+        onNext: widget.onNext != null ? () async => _goNext() : null,
         onSeek: (d) async => _player.seek(d),
       ),
       _mediaToken,
@@ -487,7 +520,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         _qualityLabel = _qualityPref == 'auto' ? 'Auto' : (def?.label ?? 'Auto');
         _probeUrl = def?.url;
         _probeBitrate = def?.bitrate ?? 0;
-        if (def != null) await _playAdaptive(def, sw);
+        if (def != null) await _playAdaptive(def, sw: sw);
         debugPrint('[yt] player opened (adaptive) at ${sw.elapsedMilliseconds}ms');
         _armFallback();
         await _maybeResume();
@@ -516,6 +549,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       final s = await resolveYoutubeStreams(widget.url);
       if (!mounted) return;
       _streams = s;
+      _isLive = s.isLive;
       unawaited(_loadCaptions());
       unawaited(_loadSponsors());
       if (s.isAdaptive) {
@@ -673,22 +707,186 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     }
   }
 
-  Future<void> _playAdaptive(YtQuality q, [Stopwatch? sw]) async {
-    await _player.open(Media(q.url));
+  /// Whether mpv stopped short of the real end (a dropped stream, not the
+  /// video finishing). VOD from YouTube only; a download or a live stream
+  /// ending early is not something fresh links fix.
+  bool _endedEarly() =>
+      !_isLive &&
+      _ready &&
+      isYoutubeUrl(widget.url) &&
+      YtDropoutWatch.endedEarly(
+          _player.state.position, _player.state.duration);
+
+  void _onControlsContext(BuildContext c) {
+    _controlsContexts.add(c);
+    // The previous video handed over while fullscreen: go back in.
+    final carry = _carryFullscreenAt;
+    if (carry != null &&
+        DateTime.now().difference(carry) < const Duration(seconds: 10) &&
+        !isFullscreen(c)) {
+      _carryFullscreenAt = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && c.mounted && !isFullscreen(c)) {
+          unawaited(enterFullscreen(c));
+        }
+      });
+    }
+  }
+
+  /// The video is done: hand over, unless the sleep timer is set to stop
+  /// here.
+  Future<void> _finish() async {
+    _recoveryWatchdog?.cancel();
+    if (!mounted) return;
+    // The sleep timer is set to stop at the end of this video.
+    if (ref.read(sleepTimerProvider.notifier).consumeEndOfItem()) return;
+    _handedOverAt = DateTime.now();
+    widget.onEnded?.call();
+  }
+
+  void _goNext() {
+    _handedOverAt = DateTime.now();
+    widget.onNext?.call();
+  }
+
+  /// This player is going away. Left open, media_kit's fullscreen route would
+  /// keep showing it (disposed), a grey screen, with controls running against
+  /// a dead widget. Leave it, after this frame (the route can't be popped
+  /// mid-teardown). When the next video is what replaced it, note that so it
+  /// goes straight back into fullscreen. Nothing happens if nothing replaced
+  /// it (autoplay off, say): the finished video just stays where it is.
+  void _leaveFullscreenOnDispose() {
+    final contexts = _controlsContexts.where((c) => c.mounted).toList();
+    if (contexts.isEmpty) return;
+    final handedOver = _handedOverAt != null &&
+        DateTime.now().difference(_handedOverAt!) < const Duration(seconds: 5);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      for (final c in contexts) {
+        if (!c.mounted || !isFullscreen(c)) continue;
+        try {
+          await exitFullscreen(c);
+        } catch (_) {}
+        if (!handedOver) return;
+        // The successor built its controls this same frame, before this ran,
+        // so tell it directly; the note covers one that isn't built yet.
+        final next = _alive.where((p) => p.mounted && !p._minimized);
+        if (next.isEmpty || !next.first._enterFullscreenNow()) {
+          _carryFullscreenAt = DateTime.now();
+        }
+        return;
+      }
+    });
+  }
+
+  /// Sends this player fullscreen through its controls context. False if it
+  /// has none yet.
+  bool _enterFullscreenNow() {
+    for (final c in _controlsContexts) {
+      if (!c.mounted) continue;
+      if (!isFullscreen(c)) unawaited(enterFullscreen(c));
+      return true;
+    }
+    return false;
+  }
+
+  /// Resolves fresh links and reopens the video at the current position and
+  /// rendition. True when it reloaded; false when it gave up, so the caller
+  /// can treat the video as ended. Callers during a reload share its result.
+  Future<bool> _recoverStream() =>
+      _recovery ??= _reload().whenComplete(() => _recovery = null);
+
+  Future<bool> _reload() async {
+    _recoveryWatchdog?.cancel();
+    if (_isLive || !_ready || _minimized || !mounted) return false;
+    if (!isYoutubeUrl(widget.url)) return false;
+    final pos = _player.state.position;
+    // Keep a paused video paused. completed clears playing, so a video that
+    // ran out was playing.
+    final play = _player.state.playing || _player.state.completed;
+    if (!_dropout.takeTry(pos)) {
+      debugPrint('[yt] stream keeps dropping; giving up at ${pos.inSeconds}s');
+      return false;
+    }
+    debugPrint('[yt] stream dropped at ${pos.inSeconds}s; '
+        'reloading (try ${_dropout.tries})');
+    try {
+      final s = await resolveYoutubeStreams(widget.url, live: false);
+      if (!mounted || _minimized) return true;
+      _streams = s;
+      // Open at the spot rather than at 0:00 and seek: no flash of the start,
+      // and no SponsorBlock skip firing on the way.
+      final start = pos > Duration.zero ? pos : null;
+      if (s.isAdaptive && !_fellBack) {
+        _audioUrl = s.audioUrl;
+        final label = _openQuality?.label;
+        setState(() => _qualities = s.qualities);
+        final q = s.qualities.where((x) => x.label == label).firstOrNull ??
+            await _preferredQuality();
+        if (q == null) return false;
+        await _playAdaptive(q, start: start, play: play);
+      } else {
+        // Muxed: keep the viewer's pick if the fresh list still has it.
+        final q = s.muxedQualities
+            .where((x) => x.label == _qualityLabel)
+            .firstOrNull;
+        final url = q?.url ?? s.muxedUrl;
+        if (url == null) return false;
+        _audioUrl = null;
+        setState(() => _qualities = s.muxedQualities);
+        await _player.open(Media(url, start: start), play: play);
+        await _reapplyCaption();
+      }
+      debugPrint('[yt] stream reloaded at ${pos.inSeconds}s');
+      // open() can succeed and the new link still never play (offline, refused
+      // again); that raises no end, so nothing else would notice. Check it got
+      // going, and try again (or end) if it didn't.
+      if (play) _watchReload(pos);
+      return true;
+    } catch (e) {
+      debugPrint('[yt] stream reload failed: $e');
+      return false;
+    }
+  }
+
+  /// Checks a reload got going: every 15 s, up to a minute while mpv is still
+  /// buffering (a weak connection right after a network change can be slow),
+  /// then tries again, or ends the video once the tries are used up.
+  void _watchReload(Duration pos, [int checks = 1]) {
+    _recoveryWatchdog = Timer(const Duration(seconds: 15), () async {
+      if (!mounted || _minimized || _recovery != null) return;
+      if (_player.state.position > pos + const Duration(seconds: 1)) return;
+      // Paused by the viewer since: not stuck.
+      if (!_player.state.playing && !_player.state.completed) return;
+      if (_player.state.buffering && checks < 4) {
+        _watchReload(pos, checks + 1);
+        return;
+      }
+      debugPrint('[yt] reload never started playing');
+      if (!await _recoverStream()) await _finish();
+    });
+  }
+
+  Future<void> _playAdaptive(YtQuality q,
+      {Stopwatch? sw, Duration? start, bool play = true}) async {
+    _openQuality = q;
+    await _player.open(Media(q.url, start: start), play: play);
     if (sw != null) debugPrint('[yt] video open() issued at ${sw.elapsedMilliseconds}ms');
     if (_audioUrl != null) {
       await _player.setAudioTrack(AudioTrack.uri(_audioUrl!));
       if (sw != null) debugPrint('[yt] audio-add issued at ${sw.elapsedMilliseconds}ms');
     }
-    // open() resets tracks, so a chosen subtitle has to be reapplied or it
-    // silently vanishes when the viewer changes quality.
+    await _reapplyCaption();
+  }
+
+  /// open() resets tracks, so a chosen subtitle has to be reapplied or it
+  /// silently vanishes when the viewer changes quality (or a reload).
+  Future<void> _reapplyCaption() async {
     final c = _caption;
-    if (c != null) {
-      try {
-        await _player.setSubtitleTrack(
-            SubtitleTrack.uri(c.vttUrl, title: c.label, language: c.code));
-      } catch (_) {}
-    }
+    if (c == null) return;
+    try {
+      await _player.setSubtitleTrack(
+          SubtitleTrack.uri(c.vttUrl, title: c.label, language: c.code));
+    } catch (_) {}
   }
 
   /// If adaptive playback hasn't started shortly, drop to the muxed stream so
@@ -782,6 +980,8 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     _minimized = true;
     _playingSub?.cancel();
     _completedSub?.cancel();
+    _dropSub?.cancel();
+    _recoveryWatchdog?.cancel();
     _sponsorSub?.cancel();
     _fallbackTimer?.cancel();
     _progressTimer?.cancel();
@@ -802,6 +1002,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
 
   @override
   void dispose() {
+    _alive.remove(this);
     routeObserver.unsubscribe(this);
     _statsOpen.dispose();
     // Hand the OS media session back (token-guarded so a newer player wins).
@@ -812,6 +1013,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       super.dispose();
       return;
     }
+    _leaveFullscreenOnDispose();
     _volume.dispose();
     // A player handed to the PiP dock keeps playing, so it stays registered
     // with the sleep timer (the early return above).
@@ -819,6 +1021,8 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     _sponsorSub?.cancel();
     _firstFrameSub?.cancel();
     _mpvLogSub?.cancel();
+    _dropSub?.cancel();
+    _recoveryWatchdog?.cancel();
     LivePlayers.remove(_player);
     _fallbackTimer?.cancel();
     _progressTimer?.cancel();
@@ -1046,16 +1250,21 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     // the YouTube player had none at all, so space, K, arrows, F and M did
     // nothing on a desktop app. Not focusable when embedded: the page around it
     // owns the keyboard, and stealing focus would break scrolling and search.
+    // Read here, not inside the controls builder: media_kit can run that
+    // builder again after this player is gone (the next video took over), and
+    // a ref read from a disposed widget throws.
+    final barStyle =
+        ref.read(preferencesProvider).asData?.value.playerBarStyle ?? 'glass';
     final video = Video(
       controller: _controller,
       controls: (state) => _TabletopFullscreen(
           controller: _controller,
+          onContext: _onControlsContext,
           controls: (split) => FathomPlayerControls(
         player: _player,
         title: _titleText(l),
         isLive: _isLive,
-        barStyle:
-            ref.read(preferencesProvider).asData?.value.playerBarStyle ?? 'glass',
+        barStyle: barStyle,
         loading: !_ready,
         // Hides itself in the page too, not just fullscreen. A play button and
         // two skip buttons parked over the middle of the video are exactly what
@@ -1073,7 +1282,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
             (widget.embedded || widget.allowMinimize) ? _minimize : null,
         onToggleTheater: widget.onToggleTheater,
         theaterActive: widget.theaterActive,
-        onNext: widget.onNext,
+        onNext: widget.onNext == null ? null : _goNext,
         onSpeed: _showSpeedMenu,
         onSleepTimer: () => showSleepTimerSheet(context,
             endOfItemLabel: AppLocalizations.of(context).sleepTimerEndOfVideo),
@@ -1364,13 +1573,22 @@ class _YoutubeDownloadPlayerScreenState
 /// fullscreen works the same way, a second view over the page's. Everywhere
 /// else (not fullscreen, not folded) it's just the controls.
 class _TabletopFullscreen extends StatelessWidget {
-  const _TabletopFullscreen({required this.controller, required this.controls});
+  const _TabletopFullscreen({
+    required this.controller,
+    required this.controls,
+    this.onContext,
+  });
 
   final VideoController controller;
   final Widget Function(bool split) controls;
 
+  /// Hands the player a context inside media_kit's controls tree, the one
+  /// isFullscreen/exitFullscreen need.
+  final void Function(BuildContext context)? onContext;
+
   @override
   Widget build(BuildContext context) {
+    onContext?.call(context);
     final fold = isFullscreen(context) ? tabletopFold(context) : null;
     final split = fold != null;
     final height = MediaQuery.sizeOf(context).height;
