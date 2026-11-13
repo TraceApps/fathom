@@ -10,6 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../services/youtube_dock_recovery.dart';
 import '../services/youtube_dropout.dart';
 import '../services/youtube_streams.dart';
 import '../routing/route_observer.dart';
@@ -203,6 +204,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   YtQuality? _openQuality; // the rendition _playAdaptive last opened
   Future<bool>? _recovery; // the reload under way, shared by every caller
   Timer? _recoveryWatchdog;
+  YtDockRecovery? _dock; // the mini player's recovery, once minimized
   // Contexts inside media_kit's controls trees (windowed and fullscreen), so
   // fullscreen can be left when this player goes away.
   final Set<BuildContext> _controlsContexts = {};
@@ -550,6 +552,11 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       if (!mounted) return;
       _streams = s;
       _isLive = s.isLive;
+      // The stream dropped while docked and the dock's reload was cut short
+      // by reopening: the end already fired, so nothing else would notice.
+      if (_player.state.completed && _endedEarly()) {
+        unawaited(_recoverStream());
+      }
       unawaited(_loadCaptions());
       unawaited(_loadSponsors());
       if (s.isAdaptive) {
@@ -811,7 +818,12 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         'reloading (try ${_dropout.tries})');
     try {
       final s = await resolveYoutubeStreams(widget.url, live: false);
-      if (!mounted || _minimized) return true;
+      // Minimized while resolving: the mini player reloads it instead.
+      if (_minimized) {
+        unawaited(_dock?.recover());
+        return true;
+      }
+      if (!mounted) return true;
       _streams = s;
       // Open at the spot rather than at 0:00 and seek: no flash of the start,
       // and no SponsorBlock skip firing on the way.
@@ -988,6 +1000,21 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     _reportProgress();
     _volume.dispose();
     final vid = widget.matchId ?? youtubeVideoId(widget.url) ?? '';
+    // The dock carries on recovering dropouts (with this screen's tries and
+    // choices) until the video is reopened here or closed.
+    final dock = _dock = !_isLive && _ready && isYoutubeUrl(widget.url)
+        ? YtDockRecovery(
+            player: _player,
+            url: widget.url,
+            watch: _dropout,
+            // A screen reopened from the dock never opened a rendition
+            // itself; its label is the preference's default.
+            adaptiveLabel: _openQuality?.label ?? _qualityLabel,
+            muxedLabel: _qualityLabel,
+            muxedOnly: _fellBack,
+            caption: _caption,
+          )
+        : null;
     ref.read(pipProvider.notifier).adopt(
           player: _player,
           controller: _controller,
@@ -996,6 +1023,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
           route: widget.reopenRoute ?? '/youtube/watch',
           routeExtra:
               widget.reopenExtra ?? (videoId: vid, title: widget.title),
+          onRelease: dock?.cancel,
         );
     if (mounted) Navigator.of(context).maybePop();
   }

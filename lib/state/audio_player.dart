@@ -30,6 +30,7 @@ import '../models/youtube_audio_item.dart';
 import '../models/youtube_video.dart';
 import '../services/live_players.dart';
 import '../services/youtube_innertube.dart' show YtChannelTabKind;
+import '../services/youtube_dropout.dart';
 import '../services/youtube_streams.dart';
 import 'providers.dart';
 import 'youtube_providers.dart';
@@ -220,6 +221,10 @@ class AudioController extends Notifier<AudioState> {
   // blast through every track in a couple seconds — stop after this many in a
   // row. Reset on any successful open or user-initiated skip.
   int _ytResolveFailStreak = 0;
+  // Dropouts on the current YouTube track (see YtDropoutWatch), reset per
+  // track, so a dropped connection reloads the track instead of skipping it.
+  YtDropoutWatch _ytDropout = YtDropoutWatch();
+  String? _ytDropoutId;
   static const _ytMaxResolveFailStreak = 4;
   // Bumped on every YouTube-audio open, so a load-watchdog from a track we've
   // already moved past can't skip the current one.
@@ -481,6 +486,27 @@ class AudioController extends Notifier<AudioState> {
       // that actually played out — should advance, otherwise a bad/expired URL
       // cascades "completed -> next -> completed" through the whole queue.
       if (_player.state.duration <= Duration.zero) return;
+      // A dropped connection ends the track early (the link is tied to the
+      // old address and the reconnect is refused): reload it from the same
+      // spot with a fresh link instead of moving on.
+      final cur = state.ytCurrent;
+      final pos = _player.state.position;
+      if (cur != null &&
+          YtDropoutWatch.endedEarly(pos, _player.state.duration)) {
+        if (_ytDropoutId != cur.videoId) {
+          _ytDropoutId = cur.videoId;
+          _ytDropout = YtDropoutWatch();
+        }
+        if (_ytDropout.takeTry(pos)) {
+          Diagnostics.instance.add('yt', 'track dropped at ${pos.inSeconds}s; '
+              'reloading (try ${_ytDropout.tries})');
+          _ytUrlCache.remove(cur.videoId); // the old link is the dead one
+          unawaited(_playYtItem(cur, startAt: pos, reload: true));
+          return;
+        }
+        Diagnostics.instance.add(
+            'yt', 'track keeps dropping; moving on at ${pos.inSeconds}s');
+      }
       // The sleep timer is set to stop at the end of this track.
       if (ref.read(sleepTimerProvider.notifier).consumeEndOfItem()) return;
       // Repeat-one: replay the current track instead of advancing. The Next
@@ -990,7 +1016,9 @@ class AudioController extends Notifier<AudioState> {
   /// reused) and open it. Pushes now-playing and pre-resolves the next queued
   /// item so the hand-over when this one ends is near-seamless.
   Future<void> _playYtItem(YoutubeAudioItem item,
-      {Duration startAt = Duration.zero, bool retried = false}) async {
+      {Duration startAt = Duration.zero,
+      bool retried = false,
+      bool reload = false}) async {
     // Claim this load up front so a newer skip (Next/Previous pressed while this
     // slow resolve is still running) supersedes it — otherwise the stale resolve
     // opens over the track the user actually skipped to.
@@ -1005,6 +1033,9 @@ class AudioController extends Notifier<AudioState> {
       // playlist doesn't race through every track in seconds. Don't retry: it
       // only adds requests and deepens any rate-limit throttle.
       if (token != _ytLoadToken) return; // superseded by a newer skip
+      // Reloading a dropped track: the network is likely still down, and
+      // moving on would ignore repeat-one and the sleep timer. Stop here.
+      if (reload) return;
       if (++_ytResolveFailStreak >= _ytMaxResolveFailStreak) {
         _ytResolveFailStreak = 0;
         _ytAdvancing = false; // release so the user can start playback again
@@ -1019,22 +1050,24 @@ class AudioController extends Notifier<AudioState> {
     state = state.copyWith(ytCurrent: item);
     await _activateAudioSession();
     if (token != _ytLoadToken) return; // superseded during session activation
-    await _player.open(Media(url));
+    // Open at the spot rather than at 0:00 and seek: no blip of the start.
+    await _player.open(
+        Media(url, start: startAt > Duration.zero ? startAt : null));
     _applyVolume();
-    if (startAt > Duration.zero) unawaited(_seekWhenReady(startAt));
     _pushYtNowPlaying(item);
     _pushPlaybackState();
     _pushQueue(); // current track advanced — refresh the car's up-next
     final up = ref.read(youtubeQueueProvider);
     if (up.isNotEmpty) unawaited(_resolveYtUrl(up.first.id));
-    unawaited(_watchLoad(item, token, retried));
+    unawaited(_watchLoad(item, token, retried, startAt, reload));
   }
 
   /// Guard against a track that never actually loads — an expired or blocked URL
   /// that media_kit neither plays nor reports a duration for. If no real
   /// duration arrives, re-resolve a fresh URL once (a stale cached URL is the
   /// usual culprit), then skip forward — rather than hang on "loading" forever.
-  Future<void> _watchLoad(YoutubeAudioItem item, int token, bool retried) async {
+  Future<void> _watchLoad(YoutubeAudioItem item, int token, bool retried,
+      Duration startAt, bool reload) async {
     if (_player.state.duration > Duration.zero) return;
     try {
       await _player.stream.duration
@@ -1050,8 +1083,9 @@ class AudioController extends Notifier<AudioState> {
       }
       if (!retried) {
         _ytUrlCache.remove(item.videoId); // drop the (likely stale) URL
-        await _playYtItem(item, retried: true);
-      } else {
+        await _playYtItem(item,
+            startAt: startAt, retried: true, reload: reload);
+      } else if (!reload) {
         await _ytNext();
       }
     }
@@ -1096,18 +1130,6 @@ class AudioController extends Notifier<AudioState> {
     final url = await resolveYoutubeAudioUrl(videoId);
     if (url != null) _ytUrlCache[videoId] = (url: url, at: DateTime.now());
     return url;
-  }
-
-  /// Seek once the media has a real duration (a fresh open reports zero briefly).
-  Future<void> _seekWhenReady(Duration target) async {
-    try {
-      if (_player.state.duration <= target) {
-        await _player.stream.duration
-            .firstWhere((d) => d > target)
-            .timeout(const Duration(seconds: 12));
-      }
-      await _player.seek(target);
-    } catch (_) {}
   }
 
   /// Advance: the shared queue wins (an explicit instruction), then autoplay a

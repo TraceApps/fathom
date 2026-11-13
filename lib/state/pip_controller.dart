@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show VoidCallback;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -59,9 +61,20 @@ class PipController extends Notifier<PipState> {
   /// saved. Passed the live player so it can read the final position.
   Future<void> Function(Player player)? _onClose;
 
+  /// Run whenever the dock lets go of the player (reclaimed, closed or
+  /// replaced): the YouTube player uses it to stop its dropout recovery.
+  VoidCallback? _onRelease;
+
+  void _release() {
+    final r = _onRelease;
+    _onRelease = null;
+    r?.call();
+  }
+
   @override
   PipState build() {
     ref.onDispose(() {
+      _release();
       final p = player;
       player = null;
       controller = null;
@@ -86,7 +99,9 @@ class PipController extends Notifier<PipState> {
     required Object routeExtra,
     Object? handoffData,
     Future<void> Function(Player player)? onClose,
+    VoidCallback? onRelease,
   }) {
+    _release();
     if (this.player != null && this.player != player) {
       unawaited(_dispose(this.player!));
     }
@@ -95,6 +110,7 @@ class PipController extends Notifier<PipState> {
     this.routeExtra = routeExtra;
     this.handoffData = handoffData;
     _onClose = onClose;
+    _onRelease = onRelease;
     state = PipState(active: true, title: title, matchId: matchId, route: route);
   }
 
@@ -120,6 +136,7 @@ class PipController extends Notifier<PipState> {
   /// it in a post-frame callback).
   void detachForReclaim() {
     if (player == null && controller == null) return;
+    _release();
     player = null;
     controller = null;
     routeExtra = null;
@@ -132,6 +149,7 @@ class PipController extends Notifier<PipState> {
   Future<void> close() async {
     final p = player;
     final cb = _onClose;
+    _release();
     player = null;
     controller = null;
     routeExtra = null;
