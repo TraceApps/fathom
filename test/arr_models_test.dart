@@ -149,6 +149,50 @@ void main() {
     });
   });
 
+  group('blocklist and history filters', () {
+    test('reads both apps\' blocklists (recorded from the rig)', () {
+      for (final kind in ArrKind.values) {
+        final page = _fixture('${kind.name}_blocklist') as Map;
+        final items = [
+          for (final m in page['records'] as List)
+            ArrBlocklistItem.fromJson(kind, Map<String, dynamic>.from(m)),
+        ];
+        expect(items, hasLength(2));
+        final b = items.first;
+        expect(b.kind, kind);
+        expect(b.id, greaterThan(0));
+        expect(b.sourceTitle, isNotEmpty);
+        expect(b.title, isNotNull, reason: 'the show or movie came along');
+        expect(b.quality, isNotNull);
+        expect(b.indexer, 'Rig');
+        expect(b.message, 'Manually marked as failed');
+        expect(b.date, isNotNull);
+        expect(
+          kind == ArrKind.sonarr ? b.seriesId : b.movieId,
+          isNotNull,
+        );
+      }
+    });
+
+    test('event numbers per app (EpisodeHistoryEventType / MovieHistoryEventType)', () {
+      List<int> s(ArrHistoryFilter f) => arrHistoryEventTypes(ArrKind.sonarr, f);
+      List<int> r(ArrHistoryFilter f) => arrHistoryEventTypes(ArrKind.radarr, f);
+      expect(s(ArrHistoryFilter.all), isEmpty);
+      expect(s(ArrHistoryFilter.grabbed), [1]);
+      expect(r(ArrHistoryFilter.grabbed), [1]);
+      expect(s(ArrHistoryFilter.imported), [2, 3]);
+      expect(r(ArrHistoryFilter.imported), [3]);
+      expect(s(ArrHistoryFilter.failed), [4]);
+      expect(r(ArrHistoryFilter.failed), [4]);
+      expect(s(ArrHistoryFilter.deleted), [5]);
+      expect(r(ArrHistoryFilter.deleted), [6]);
+      expect(s(ArrHistoryFilter.renamed), [6]);
+      expect(r(ArrHistoryFilter.renamed), [8]);
+      expect(s(ArrHistoryFilter.ignored), [7]);
+      expect(r(ArrHistoryFilter.ignored), [9]);
+    });
+  });
+
   group('pictures', () {
     test('TMDB pictures are asked for at a sensible size', () {
       expect(sizedImageUrl('https://image.tmdb.org/t/p/original/a.jpg', 342),
@@ -397,7 +441,7 @@ void main() {
     ]);
     addTearDown(container.dispose);
     final m = await container.read(
-      arrWantedProvider((ArrWantedList.missing, arrPageSize)).future,
+      arrWantedProvider((ArrWantedList.missing, arrPageSize, true)).future,
     );
     expect(m.items.map((w) => w.title), ['Out', 'Coming']);
   });
@@ -462,7 +506,9 @@ void main() {
         ], 2)),
       ]);
       addTearDown(container.dispose);
-      final m = await container.read(arrRecentHistoryProvider(3).future);
+      final m = await container.read(
+        arrRecentHistoryProvider((3, ArrHistoryFilter.all)).future,
+      );
       expect(m.items.map((h) => h.id), [1, 3, 2]);
       expect(m.total, 12);
       expect(m.hasMore, isTrue);
@@ -502,7 +548,10 @@ class _FakeSonarr extends SonarrClient {
   final int total;
   _FakeSonarr(this.items, this.total) : super('http://sonarr', 'k');
   @override
-  Future<ArrPage<ArrHistoryItem>> recentHistory({int pageSize = 50}) async =>
+  Future<ArrPage<ArrHistoryItem>> recentHistory({
+    int pageSize = 50,
+    ArrHistoryFilter only = ArrHistoryFilter.all,
+  }) async =>
       ArrPage(items.take(pageSize).toList(), total);
 }
 
@@ -513,9 +562,15 @@ class _FakeRadarr extends RadarrClient {
   _FakeRadarr(this.items, this.total, {this.wanted = const []})
       : super('http://radarr', 'k');
   @override
-  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50}) async =>
+  Future<ArrPage<ArrWantedItem>> missing({
+    int pageSize = 50,
+    bool monitored = true,
+  }) async =>
       ArrPage(wanted, wanted.length);
   @override
-  Future<ArrPage<ArrHistoryItem>> recentHistory({int pageSize = 50}) async =>
+  Future<ArrPage<ArrHistoryItem>> recentHistory({
+    int pageSize = 50,
+    ArrHistoryFilter only = ArrHistoryFilter.all,
+  }) async =>
       ArrPage(items.take(pageSize).toList(), total);
 }

@@ -202,7 +202,6 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final sel = widget.selection;
     final app = widget.client.kind.appName;
     final enabled = !_busy && sel.length > 0;
@@ -248,13 +247,63 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
       ),
       (icon: Icons.delete_rounded, label: l.commonDelete, run: enabled ? _delete : null, danger: true),
     ];
+    return ArrPickBar(
+      count: sel.length,
+      busy: _busy,
+      onCancel: sel.stop,
+      onSelectAll: () => sel.selectAll(widget.all),
+      actions: [
+        for (final a in actions)
+          ArrPickAction(a.icon, a.label, a.run, danger: a.danger),
+      ],
+    );
+  }
+}
+
+/// One thing the picking bar can do to what's picked.
+class ArrPickAction {
+  final IconData icon;
+  final String label;
+  final VoidCallback? run; // null: not available now
+  final bool danger;
+  const ArrPickAction(this.icon, this.label, this.run, {this.danger = false});
+}
+
+/// The bar shown while picking (library, queue, Wanted, blocklist): Cancel,
+/// how many, Select All, and the actions, as buttons when there's room and
+/// one menu when there isn't. Same look as the Jellyfin library's.
+class ArrPickBar extends StatelessWidget {
+  final int count;
+  final bool busy;
+  final VoidCallback onCancel;
+  final VoidCallback onSelectAll;
+  final List<ArrPickAction> actions;
+
+  const ArrPickBar({
+    super.key,
+    required this.count,
+    required this.onCancel,
+    required this.onSelectAll,
+    required this.actions,
+    this.busy = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final enabled = !busy && count > 0;
+    ArrPickAction live(ArrPickAction a) =>
+        enabled ? a : ArrPickAction(a.icon, a.label, null, danger: a.danger);
+    final shown = [for (final a in actions) live(a)];
     return Material(
       color: theme.colorScheme.surfaceContainerHigh,
       child: LayoutBuilder(
         builder: (context, c) {
-          // Seven buttons, the count and Select All need about 760 logical
-          // pixels; narrower, the actions fold into one menu.
-          final narrow = c.maxWidth < 780;
+          // Cancel, the count and Select All take about 280 logical pixels
+          // and each action button 48; narrower, the actions fold into one
+          // menu (one or two still fit on a phone).
+          final narrow = c.maxWidth < 280 + 48.0 * shown.length;
           return Padding(
             padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
             child: Row(
@@ -262,11 +311,11 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
                 IconButton(
                   tooltip: l.commonCancel,
                   icon: const Icon(Icons.close_rounded),
-                  onPressed: _busy ? null : sel.stop,
+                  onPressed: busy ? null : onCancel,
                 ),
                 Flexible(
                   child: Text(
-                    l.selectionCount(sel.length),
+                    l.selectionCount(count),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall?.copyWith(
@@ -275,7 +324,7 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
                   ),
                 ),
                 const Spacer(),
-                if (_busy)
+                if (busy)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
                     child: AppSpinner.inline(),
@@ -284,11 +333,11 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
                   IconButton(
                     tooltip: l.selectionSelectAll,
                     icon: const Icon(Icons.select_all_rounded),
-                    onPressed: _busy ? null : () => sel.selectAll(widget.all),
+                    onPressed: busy ? null : onSelectAll,
                   )
                 else
                   TextButton(
-                    onPressed: _busy ? null : () => sel.selectAll(widget.all),
+                    onPressed: busy ? null : onSelectAll,
                     child: Text(l.selectionSelectAll),
                   ),
                 if (narrow)
@@ -297,7 +346,7 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
                     enabled: enabled,
                     onSelected: (run) => run?.call(),
                     itemBuilder: (context) => [
-                      for (final a in actions)
+                      for (final a in shown)
                         PopupMenuItem<VoidCallback?>(
                           value: a.run,
                           enabled: a.run != null,
@@ -324,7 +373,7 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
                     ],
                   )
                 else
-                  for (final a in actions)
+                  for (final a in shown)
                     IconButton(
                       tooltip: a.label,
                       icon: Icon(a.icon),

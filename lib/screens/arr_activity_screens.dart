@@ -9,6 +9,7 @@ import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
+import '../widgets/arr_bulk.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
@@ -29,6 +30,75 @@ class ArrWantedTab extends ConsumerStatefulWidget {
 class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
   ArrWantedList _list = ArrWantedList.missing;
   int _limit = arrPageSize;
+
+  /// Monitored titles (the apps' default), or the unmonitored ones.
+  bool _monitored = true;
+
+  // The list last shown, kept while Load More fetches a longer one (a new
+  // key has no previous value of its own).
+  ArrMerged<ArrWantedItem>? _last;
+  (ArrWantedList, bool)? _lastFor;
+
+  // Picking several, by app and episode or movie id. Null: not picking.
+  Set<String>? _picked;
+  bool _busy = false;
+
+  static String _key(ArrWantedItem w) =>
+      '${w.kind.name}:${w.kind == ArrKind.sonarr ? w.episodeId : w.movieId}';
+
+  (ArrWantedList, int, bool) get _arg => (_list, _limit, _monitored);
+
+  /// Runs [each] once per app with that app's picked ids (episodes for
+  /// Sonarr, movies for Radarr).
+  Future<void> _forPicked(
+    List<ArrWantedItem> all,
+    Future<void> Function(ArrClient c, List<int> ids) each,
+    String Function(int sent) done, {
+    bool changes = false,
+  }) async {
+    final picked = _picked ?? const {};
+    final byApp = <ArrKind, List<int>>{};
+    for (final w in all) {
+      final id = w.kind == ArrKind.sonarr ? w.episodeId : w.movieId;
+      if (id != null && picked.contains(_key(w))) {
+        (byApp[w.kind] ??= []).add(id);
+      }
+    }
+    final sent = byApp.values.fold<int>(0, (t, ids) => t + ids.length);
+    setState(() => _busy = true);
+    final ok = await arrRun(context, () async {
+      for (final e in byApp.entries) {
+        final c = arrClient(ref, e.key);
+        if (c != null) await each(c, e.value);
+      }
+    }, done: done(sent));
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok && changes) _picked = null;
+    });
+    if (ok && changes) ref.invalidate(arrWantedProvider);
+  }
+
+  void _search(List<ArrWantedItem> all) => _forPicked(
+    all,
+    (c, ids) => c is SonarrClient ? c.searchEpisodes(ids) : c.searchMany(ids),
+    (_) => AppLocalizations.of(context).arrSearchAllStarted,
+  );
+
+  /// Monitors the unmonitored ones shown, or stops monitoring the monitored.
+  void _setMonitored(List<ArrWantedItem> all) {
+    final l = AppLocalizations.of(context);
+    final to = !_monitored;
+    _forPicked(
+      all,
+      (c, ids) => c is SonarrClient
+          ? c.setEpisodesMonitored(ids, to)
+          : c.editMany(ids, {'monitored': to}),
+      (n) => to ? l.arrNowMonitoredCount(n) : l.arrNowUnmonitoredCount(n),
+      changes: true,
+    );
+  }
 
   Future<void> _searchAll(ArrMerged<ArrWantedItem> merged) async {
     final l = AppLocalizations.of(context);
@@ -55,8 +125,14 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final async = ref.watch(arrWantedProvider((_list, _limit)));
-    final merged = async.asData?.value ?? async.unwrapPrevious().asData?.value;
+    final async = ref.watch(arrWantedProvider(_arg));
+    final fresh = async.asData?.value ?? async.unwrapPrevious().asData?.value;
+    if (fresh != null) {
+      _last = fresh;
+      _lastFor = (_list, _monitored);
+    }
+    final merged =
+        fresh ?? (_lastFor == (_list, _monitored) ? _last : null);
     final bar = Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Wrap(
@@ -81,15 +157,57 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
             onSelectionChanged: (s) => setState(() {
               _list = s.first;
               _limit = arrPageSize;
+              _picked = null;
             }),
           ),
-          if (merged != null && merged.total > 0)
-            TextButton.icon(
-              style: kInlineButtonStyle,
-              onPressed: () => _searchAll(merged),
-              icon: const Icon(Icons.manage_search_rounded),
-              label: Text(l.arrSearchAll),
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Search All only on the monitored list: Radarr's search-all
+              // always covers monitored movies (MissingMoviesSearch takes no
+              // monitored setting), so on the unmonitored list it would search
+              // the wrong ones. Picked titles can still be searched.
+              if (merged != null && merged.total > 0 && _monitored)
+                TextButton.icon(
+                  style: kInlineButtonStyle,
+                  onPressed: () => _searchAll(merged),
+                  icon: const Icon(Icons.manage_search_rounded),
+                  label: Text(l.arrSearchAll),
+                ),
+              if (merged != null && merged.items.isNotEmpty && _picked == null)
+                IconButton(
+                  tooltip: l.arrSelect,
+                  icon: const Icon(Icons.checklist_rounded),
+                  onPressed: () => setState(() => _picked = {}),
+                ),
+              PopupMenuButton<bool>(
+                tooltip: l.arrShowing,
+                icon: Icon(
+                  _monitored
+                      ? Icons.filter_list_rounded
+                      : Icons.filter_alt_rounded,
+                ),
+                initialValue: _monitored,
+                onSelected: (v) => setState(() {
+                  _monitored = v;
+                  _limit = arrPageSize;
+                  _picked = null;
+                }),
+                itemBuilder: (_) => [
+                  CheckedPopupMenuItem(
+                    value: true,
+                    checked: _monitored,
+                    child: Text(l.arrFilterMonitored),
+                  ),
+                  CheckedPopupMenuItem(
+                    value: false,
+                    checked: !_monitored,
+                    child: Text(l.arrUnmonitored),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -108,8 +226,11 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
         ],
       );
     }
-    return RefreshIndicator(
-      onRefresh: () => ref.refresh(arrWantedProvider((_list, _limit)).future),
+    final items = merged.items;
+    final live = {for (final w in items) _key(w)};
+    final picked = _picked?.where(live.contains).toSet();
+    final view = RefreshIndicator(
+      onRefresh: () => ref.refresh(arrWantedProvider(_arg).future),
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: bar),
@@ -119,7 +240,9 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
               hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.task_alt_rounded,
-                title: _list == ArrWantedList.missing
+                title: !_monitored && _list == ArrWantedList.missing
+                    ? l.arrWantedUnmonitoredEmpty
+                    : _list == ArrWantedList.missing
                     ? l.arrWantedMissingEmpty
                     : l.arrWantedCutoffEmpty,
               ),
@@ -138,10 +261,20 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
             ),
             SliverList.builder(
               itemCount: merged.items.length,
-              itemBuilder: (context, i) => _WantedRow(
-                item: merged.items[i],
-                cutoff: _list == ArrWantedList.cutoffUnmet,
-              ),
+              itemBuilder: (context, i) {
+                final w = merged.items[i];
+                final k = _key(w);
+                return _WantedRow(
+                  item: w,
+                  cutoff: _list == ArrWantedList.cutoffUnmet,
+                  picked: picked?.contains(k),
+                  onPick: () => setState(() {
+                    final p = {...?_picked};
+                    if (!p.remove(k)) p.add(k);
+                    _picked = p;
+                  }),
+                );
+              },
             ),
             if (merged.hasMore)
               SliverToBoxAdapter(
@@ -155,13 +288,55 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
         ],
       ),
     );
+    if (picked == null) return view;
+    final l2 = AppLocalizations.of(context);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _picked = null);
+      },
+      child: Column(
+        children: [
+          ArrPickBar(
+            count: picked.length,
+            busy: _busy,
+            onCancel: () => setState(() => _picked = null),
+            onSelectAll: () => setState(() => _picked = live),
+            actions: [
+              ArrPickAction(
+                Icons.search_rounded,
+                l2.arrSearchPicked,
+                () => _search(items),
+              ),
+              ArrPickAction(
+                _monitored
+                    ? Icons.bookmark_border_rounded
+                    : Icons.bookmark_rounded,
+                _monitored ? l2.arrUnmonitor : l2.arrMonitor,
+                () => _setMonitored(items),
+              ),
+            ],
+          ),
+          Expanded(child: view),
+        ],
+      ),
+    );
   }
 }
 
 class _WantedRow extends ConsumerWidget {
   final ArrWantedItem item;
   final bool cutoff;
-  const _WantedRow({required this.item, required this.cutoff});
+
+  /// While picking, whether this one is picked (null: not picking).
+  final bool? picked;
+  final VoidCallback? onPick;
+  const _WantedRow({
+    required this.item,
+    required this.cutoff,
+    this.picked,
+    this.onPick,
+  });
 
   Future<void> _search(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -195,11 +370,16 @@ class _WantedRow extends ConsumerWidget {
       images: item.images,
       title: item.title,
       subtitle: sub,
-      onTap: () => arrOpenTitle(
-        context,
-        item.kind,
-        item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,
-      ),
+      onTap: picked != null
+          ? onPick!
+          : () => arrOpenTitle(
+              context,
+              item.kind,
+              item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,
+            ),
+      leading: picked == null
+          ? null
+          : Checkbox(value: picked, onChanged: (_) => onPick?.call()),
       chips: [
         if (!item.available)
           ArrChip(label: l.arrNotReleased, color: arrUnreleasedColor)
@@ -217,13 +397,15 @@ class _WantedRow extends ConsumerWidget {
             color: scheme.outline,
           ),
       ],
-      trailing: IconButton(
-        tooltip: item.kind == ArrKind.sonarr
-            ? l.arrSearchEpisode
-            : l.arrSearchMovie,
-        onPressed: item.available ? () => _search(context, ref) : null,
-        icon: const Icon(Icons.search_rounded),
-      ),
+      trailing: picked != null
+          ? null
+          : IconButton(
+              tooltip: item.kind == ArrKind.sonarr
+                  ? l.arrSearchEpisode
+                  : l.arrSearchMovie,
+              onPressed: item.available ? () => _search(context, ref) : null,
+              icon: const Icon(Icons.search_rounded),
+            ),
     );
   }
 }
@@ -240,31 +422,91 @@ class ArrHistoryTab extends ConsumerStatefulWidget {
 
 class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
   int _limit = arrPageSize;
+  ArrHistoryFilter _only = ArrHistoryFilter.all;
+
+  String _label(AppLocalizations l, ArrHistoryFilter f) => switch (f) {
+    ArrHistoryFilter.all => l.browseAll,
+    ArrHistoryFilter.grabbed => l.arrEventGrabbed,
+    ArrHistoryFilter.imported => l.arrEventImported,
+    ArrHistoryFilter.failed => l.arrEventFailed,
+    ArrHistoryFilter.deleted => l.arrEventDeleted,
+    ArrHistoryFilter.renamed => l.arrEventRenamed,
+    ArrHistoryFilter.ignored => l.arrEventIgnored,
+  };
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final async = ref.watch(arrRecentHistoryProvider(_limit));
+    final async = ref.watch(arrRecentHistoryProvider((_limit, _only)));
     final merged = async.asData?.value ?? async.unwrapPrevious().asData?.value;
+    // Which events: the apps' History filter, shown as what's picked.
+    final filter = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+      child: Row(
+        children: [
+          if (_only != ArrHistoryFilter.all)
+            InputChip(
+              label: Text(_label(l, _only)),
+              onDeleted: () => setState(() {
+                _only = ArrHistoryFilter.all;
+                _limit = arrPageSize;
+              }),
+            ),
+          const Spacer(),
+          PopupMenuButton<ArrHistoryFilter>(
+            tooltip: l.arrFilter,
+            icon: Icon(
+              _only == ArrHistoryFilter.all
+                  ? Icons.filter_list_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+            initialValue: _only,
+            onSelected: (f) => setState(() {
+              _only = f;
+              _limit = arrPageSize;
+            }),
+            itemBuilder: (_) => [
+              for (final f in ArrHistoryFilter.values)
+                CheckedPopupMenuItem(
+                  value: f,
+                  checked: f == _only,
+                  child: Text(_label(l, f)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
     if (merged == null) {
-      return async.hasError
-          ? ErrorView(
-              message: async.error.toString(),
-              onRetry: () => ref.invalidate(arrRecentHistoryProvider),
-            )
-          : const Center(child: AppSpinner());
+      return Column(
+        children: [
+          filter,
+          Expanded(
+            child: async.hasError
+                ? ErrorView(
+                    message: async.error.toString(),
+                    onRetry: () => ref.invalidate(arrRecentHistoryProvider),
+                  )
+                : const Center(child: AppSpinner()),
+          ),
+        ],
+      );
     }
     return RefreshIndicator(
-      onRefresh: () => ref.refresh(arrRecentHistoryProvider(_limit).future),
+      onRefresh: () =>
+          ref.refresh(arrRecentHistoryProvider((_limit, _only)).future),
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
+          SliverToBoxAdapter(child: filter),
           if (merged.items.isEmpty)
             SliverFillRemaining(
               hasScrollBody: true,
               child: EmptyState(
                 icon: Icons.history_rounded,
-                title: l.arrNoHistory,
+                title: _only == ArrHistoryFilter.all
+                    ? l.arrNoHistory
+                    : l.arrHistoryEmptyFiltered,
               ),
             )
           else ...[
@@ -565,6 +807,9 @@ class _ArtRow extends ConsumerWidget {
   final Widget? trailing;
   final VoidCallback onTap;
 
+  /// Before the picture: a tick box while picking.
+  final Widget? leading;
+
   const _ArtRow({
     required this.kind,
     required this.images,
@@ -574,6 +819,7 @@ class _ArtRow extends ConsumerWidget {
     required this.onTap,
     this.detail,
     this.trailing,
+    this.leading,
   });
 
   @override
@@ -593,6 +839,11 @@ class _ArtRow extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (leading != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 4, top: 14),
+                child: leading,
+              ),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: SizedBox(
@@ -669,6 +920,236 @@ class _LoadMore extends StatelessWidget {
                 style: kInlineButtonStyle,
                 onPressed: onTap,
                 child: Text(l.arrLoadMore),
+              ),
+      ),
+    );
+  }
+}
+
+// --------------------------------------------------------------- Blocklist
+
+/// Releases Sonarr and Radarr won't grab again, newest first: remove one so
+/// it can be grabbed, pick several, or clear the lot. The apps' Activity >
+/// Blocklist.
+class ArrBlocklistScreen extends ConsumerStatefulWidget {
+  const ArrBlocklistScreen({super.key});
+
+  @override
+  ConsumerState<ArrBlocklistScreen> createState() => _ArrBlocklistScreenState();
+}
+
+class _ArrBlocklistScreenState extends ConsumerState<ArrBlocklistScreen> {
+  int _limit = arrPageSize;
+  ArrMerged<ArrBlocklistItem>? _last; // kept while Load More fetches
+  Set<String>? _picked;
+  bool _busy = false;
+
+  static String _key(ArrBlocklistItem b) => '${b.kind.name}:${b.id}';
+
+  /// Takes [items] off the blocklist, one call per app.
+  Future<void> _remove(List<ArrBlocklistItem> items) async {
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    final ok = await arrRun(context, () async {
+      for (final kind in {for (final b in items) b.kind}) {
+        await arrClient(ref, kind)?.removeFromBlocklist([
+          for (final b in items)
+            if (b.kind == kind) b.id,
+        ]);
+      }
+    }, done: l.arrRemovedFromBlocklist(items.length));
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok) _picked = null;
+    });
+    // Even after a failure: one app may have removed its part already.
+    ref.invalidate(arrBlocklistProvider);
+  }
+
+  Future<void> _clear() async {
+    final l = AppLocalizations.of(context);
+    final ok = await confirm(
+      context,
+      title: l.arrClearBlocklistTitle,
+      message: l.arrClearBlocklistMessage,
+      confirmLabel: l.arrClearBlocklist,
+      destructive: true,
+    );
+    if (!ok || !mounted) return;
+    final clients = <ArrClient>[
+      ?ref.read(sonarrClientProvider),
+      ?ref.read(radarrClientProvider),
+    ];
+    setState(() => _busy = true);
+    // Each app on its own, so one failing doesn't stop the other.
+    Object? failure;
+    await arrRun(context, () async {
+      for (final c in clients) {
+        try {
+          await c.clearBlocklist();
+        } catch (e) {
+          failure ??= e;
+        }
+      }
+      if (failure != null) throw failure!;
+    }, done: l.arrBlocklistCleared);
+    // The clear runs as a task on the server; give it a moment.
+    await Future<void>.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ref.invalidate(arrBlocklistProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final async = ref.watch(arrBlocklistProvider(_limit));
+    final merged =
+        async.asData?.value ?? async.unwrapPrevious().asData?.value ?? _last;
+    if (merged != null) _last = merged;
+    final items = merged?.items ?? const <ArrBlocklistItem>[];
+    final live = {for (final b in items) _key(b)};
+    final picked = _picked?.where(live.contains).toSet();
+    Widget body;
+    if (merged == null) {
+      body = async.hasError
+          ? ErrorView(
+              message: async.error.toString(),
+              onRetry: () => ref.invalidate(arrBlocklistProvider),
+            )
+          : const Center(child: AppSpinner());
+    } else {
+      body = RefreshIndicator(
+        onRefresh: () => ref.refresh(arrBlocklistProvider(_limit).future),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
+            if (items.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: true,
+                child: EmptyState(
+                  icon: Icons.block_rounded,
+                  title: l.arrBlocklistEmpty,
+                  message: l.arrBlocklistEmptyHint,
+                ),
+              )
+            else ...[
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+              SliverList.builder(
+                itemCount: items.length,
+                itemBuilder: (context, i) {
+                  final b = items[i];
+                  final k = _key(b);
+                  final p = picked?.contains(k);
+                  void pick() => setState(() {
+                    final s = {...?_picked};
+                    if (!s.remove(k)) s.add(k);
+                    _picked = s;
+                  });
+                  return _ArtRow(
+                    kind: b.kind,
+                    images: b.images,
+                    title: b.title ?? b.sourceTitle,
+                    subtitle: b.sourceTitle,
+                    detail: b.message,
+                    leading: p == null
+                        ? null
+                        : Checkbox(value: p, onChanged: (_) => pick()),
+                    onTap: p != null
+                        ? pick
+                        : () => arrOpenTitle(
+                            context,
+                            b.kind,
+                            b.kind == ArrKind.sonarr ? b.seriesId : b.movieId,
+                          ),
+                    chips: [
+                      if (b.quality != null)
+                        ArrChip(
+                          label: b.quality!,
+                          color: theme.colorScheme.outline,
+                        ),
+                      if (b.indexer?.isNotEmpty ?? false)
+                        ArrChip(
+                          label: b.indexer!,
+                          color: theme.colorScheme.outline,
+                        ),
+                      if (b.date != null)
+                        ArrChip(
+                          label: arrDate(context, b.date!),
+                          color: theme.colorScheme.outline,
+                        ),
+                    ],
+                    trailing: p != null
+                        ? null
+                        : IconButton(
+                            tooltip: l.arrRemoveFromBlocklist,
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: _busy ? null : () => _remove([b]),
+                          ),
+                  );
+                },
+              ),
+              if (merged.hasMore)
+                SliverToBoxAdapter(
+                  child: _LoadMore(
+                    loading: async.isLoading,
+                    onTap: () => setState(() => _limit += arrPageSize),
+                  ),
+                ),
+            ],
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
+      );
+    }
+    return PopScope(
+      canPop: picked == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _picked = null);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l.arrBlocklist),
+          actions: [
+            if (items.isNotEmpty && picked == null) ...[
+              IconButton(
+                tooltip: l.arrSelect,
+                icon: const Icon(Icons.checklist_rounded),
+                onPressed: () => setState(() => _picked = {}),
+              ),
+              IconButton(
+                tooltip: l.arrClearBlocklist,
+                icon: const Icon(Icons.delete_sweep_rounded),
+                onPressed: _busy ? null : _clear,
+              ),
+            ],
+          ],
+        ),
+        body: picked == null
+            ? body
+            : Column(
+                children: [
+                  ArrPickBar(
+                    count: picked.length,
+                    busy: _busy,
+                    onCancel: () => setState(() => _picked = null),
+                    onSelectAll: () => setState(() => _picked = live),
+                    actions: [
+                      ArrPickAction(
+                        Icons.remove_done_rounded,
+                        l.arrRemoveFromBlocklist,
+                        () => _remove([
+                          for (final b in items)
+                            if (picked.contains(_key(b))) b,
+                        ]),
+                        danger: true,
+                      ),
+                    ],
+                  ),
+                  Expanded(child: body),
+                ],
               ),
       ),
     );

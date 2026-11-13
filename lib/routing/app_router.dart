@@ -549,6 +549,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                   term: state.uri.queryParameters['term'],
                   folder: state.uri.queryParameters['folder']))),
           GoRoute(
+              path: '/arr/blocklist',
+              pageBuilder: (_, _) => _fadePage(const ArrBlocklistScreen())),
+          GoRoute(
               path: '/arr/health',
               pageBuilder: (_, _) => _fadePage(const ArrHealthScreen())),
           GoRoute(

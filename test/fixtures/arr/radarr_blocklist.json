@@ -1,0 +1,269 @@
+{
+    "page": 1,
+    "pageSize": 20,
+    "sortKey": "date",
+    "sortDirection": "descending",
+    "totalRecords": 2,
+    "records": [
+        {
+            "movieId": 2,
+            "sourceTitle": "Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+            "languages": [
+                {
+                    "id": 1,
+                    "name": "English"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 18,
+                    "name": "WEBDL-2160p",
+                    "source": "webdl",
+                    "resolution": 2160,
+                    "modifier": "none"
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormats": [],
+            "date": "2026-11-13T08:31:30Z",
+            "protocol": "usenet",
+            "indexer": "Rig",
+            "message": "Manually marked as failed",
+            "movie": {
+                "title": "Project Hail Mary",
+                "originalTitle": "Project Hail Mary",
+                "originalLanguage": {
+                    "id": 1,
+                    "name": "English"
+                },
+                "alternateTitles": [],
+                "secondaryYearSourceId": 0,
+                "sortTitle": "project hail mary",
+                "status": "released",
+                "overview": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction.",
+                "inCinemas": "2026-03-18T00:00:00Z",
+                "physicalRelease": "2026-08-11T00:00:00Z",
+                "digitalRelease": "2026-05-12T00:00:00Z",
+                "releaseDate": "2026-03-18T00:00:00Z",
+                "images": [
+                    {
+                        "coverType": "poster",
+                        "remoteUrl": "https://image.tmdb.org/t/p/original/iOb2fjXLbpJgyQXe46n1WtGCnaa.jpg"
+                    },
+                    {
+                        "coverType": "fanart",
+                        "remoteUrl": "https://image.tmdb.org/t/p/original/8Tfys3mDZVp4tNoH2ktm06a0Tau.jpg"
+                    }
+                ],
+                "website": "https://www.amazon.com/salp/projecthailmary?hhf",
+                "year": 2026,
+                "youTubeTrailerId": "NKYea63tQmI",
+                "studio": "Lord Miller",
+                "path": "/movies/Project Hail Mary (2026)",
+                "qualityProfileId": 1,
+                "movieFileId": 0,
+                "monitored": false,
+                "minimumAvailability": "inCinemas",
+                "isAvailable": true,
+                "folderName": "/movies/Project Hail Mary (2026)",
+                "runtime": 157,
+                "cleanTitle": "projecthailmary",
+                "imdbId": "tt12042730",
+                "tmdbId": 687163,
+                "titleSlug": "687163",
+                "certification": "PG-13",
+                "genres": [
+                    "Science Fiction",
+                    "Adventure"
+                ],
+                "keywords": [
+                    "alien",
+                    "astronaut",
+                    "based on novel or book",
+                    "bravery",
+                    "coma",
+                    "friendship",
+                    "interspecies friendship",
+                    "language barrier",
+                    "memory loss",
+                    "save the planet",
+                    "science teacher",
+                    "scientist",
+                    "space",
+                    "space mission",
+                    "space travel",
+                    "spaceship",
+                    "suicide mission",
+                    "sun"
+                ],
+                "tags": [
+                    1
+                ],
+                "added": "2026-11-13T06:52:47Z",
+                "ratings": {
+                    "imdb": {
+                        "votes": 598356,
+                        "value": 8.2,
+                        "type": "user"
+                    },
+                    "tmdb": {
+                        "votes": 8835,
+                        "value": 8.626,
+                        "type": "user"
+                    },
+                    "metacritic": {
+                        "votes": 0,
+                        "value": 77,
+                        "type": "user"
+                    },
+                    "rottenTomatoes": {
+                        "votes": 0,
+                        "value": 95,
+                        "type": "user"
+                    },
+                    "trakt": {
+                        "votes": 34350,
+                        "value": 8.74547,
+                        "type": "user"
+                    }
+                },
+                "popularity": 1071.9478,
+                "lastSearchTime": "2026-11-13T07:36:59Z",
+                "id": 2
+            },
+            "id": 2
+        },
+        {
+            "movieId": 3,
+            "sourceTitle": "Spider-Man.Brand.New.Day.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+            "languages": [
+                {
+                    "id": 1,
+                    "name": "English"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 18,
+                    "name": "WEBDL-2160p",
+                    "source": "webdl",
+                    "resolution": 2160,
+                    "modifier": "none"
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormats": [],
+            "date": "2026-11-13T08:31:30Z",
+            "protocol": "usenet",
+            "indexer": "Rig",
+            "message": "Manually marked as failed",
+            "movie": {
+                "title": "Spider-Man: Brand New Day",
+                "originalTitle": "Spider-Man: Brand New Day",
+                "originalLanguage": {
+                    "id": 1,
+                    "name": "English"
+                },
+                "alternateTitles": [],
+                "secondaryYearSourceId": 0,
+                "sortTitle": "spiderman brand new day",
+                "status": "released",
+                "overview": "Fighting crime full-time as Spider-Man in a world that doesn't remember him\u2014and the pressure of seeing his old friends move on without him\u2014sparks a change in Peter Parker he may not have the power to control. But that transformation might also be the only thing that can stop a shocking new threat to the city and those he loves - a powerful villain no one can even see.",
+                "inCinemas": "2026-07-29T00:00:00Z",
+                "physicalRelease": "2026-12-02T00:00:00Z",
+                "digitalRelease": "2026-10-06T00:00:00Z",
+                "releaseDate": "2026-07-29T00:00:00Z",
+                "images": [
+                    {
+                        "coverType": "poster",
+                        "remoteUrl": "https://image.tmdb.org/t/p/original/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg"
+                    },
+                    {
+                        "coverType": "fanart",
+                        "remoteUrl": "https://image.tmdb.org/t/p/original/subj7knTn4DeS6KS7qI66EQKe9i.jpg"
+                    }
+                ],
+                "website": "https://spidermanbrandnewday.movie",
+                "year": 2026,
+                "youTubeTrailerId": "P3uI5sLosKU",
+                "studio": "Marvel Studios",
+                "path": "/movies/Spider-Man - Brand New Day (2026)",
+                "qualityProfileId": 1,
+                "movieFileId": 0,
+                "monitored": false,
+                "minimumAvailability": "inCinemas",
+                "isAvailable": true,
+                "folderName": "/movies/Spider-Man - Brand New Day (2026)",
+                "runtime": 145,
+                "cleanTitle": "spidermanbrandnewday",
+                "imdbId": "tt22084616",
+                "tmdbId": 969681,
+                "titleSlug": "969681",
+                "certification": "PG-13",
+                "genres": [
+                    "Science Fiction",
+                    "Action",
+                    "Adventure"
+                ],
+                "keywords": [
+                    "aftercreditsstinger",
+                    "based on comic",
+                    "fight for justice",
+                    "genetic mutation",
+                    "hero",
+                    "marvel cinematic universe (mcu)",
+                    "masked superhero",
+                    "masked vigilante",
+                    "mind control",
+                    "mutation",
+                    "new york city",
+                    "secret identity",
+                    "sequel",
+                    "spider",
+                    "spider web",
+                    "super power",
+                    "superhero",
+                    "transhumanism",
+                    "villain"
+                ],
+                "tags": [
+                    1
+                ],
+                "added": "2026-11-13T06:52:48Z",
+                "ratings": {
+                    "imdb": {
+                        "votes": 381318,
+                        "value": 7.9,
+                        "type": "user"
+                    },
+                    "tmdb": {
+                        "votes": 6760,
+                        "value": 8.5,
+                        "type": "user"
+                    },
+                    "metacritic": {
+                        "votes": 0,
+                        "value": 66,
+                        "type": "user"
+                    }
+                },
+                "collection": {
+                    "title": "Spider-Man (MCU) Collection",
+                    "tmdbId": 531241
+                },
+                "popularity": 344.1411,
+                "lastSearchTime": "2026-11-13T07:37:01Z",
+                "id": 3
+            },
+            "id": 1
+        }
+    ]
+}

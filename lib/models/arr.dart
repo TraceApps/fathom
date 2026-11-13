@@ -991,6 +991,78 @@ String? arrFolderNameOf(String? path, {required bool isFile}) {
   return parts.isEmpty ? null : parts.last;
 }
 
+/// Kinds of History events to show. Each app numbers them its own way
+/// (Sonarr's EpisodeHistoryEventType, Radarr's MovieHistoryEventType).
+enum ArrHistoryFilter { all, grabbed, imported, failed, deleted, renamed, ignored }
+
+/// The event type numbers [f] means in [kind]'s history (empty: all).
+List<int> arrHistoryEventTypes(ArrKind kind, ArrHistoryFilter f) {
+  final sonarr = kind == ArrKind.sonarr;
+  return switch (f) {
+    ArrHistoryFilter.all => const [],
+    ArrHistoryFilter.grabbed => const [1],
+    // Sonarr imports from a show's folder (2) or a download (3).
+    ArrHistoryFilter.imported => sonarr ? const [2, 3] : const [3],
+    ArrHistoryFilter.failed => const [4],
+    ArrHistoryFilter.deleted => sonarr ? const [5] : const [6],
+    ArrHistoryFilter.renamed => sonarr ? const [6] : const [8],
+    ArrHistoryFilter.ignored => sonarr ? const [7] : const [9],
+  };
+}
+
+/// A release on the blocklist: the app won't grab it again.
+class ArrBlocklistItem {
+  final ArrKind kind;
+  final int id;
+  final DateTime? date;
+  final String sourceTitle;
+  final String? title; // the show or movie
+  final int? seriesId;
+  final int? movieId;
+  final String? quality;
+  final String? indexer;
+  final String? protocol; // usenet, torrent
+  final String? message;
+  final List<ArrImage> images;
+
+  const ArrBlocklistItem({
+    required this.kind,
+    required this.id,
+    required this.sourceTitle,
+    this.date,
+    this.title,
+    this.seriesId,
+    this.movieId,
+    this.quality,
+    this.indexer,
+    this.protocol,
+    this.message,
+    this.images = const [],
+  });
+
+  factory ArrBlocklistItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
+    final owner = (j['series'] ?? j['movie']) as Map?;
+    final q = ((j['quality'] as Map?)?['quality'] as Map?)?['name'] as String?;
+    return ArrBlocklistItem(
+      kind: kind,
+      id: _int(j['id']),
+      date: DateTime.tryParse((j['date'] as String?) ?? '')?.toLocal(),
+      sourceTitle: (j['sourceTitle'] as String?) ?? '',
+      title: owner?['title'] as String?,
+      seriesId: _intOrNull(j['seriesId']),
+      movieId: _intOrNull(j['movieId']),
+      quality: q,
+      indexer: j['indexer'] as String?,
+      protocol: j['protocol'] as String?,
+      message: j['message'] as String?,
+      images: [
+        for (final i in (owner?['images'] as List?) ?? const [])
+          if (i is Map) ArrImage.fromJson(Map<String, dynamic>.from(i)),
+      ],
+    );
+  }
+}
+
 /// A label the apps can put on titles (to route them to a download client,
 /// an indexer or a release profile, or just to sort by).
 class ArrTag {

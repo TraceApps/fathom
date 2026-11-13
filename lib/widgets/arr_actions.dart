@@ -882,21 +882,38 @@ Future<bool> showArrQueueRemoveDialog(
 }) async {
   final ok = await showDialog<bool>(
     context: context,
-    builder: (_) => _QueueRemoveDialog(client: client, item: item),
+    builder: (_) =>
+        _QueueRemoveDialog(items: [item], clientFor: (_) => client),
+  );
+  return ok ?? false;
+}
+
+/// The same choices for several downloads, which may be from both apps.
+Future<bool> showArrQueueRemoveManyDialog(
+  BuildContext context, {
+  required List<ArrQueueItem> items,
+  required ArrClient? Function(ArrKind kind) clientFor,
+}) async {
+  if (items.isEmpty) return false;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) => _QueueRemoveDialog(items: items, clientFor: clientFor),
   );
   return ok ?? false;
 }
 
 class _QueueRemoveDialog extends StatefulWidget {
-  final ArrClient client;
-  final ArrQueueItem item;
-  const _QueueRemoveDialog({required this.client, required this.item});
+  final List<ArrQueueItem> items;
+  final ArrClient? Function(ArrKind kind) clientFor;
+  const _QueueRemoveDialog({required this.items, required this.clientFor});
 
   @override
   State<_QueueRemoveDialog> createState() => _QueueRemoveDialogState();
 }
 
 class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
+  // Some were removed before another app failed: the queue must refresh.
+  bool _removedSome = false;
   bool _fromClient = true;
   bool _blocklist = false;
   bool _searchAgain = false;
@@ -905,18 +922,39 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
   Future<void> _remove() async {
     setState(() => _busy = true);
     final l = AppLocalizations.of(context);
-    final ok = await arrRun(
-      context,
-      () => widget.client.removeFromQueue(
-        widget.item.id,
-        removeFromClient: _fromClient,
-        blocklist: _blocklist,
-        searchAgain: _searchAgain,
-      ),
-      done: l.arrRemovedFromQueue,
-    );
+    final items = widget.items;
+    final ok = await arrRun(context, () async {
+      if (items.length == 1) {
+        final c = widget.clientFor(items.single.kind);
+        await c?.removeFromQueue(
+          items.single.id,
+          removeFromClient: _fromClient,
+          blocklist: _blocklist,
+          searchAgain: _searchAgain,
+        );
+        return;
+      }
+      // One call per app; one failing doesn't stop the other.
+      Object? failure;
+      for (final kind in {for (final i in items) i.kind}) {
+        try {
+          await widget.clientFor(kind)?.removeManyFromQueue(
+            [for (final i in items) if (i.kind == kind) i.id],
+            removeFromClient: _fromClient,
+            blocklist: _blocklist,
+            searchAgain: _searchAgain,
+          );
+          _removedSome = true;
+        } catch (e) {
+          failure ??= e;
+        }
+      }
+      if (failure != null) throw failure;
+    }, done: items.length == 1
+        ? l.arrRemovedFromQueue
+        : l.arrRemovedCount(items.length));
     if (!mounted) return;
-    if (ok) {
+    if (ok || _removedSome) {
       Navigator.pop(context, true);
     } else {
       setState(() => _busy = false);
@@ -927,27 +965,35 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final item = widget.item;
+    final items = widget.items;
+    final item = items.first;
+    final one = items.length == 1;
+    // Named only when every one of them uses the same client.
+    final clients = {for (final i in items) i.downloadClient};
+    final client = clients.length == 1 ? clients.single : null;
     return ArrDialogFrame(
-      client: widget.client,
-      images: item.images,
-      heading: l.arrRemoveFromQueue,
-      title: [item.mediaTitle ?? item.title, ?item.episodeCode].join(' · '),
+      client: widget.clientFor(item.kind),
+      images: one ? item.images : const [],
+      heading: one ? l.arrRemoveFromQueue : l.arrRemoveCount(items.length),
+      title: one
+          ? [item.mediaTitle ?? item.title, ?item.episodeCode].join(' · ')
+          : {for (final i in items) i.mediaTitle ?? i.title}.join(', '),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            item.title,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
+          if (one)
+            Text(
+              item.title,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
           const SizedBox(height: 8),
           ArrCheck(
             label: l.arrRemoveFromClient,
-            hint: item.downloadClient == null
+            hint: client == null
                 ? l.arrRemoveFromClientHint
-                : l.arrRemoveFromNamedClientHint(item.downloadClient!),
+                : l.arrRemoveFromNamedClientHint(client),
             value: _fromClient,
             onChanged: _busy ? null : (v) => setState(() => _fromClient = v),
           ),

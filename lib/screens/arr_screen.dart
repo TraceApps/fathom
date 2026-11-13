@@ -121,7 +121,10 @@ class _CalendarTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(arrCalendarProvider);
+    // Show Unmonitored reloads it: keep showing the list (and the chip)
+    // meanwhile rather than blanking the tab.
     return async.when(
+      skipLoadingOnReload: true,
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
         message: e.toString(),
@@ -129,11 +132,29 @@ class _CalendarTab extends ConsumerWidget {
       ),
       data: (merged) {
         final days = _byDay(merged.items);
+        final unmonitored = ref.watch(arrCalendarUnmonitoredProvider);
         return RefreshIndicator(
           onRefresh: () => ref.refresh(arrCalendarProvider.future),
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
+              // Monitored only by default, as in the apps; unmonitored ones
+              // then show greyed with their Unmonitored chip.
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FilterChip(
+                      label: Text(l.arrShowUnmonitored),
+                      selected: unmonitored,
+                      onSelected: (v) => ref
+                          .read(arrCalendarUnmonitoredProvider.notifier)
+                          .set(v),
+                    ),
+                  ),
+                ),
+              ),
               if (days.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: true,
@@ -318,6 +339,47 @@ class _QueueTabState extends ConsumerState<_QueueTab>
     with WidgetsBindingObserver {
   Timer? _timer;
 
+  // Picking several downloads, by app and id ("sonarr:12"). Null: not picking.
+  Set<String>? _picked;
+  bool _busy = false;
+
+  static String _key(ArrQueueItem i) => '${i.kind.name}:${i.id}';
+
+  ArrClient? _clientFor(ArrKind k) => arrClient(ref, k);
+
+  List<ArrQueueItem> _pickedIn(List<ArrQueueItem> all) => [
+    for (final i in all)
+      if (_picked?.contains(_key(i)) ?? false) i,
+  ];
+
+  Future<void> _removePicked(List<ArrQueueItem> all) async {
+    if (await showArrQueueRemoveManyDialog(
+      context,
+      items: _pickedIn(all),
+      clientFor: _clientFor,
+    )) {
+      if (mounted) setState(() => _picked = null);
+      ref.invalidate(arrQueueProvider);
+    }
+  }
+
+  Future<void> _grabPicked(List<ArrQueueItem> all) async {
+    final l = AppLocalizations.of(context);
+    final held = [for (final i in _pickedIn(all)) if (i.status == 'delay') i];
+    setState(() => _busy = true);
+    final ok = await arrRun(context, () async {
+      for (final i in held) {
+        await _clientFor(i.kind)?.grabFromQueue(i.id);
+      }
+    }, done: l.arrGrabbed);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok) _picked = null;
+    });
+    ref.invalidate(arrQueueProvider);
+  }
+
   // Refreshes every few seconds while the tab is on screen and the app is in
   // front; the tab view disposes it when another tab shows.
   @override
@@ -366,11 +428,42 @@ class _QueueTabState extends ConsumerState<_QueueTab>
       }
       return const Center(child: AppSpinner());
     }
-    return RefreshIndicator(
+    final items = merged.items;
+    // Finished downloads leave the queue; they leave the picks too.
+    final live = {for (final i in items) _key(i)};
+    final picked = _picked?.where(live.contains).toSet();
+    final heldPicked = items.any(
+      (i) => (picked?.contains(_key(i)) ?? false) && i.status == 'delay',
+    );
+    final list = RefreshIndicator(
       onRefresh: () => ref.refresh(arrQueueProvider.future),
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
+          // The Blocklist lives with the queue, as under the apps' Activity.
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  if (items.isNotEmpty && picked == null)
+                    TextButton.icon(
+                      style: kInlineButtonStyle,
+                      onPressed: () => setState(() => _picked = {}),
+                      icon: const Icon(Icons.checklist_rounded),
+                      label: Text(l.arrSelect),
+                    ),
+                  TextButton.icon(
+                    style: kInlineButtonStyle,
+                    onPressed: () => context.push('/arr/blocklist'),
+                    icon: const Icon(Icons.block_rounded),
+                    label: Text(l.arrBlocklist),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (merged.items.isEmpty)
             SliverFillRemaining(
               hasScrollBody: true,
@@ -385,9 +478,53 @@ class _QueueTabState extends ConsumerState<_QueueTab>
               sliver: SliverList.separated(
                 itemCount: merged.items.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, i) => _QueueCard(item: merged.items[i]),
+                itemBuilder: (context, i) {
+                  final item = merged.items[i];
+                  final k = _key(item);
+                  return _QueueCard(
+                    item: item,
+                    picked: picked?.contains(k),
+                    onPick: () => setState(() {
+                      final p = {...?_picked};
+                      if (!p.remove(k)) p.add(k);
+                      _picked = p;
+                    }),
+                  );
+                },
               ),
             ),
+        ],
+      ),
+    );
+    if (picked == null) return list;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _picked = null);
+      },
+      child: Column(
+        children: [
+          ArrPickBar(
+            count: picked.length,
+            busy: _busy,
+            onCancel: () => setState(() => _picked = null),
+            onSelectAll: () => setState(() => _picked = live),
+            actions: [
+              if (heldPicked)
+                ArrPickAction(
+                  Icons.file_download_rounded,
+                  l.arrGrabNow,
+                  () => _grabPicked(items),
+                ),
+              ArrPickAction(
+                Icons.delete_rounded,
+                l.arrRemove,
+                () => _removePicked(items),
+                danger: true,
+              ),
+            ],
+          ),
+          Expanded(child: list),
         ],
       ),
     );
@@ -396,7 +533,11 @@ class _QueueTabState extends ConsumerState<_QueueTab>
 
 class _QueueCard extends ConsumerWidget {
   final ArrQueueItem item;
-  const _QueueCard({required this.item});
+
+  /// While picking, whether this one is picked (null: not picking).
+  final bool? picked;
+  final VoidCallback? onPick;
+  const _QueueCard({required this.item, this.picked, this.onPick});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -425,16 +566,26 @@ class _QueueCard extends ConsumerWidget {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => arrOpenTitle(
-          context,
-          item.kind,
-          item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,
-        ),
+        onTap: picked != null
+            ? onPick
+            : () => arrOpenTitle(
+                context,
+                item.kind,
+                item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,
+              ),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (picked != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4, top: 22),
+                  child: Checkbox(
+                    value: picked,
+                    onChanged: (_) => onPick?.call(),
+                  ),
+                ),
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: SizedBox(
@@ -518,7 +669,22 @@ class _QueueCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (client != null)
+              // Held back by a delay profile: send it now.
+              if (client != null && picked == null && item.status == 'delay')
+                IconButton(
+                  tooltip: l.arrGrabNow,
+                  icon: const Icon(Icons.file_download_rounded),
+                  onPressed: () async {
+                    if (await arrRun(
+                      context,
+                      () => client.grabFromQueue(item.id),
+                      done: l.arrGrabbed,
+                    )) {
+                      ref.invalidate(arrQueueProvider);
+                    }
+                  },
+                ),
+              if (client != null && picked == null)
                 IconButton(
                   tooltip: l.arrRemoveFromQueue,
                   icon: const Icon(Icons.close_rounded),

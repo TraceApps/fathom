@@ -75,13 +75,24 @@ Future<ArrMerged<T>> _both<T>(
   );
 }
 
+/// Whether the Calendar shows unmonitored titles too (Show Unmonitored).
+class ArrCalendarUnmonitored extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool v) => state = v;
+}
+
+final arrCalendarUnmonitoredProvider =
+    NotifierProvider<ArrCalendarUnmonitored, bool>(ArrCalendarUnmonitored.new);
+
 final arrCalendarProvider =
     FutureProvider.autoDispose<ArrMerged<ArrCalendarEntry>>((ref) async {
       final w = arrCalendarWindow(DateTime.now());
+      final unmonitored = ref.watch(arrCalendarUnmonitoredProvider);
       final merged = await _both<ArrCalendarEntry>(
         ref.watch(sonarrClientProvider),
         ref.watch(radarrClientProvider),
-        (c) => c.calendar(w.start, w.end),
+        (c) => c.calendar(w.start, w.end, unmonitored: unmonitored),
       );
       merged.items.sort((a, b) => a.date.compareTo(b.date));
       return merged;
@@ -354,14 +365,15 @@ Future<ArrMerged<T>> _bothPaged<T>(
 /// How many Wanted or History items to show; Load More raises it.
 const arrPageSize = 50;
 
+/// Wanted: which list, how many, and monitored (true) or unmonitored titles.
 final arrWantedProvider = FutureProvider.autoDispose
-    .family<ArrMerged<ArrWantedItem>, (ArrWantedList, int)>((ref, arg) {
-      final (list, limit) = arg;
+    .family<ArrMerged<ArrWantedItem>, (ArrWantedList, int, bool)>((ref, arg) {
+      final (list, limit, monitored) = arg;
       return _bothPaged<ArrWantedItem>(
         ref,
         (c) => list == ArrWantedList.missing
-            ? c.missing(pageSize: limit)
-            : c.cutoffUnmet(pageSize: limit),
+            ? c.missing(pageSize: limit, monitored: monitored)
+            : c.cutoffUnmet(pageSize: limit, monitored: monitored),
         // What isn't out yet goes last, not first as the newest.
         (w) => w.available ? w.date : null,
         limit,
@@ -369,11 +381,22 @@ final arrWantedProvider = FutureProvider.autoDispose
     });
 
 final arrRecentHistoryProvider = FutureProvider.autoDispose
-    .family<ArrMerged<ArrHistoryItem>, int>(
-      (ref, limit) => _bothPaged<ArrHistoryItem>(
+    .family<ArrMerged<ArrHistoryItem>, (int, ArrHistoryFilter)>(
+      (ref, arg) => _bothPaged<ArrHistoryItem>(
         ref,
-        (c) => c.recentHistory(pageSize: limit),
+        (c) => c.recentHistory(pageSize: arg.$1, only: arg.$2),
         (h) => h.date,
+        arg.$1,
+      ),
+    );
+
+/// Both apps' blocklists, newest first.
+final arrBlocklistProvider = FutureProvider.autoDispose
+    .family<ArrMerged<ArrBlocklistItem>, int>(
+      (ref, limit) => _bothPaged<ArrBlocklistItem>(
+        ref,
+        (c) => c.blocklist(pageSize: limit),
+        (b) => b.date,
         limit,
       ),
     );

@@ -127,6 +127,45 @@ abstract class ArrClient {
     if (blocklist) 'skipRedownload': !searchAgain,
   });
 
+  /// Sends a download held back by a delay profile to the client now.
+  Future<void> grabFromQueue(int id) => _post('queue/grab/$id', null);
+
+  /// [removeFromQueue] for several at once.
+  Future<void> removeManyFromQueue(
+    List<int> ids, {
+    required bool removeFromClient,
+    required bool blocklist,
+    bool searchAgain = false,
+  }) => _send(
+    'DELETE',
+    'queue/bulk',
+    query: {
+      'removeFromClient': removeFromClient,
+      'blocklist': blocklist,
+      if (blocklist) 'skipRedownload': !searchAgain,
+    },
+    body: {'ids': ids},
+  );
+
+  /// Releases the app won't grab again, newest first.
+  Future<ArrPage<ArrBlocklistItem>> blocklist({int pageSize = 50}) async {
+    final data = await _get('blocklist', {
+      'page': 1,
+      'pageSize': pageSize,
+      'sortKey': 'date',
+      'sortDirection': 'descending',
+    });
+    return _page(data, (m) => ArrBlocklistItem.fromJson(kind, m));
+  }
+
+  /// Takes releases off the blocklist, so the app may grab them again.
+  Future<void> removeFromBlocklist(List<int> ids) => ids.length == 1
+      ? _delete('blocklist/${ids.single}')
+      : _send('DELETE', 'blocklist/bulk', body: {'ids': ids});
+
+  /// Empties the blocklist.
+  Future<void> clearBlocklist() => command('ClearBlocklist');
+
   /// What renaming would change: each file's current and new name.
   Future<List<ArrRename>> renamePreview(int id);
 
@@ -218,13 +257,25 @@ abstract class ArrClient {
   }
 
   /// What's airing or being released between [start] and [end].
-  Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end);
+  /// What's coming up; with [unmonitored], unmonitored titles too.
+  Future<List<ArrCalendarEntry>> calendar(
+    DateTime start,
+    DateTime end, {
+    bool unmonitored = false,
+  });
 
-  /// Monitored titles with nothing downloaded yet that are out, newest first.
-  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50});
+  /// Titles with nothing downloaded yet that are out, newest first: the
+  /// monitored ones, or with [monitored] false the unmonitored ones.
+  Future<ArrPage<ArrWantedItem>> missing({
+    int pageSize = 50,
+    bool monitored = true,
+  });
 
-  /// Monitored titles below their quality profile's cutoff.
-  Future<ArrPage<ArrWantedItem>> cutoffUnmet({int pageSize = 50});
+  /// Titles below their quality profile's cutoff (monitored, or not).
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({
+    int pageSize = 50,
+    bool monitored = true,
+  });
 
   /// Searches for everything missing, or everything below its cutoff. Runs
   /// on the server and can take a while on a big library.
@@ -232,12 +283,18 @@ abstract class ArrClient {
   Future<void> searchAllCutoffUnmet();
 
   /// What the app has done lately across the whole library, newest first.
-  Future<ArrPage<ArrHistoryItem>> recentHistory({int pageSize = 50}) async {
+  /// With [only], just those kinds of events.
+  Future<ArrPage<ArrHistoryItem>> recentHistory({
+    int pageSize = 50,
+    ArrHistoryFilter only = ArrHistoryFilter.all,
+  }) async {
+    final types = arrHistoryEventTypes(kind, only);
     final data = await _get('history', {
       'page': 1,
       'pageSize': pageSize,
       'sortKey': 'date',
       'sortDirection': 'descending',
+      if (types.isNotEmpty) 'eventType': types,
       if (kind == ArrKind.sonarr) ...{
         'includeSeries': true,
         'includeEpisode': true,
@@ -599,26 +656,38 @@ class SonarrClient extends ArrClient {
     return null;
   }
 
-  Map<String, dynamic> _wantedQuery(int pageSize, {bool cutoff = false}) => {
+  Map<String, dynamic> _wantedQuery(
+    int pageSize, {
+    bool cutoff = false,
+    bool monitored = true,
+  }) => {
     'page': 1,
     'pageSize': pageSize,
     'sortKey': 'episodes.airDateUtc',
     'sortDirection': 'descending',
     'includeSeries': true,
     if (cutoff) 'includeEpisodeFile': true,
-    'monitored': true,
+    'monitored': monitored,
   };
 
   @override
-  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50}) async => _page(
-    await _get('wanted/missing', _wantedQuery(pageSize)),
+  Future<ArrPage<ArrWantedItem>> missing({
+    int pageSize = 50,
+    bool monitored = true,
+  }) async => _page(
+    await _get('wanted/missing', _wantedQuery(pageSize, monitored: monitored)),
     ArrWantedItem.fromEpisode,
   );
 
   @override
-  Future<ArrPage<ArrWantedItem>> cutoffUnmet({int pageSize = 50}) async =>
-      _page(
-        await _get('wanted/cutoff', _wantedQuery(pageSize, cutoff: true)),
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({
+    int pageSize = 50,
+    bool monitored = true,
+  }) async => _page(
+        await _get(
+          'wanted/cutoff',
+          _wantedQuery(pageSize, cutoff: true, monitored: monitored),
+        ),
         ArrWantedItem.fromEpisode,
       );
 
@@ -631,12 +700,16 @@ class SonarrClient extends ArrClient {
       command('CutoffUnmetEpisodeSearch', {'monitored': true});
 
   @override
-  Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end) async {
+  Future<List<ArrCalendarEntry>> calendar(
+    DateTime start,
+    DateTime end, {
+    bool unmonitored = false,
+  }) async {
     final data = await _get('calendar', {
       'start': start.toUtc().toIso8601String(),
       'end': end.toUtc().toIso8601String(),
       'includeSeries': true,
-      'unmonitored': false,
+      'unmonitored': unmonitored,
     });
     return [
       for (final m in (data as List?) ?? const [])
@@ -807,24 +880,36 @@ class RadarrClient extends ArrClient {
     return null;
   }
 
-  Map<String, dynamic> _wantedQuery(int pageSize, {bool cutoff = false}) => {
+  Map<String, dynamic> _wantedQuery(
+    int pageSize, {
+    bool cutoff = false,
+    bool monitored = true,
+  }) => {
     'page': 1,
     'pageSize': pageSize,
     'sortKey': 'movieMetadata.digitalRelease',
     'sortDirection': 'descending',
-    'monitored': true,
+    'monitored': monitored,
   };
 
   @override
-  Future<ArrPage<ArrWantedItem>> missing({int pageSize = 50}) async => _page(
-    await _get('wanted/missing', _wantedQuery(pageSize)),
+  Future<ArrPage<ArrWantedItem>> missing({
+    int pageSize = 50,
+    bool monitored = true,
+  }) async => _page(
+    await _get('wanted/missing', _wantedQuery(pageSize, monitored: monitored)),
     ArrWantedItem.fromMovie,
   );
 
   @override
-  Future<ArrPage<ArrWantedItem>> cutoffUnmet({int pageSize = 50}) async =>
-      _page(
-        await _get('wanted/cutoff', _wantedQuery(pageSize, cutoff: true)),
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({
+    int pageSize = 50,
+    bool monitored = true,
+  }) async => _page(
+        await _get(
+          'wanted/cutoff',
+          _wantedQuery(pageSize, cutoff: true, monitored: monitored),
+        ),
         ArrWantedItem.fromMovie,
       );
 
@@ -837,11 +922,15 @@ class RadarrClient extends ArrClient {
       command('CutoffUnmetMoviesSearch', {'monitored': true});
 
   @override
-  Future<List<ArrCalendarEntry>> calendar(DateTime start, DateTime end) async {
+  Future<List<ArrCalendarEntry>> calendar(
+    DateTime start,
+    DateTime end, {
+    bool unmonitored = false,
+  }) async {
     final data = await _get('calendar', {
       'start': start.toUtc().toIso8601String(),
       'end': end.toUtc().toIso8601String(),
-      'unmonitored': false,
+      'unmonitored': unmonitored,
     });
     return [
       for (final m in (data as List?) ?? const [])
