@@ -907,6 +907,12 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
         reshown();
       },
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
+      // Radarr's Collections: film series, and monitoring them.
+      extra: IconButton(
+        tooltip: l.arrCollections,
+        icon: const Icon(Icons.collections_bookmark_rounded),
+        onPressed: () => context.push('/arr/collections'),
+      ),
       onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
       bar: client == null || !selection.active
           ? null
@@ -1206,6 +1212,9 @@ class _LibraryFrame extends StatelessWidget {
   /// The bar for the picked titles, above the grid while picking.
   final Widget? bar;
 
+  /// One more button beside Sort and Filter (Movies: Collections).
+  final Widget? extra;
+
   /// The app new titles are added to, for the "Add" row under a search.
   final ArrKind kind;
 
@@ -1227,6 +1236,7 @@ class _LibraryFrame extends StatelessWidget {
     required this.body,
     this.onSelect,
     this.bar,
+    this.extra,
   });
 
   @override
@@ -1295,6 +1305,7 @@ class _LibraryFrame extends StatelessWidget {
                         ),
                     ],
                   ),
+                  ?extra,
                   if (onSelect != null)
                     IconButton(
                       tooltip: l.arrSelect,

@@ -199,6 +199,13 @@ ArrClient? arrClient(WidgetRef ref, ArrKind kind) => kind == ArrKind.sonarr
     ? ref.read(sonarrClientProvider)
     : ref.read(radarrClientProvider);
 
+/// Radarr's collections, by title.
+final radarrCollectionsProvider =
+    FutureProvider.autoDispose<List<ArrCollection>>((ref) async {
+      final c = ref.watch(radarrClientProvider);
+      return c == null ? const [] : c.collections();
+    });
+
 /// One app's tags, sorted by name.
 final arrTagsProvider = FutureProvider.autoDispose
     .family<List<ArrTag>, ArrKind>((ref, kind) async {

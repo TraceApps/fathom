@@ -871,6 +871,31 @@ class RadarrClient extends ArrClient {
 
   Future<void> deleteMovieFile(int id) => _delete('moviefile/$id');
 
+  Future<List<ArrCollection>> collections() async {
+    final data = await _get('collection');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrCollection.fromJson(Map<String, dynamic>.from(m)),
+    ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+  }
+
+  /// The collection exactly as Radarr keeps it, for sending back changed.
+  Future<Map<String, dynamic>> collectionRaw(int id) async =>
+      Map<String, dynamic>.from(await _get('collection/$id') as Map);
+
+  Future<void> updateCollection(Map<String, dynamic> raw) {
+    final id = _int(raw['id']);
+    return _put('collection/$id', raw);
+  }
+
+  /// Has Radarr bring collections up to date now, which is also when a
+  /// monitored one gets its missing movies added (otherwise that waits for
+  /// Radarr's scheduled refresh). Empty [ids]: all of them.
+  Future<void> refreshCollections([List<int> ids = const []]) => command(
+    'RefreshCollections',
+    {if (ids.isNotEmpty) 'collectionIds': ids},
+  );
+
   /// The movie Radarr has for this TMDB id, if it has it.
   Future<ArrMovie?> movieByTmdb(int tmdbId) async {
     final data = await _get('movie', {'tmdbId': tmdbId});

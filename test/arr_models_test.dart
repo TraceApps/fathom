@@ -193,6 +193,28 @@ void main() {
     });
   });
 
+  test('reads Radarr collections (recorded from the rig)', () {
+    final cols = [
+      for (final m in _fixture('radarr_collections') as List)
+        ArrCollection.fromJson(Map<String, dynamic>.from(m)),
+    ];
+    final spider = cols.firstWhere((c) => c.title.startsWith('Spider-Man'));
+    final avengers = cols.firstWhere((c) => c.title.startsWith('The Avengers'));
+    expect(spider.monitored, isTrue);
+    expect((spider.inLibrary, spider.missing, spider.movies.length), (4, 0, 4));
+    expect(avengers.monitored, isFalse);
+    expect((avengers.inLibrary, avengers.missing), (1, 5));
+    // Only what's out gets added by monitoring (Radarr's rule); Secret Wars
+    // (announced) waits.
+    expect(avengers.addableNow, 4);
+    expect(avengers.qualityProfileId, isNotNull);
+    expect(avengers.rootFolderPath, isNotNull);
+    // Oldest first, as a series reads.
+    final years = [for (final m in avengers.movies) m.year ?? 9999];
+    expect(years, [...years]..sort());
+    expect(avengers.movies.every((m) => m.tmdbId > 0), isTrue);
+  });
+
   group('pictures', () {
     test('TMDB pictures are asked for at a sensible size', () {
       expect(sizedImageUrl('https://image.tmdb.org/t/p/original/a.jpg', 342),

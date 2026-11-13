@@ -1063,6 +1063,102 @@ class ArrBlocklistItem {
   }
 }
 
+/// A Radarr collection (a film series, from TMDB), with its movies and the
+/// settings Radarr adds missing ones with when it's monitored.
+class ArrCollection {
+  final int id;
+  final String title;
+  final String? overview;
+  final bool monitored;
+  final int? qualityProfileId;
+  final String? rootFolderPath;
+  final String? minimumAvailability;
+  final bool searchOnAdd;
+  final List<int> tags;
+  final List<ArrImage> images;
+  final List<ArrCollectionMovie> movies;
+
+  const ArrCollection({
+    required this.id,
+    required this.title,
+    this.overview,
+    this.monitored = false,
+    this.qualityProfileId,
+    this.rootFolderPath,
+    this.minimumAvailability,
+    this.searchOnAdd = false,
+    this.tags = const [],
+    this.images = const [],
+    this.movies = const [],
+  });
+
+  /// Movies in the collection Radarr doesn't have (and isn't told to skip).
+  int get missing => movies.where((m) => !m.inLibrary && !m.excluded).length;
+
+  /// The missing ones monitoring adds right away: Radarr only adds movies
+  /// that are in cinemas or released (RefreshCollectionService); announced
+  /// ones wait until they are.
+  int get addableNow =>
+      movies.where((m) => !m.inLibrary && !m.excluded && m.isOut).length;
+  int get inLibrary => movies.where((m) => m.inLibrary).length;
+
+  factory ArrCollection.fromJson(Map<String, dynamic> j) => ArrCollection(
+    id: _int(j['id']),
+    title: (j['title'] as String?) ?? '',
+    overview: j['overview'] as String?,
+    monitored: j['monitored'] == true,
+    qualityProfileId: _intOrNull(j['qualityProfileId']),
+    rootFolderPath: j['rootFolderPath'] as String?,
+    minimumAvailability: j['minimumAvailability'] as String?,
+    searchOnAdd: j['searchOnAdd'] == true,
+    tags: [for (final t in (j['tags'] as List?) ?? const []) if (t is num) t.toInt()],
+    images: [
+      for (final i in (j['images'] as List?) ?? const [])
+        if (i is Map) ArrImage.fromJson(Map<String, dynamic>.from(i)),
+    ],
+    movies: [
+      for (final m in (j['movies'] as List?) ?? const [])
+        if (m is Map) ArrCollectionMovie.fromJson(Map<String, dynamic>.from(m)),
+    ]..sort((a, b) => (a.year ?? 9999).compareTo(b.year ?? 9999)),
+  );
+}
+
+class ArrCollectionMovie {
+  final int tmdbId;
+  final String title;
+  final int? year;
+  final bool inLibrary;
+  final bool excluded; // on Radarr's import exclusions
+  final String? status; // tba, announced, inCinemas, released, deleted
+  final List<ArrImage> images;
+
+  const ArrCollectionMovie({
+    required this.tmdbId,
+    required this.title,
+    this.year,
+    this.inLibrary = false,
+    this.excluded = false,
+    this.status,
+    this.images = const [],
+  });
+
+  bool get isOut => status == 'inCinemas' || status == 'released';
+
+  factory ArrCollectionMovie.fromJson(Map<String, dynamic> j) =>
+      ArrCollectionMovie(
+        tmdbId: _int(j['tmdbId']),
+        title: (j['title'] as String?) ?? '',
+        year: _intOrNull(j['year']),
+        inLibrary: j['isExisting'] == true,
+        excluded: j['isExcluded'] == true,
+        status: j['status'] as String?,
+        images: [
+          for (final i in (j['images'] as List?) ?? const [])
+            if (i is Map) ArrImage.fromJson(Map<String, dynamic>.from(i)),
+        ],
+      );
+}
+
 /// A label the apps can put on titles (to route them to a download client,
 /// an indexer or a release profile, or just to sort by).
 class ArrTag {

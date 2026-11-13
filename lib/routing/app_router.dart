@@ -58,6 +58,7 @@ import '../screens/arr_activity_screens.dart';
 import '../screens/arr_add_screen.dart';
 import '../screens/arr_detail_screens.dart';
 import '../screens/arr_files_screen.dart';
+import '../screens/arr_collections_screen.dart';
 import '../screens/arr_releases_screen.dart';
 import '../screens/arr_screen.dart';
 import '../screens/arr_settings_screen.dart';
@@ -548,6 +549,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                       : ArrKind.radarr,
                   term: state.uri.queryParameters['term'],
                   folder: state.uri.queryParameters['folder']))),
+          GoRoute(
+              path: '/arr/collections',
+              pageBuilder: (_, _) => _fadePage(const ArrCollectionsScreen())),
           GoRoute(
               path: '/arr/blocklist',
               pageBuilder: (_, _) => _fadePage(const ArrBlocklistScreen())),

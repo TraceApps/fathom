@@ -1,0 +1,274 @@
+[
+  {
+    "title": "Spider-Man (MCU) Collection",
+    "sortTitle": "spiderman mcu collection",
+    "tmdbId": 531241,
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://image.tmdb.org/t/p/original/yeba3Y820OjApZO9aJevDsNeMEd.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://image.tmdb.org/t/p/original/AvnqpRwlEaYNVL6wzC4RN94EdSd.jpg"
+      }
+    ],
+    "overview": "A collection of films following Peter Parker as he navigates adolescence while taking on the responsibilities of being Spider-Man in a world filled with superheroes. As Peter faces increasingly complex threats, he must confront the consequences of his choices and learn what it truly means to be a hero in a larger universe.",
+    "monitored": true,
+    "rootFolderPath": "/movies",
+    "qualityProfileId": 1,
+    "searchOnAdd": false,
+    "minimumAvailability": "released",
+    "movies": [
+      {
+        "tmdbId": 969681,
+        "imdbId": "tt22084616",
+        "title": "Spider-Man: Brand New Day",
+        "sortTitle": "spiderman brand new day",
+        "status": "released",
+        "runtime": 145,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/r08LxMJCbf1SiJIWeyH9aJmdqwC.jpg"
+          }
+        ],
+        "year": 2026,
+        "folder": "Spider-Man - Brand New Day (2026)",
+        "isExisting": true,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 315635,
+        "imdbId": "tt2250912",
+        "title": "Spider-Man: Homecoming",
+        "sortTitle": "spiderman homecoming",
+        "status": "released",
+        "runtime": 133,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/c24sv2weTHPsmDa7jEMN0m2P3RT.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/lAsr1ytUq0ATWdCbcjf59pupPFy.jpg"
+          }
+        ],
+        "year": 2017,
+        "folder": "Spider-Man - Homecoming (2017)",
+        "isExisting": true,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 429617,
+        "imdbId": "tt6320628",
+        "title": "Spider-Man: Far From Home",
+        "sortTitle": "spiderman far from home",
+        "status": "released",
+        "runtime": 129,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/4q2NNj4S5dG2RLF9CpXsej7yXl.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/wqBW5ltBJu0gs26yCc8shQQV82d.jpg"
+          }
+        ],
+        "year": 2019,
+        "folder": "Spider-Man - Far From Home (2019)",
+        "isExisting": true,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 634649,
+        "imdbId": "tt10872600",
+        "title": "Spider-Man: No Way Home",
+        "sortTitle": "spiderman no way home",
+        "status": "released",
+        "runtime": 148,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/iQFcwSGbZXMkeyKrxbPnwnRo5fl.jpg"
+          }
+        ],
+        "year": 2021,
+        "folder": "Spider-Man - No Way Home (2021)",
+        "isExisting": true,
+        "isExcluded": false
+      }
+    ],
+    "missingMovies": 0,
+    "tags": [],
+    "id": 1
+  },
+  {
+    "title": "The Avengers Collection",
+    "sortTitle": "avengers collection",
+    "tmdbId": 86311,
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://image.tmdb.org/t/p/original/yFSIUVTCvgYrpalUktulvk3Gi5Y.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://image.tmdb.org/t/p/original/2UNUv4NJdC36E5myDHACBJ99EwL.jpg"
+      }
+    ],
+    "overview": "A superhero film series produced by Marvel Studios based on the Marvel Comics superhero team of the same name, and part of the Marvel Cinematic Universe (MCU).  The series features an ensemble cast from the Marvel Cinematic Universe series films, as they join forces for the peacekeeping organization S.H.I.E.L.D. led by Nick Fury.",
+    "monitored": false,
+    "rootFolderPath": "/movies",
+    "qualityProfileId": 1,
+    "searchOnAdd": false,
+    "minimumAvailability": "released",
+    "movies": [
+      {
+        "tmdbId": 1003596,
+        "imdbId": "tt21357150",
+        "title": "Avengers: Doomsday",
+        "sortTitle": "avengers doomsday",
+        "status": "announced",
+        "runtime": 165,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/bqAHPSEyRkM4BpkncGFCKjBXf9p.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/rObL4of4eFA8yWaN9pRFo9aOVNi.jpg"
+          }
+        ],
+        "year": 2026,
+        "folder": "Avengers - Doomsday (2026)",
+        "isExisting": true,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 24428,
+        "imdbId": "tt0848228",
+        "title": "The Avengers",
+        "sortTitle": "avengers",
+        "status": "released",
+        "runtime": 143,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/RYMX2wcKCBAr24UyPD7xwmjaTn.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/86IbFy98QjRIqg6WanKYb9tXNbJ.jpg"
+          }
+        ],
+        "year": 2012,
+        "folder": "The Avengers (2012)",
+        "isExisting": false,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 99861,
+        "imdbId": "tt2395427",
+        "title": "Avengers: Age of Ultron",
+        "sortTitle": "avengers age of ultron",
+        "status": "released",
+        "runtime": 141,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/4ssDuvEDkSArWEdyBl2X5EHvYKU.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/kIBK5SKwgqIIuRKhhWrJn3XkbPq.jpg"
+          }
+        ],
+        "year": 2015,
+        "folder": "Avengers - Age of Ultron (2015)",
+        "isExisting": false,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 299534,
+        "imdbId": "tt4154796",
+        "title": "Avengers: Endgame",
+        "sortTitle": "avengers endgame",
+        "status": "released",
+        "runtime": 181,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/bR8ISy1O9XQxqiy0fQFw2BX72RQ.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg"
+          }
+        ],
+        "year": 2019,
+        "folder": "Avengers - Endgame (2019)",
+        "isExisting": false,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 299536,
+        "imdbId": "tt4154756",
+        "title": "Avengers: Infinity War",
+        "sortTitle": "avengers infinity war",
+        "status": "released",
+        "runtime": 149,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/mDfJG3LC3Dqb67AZ52x3Z0jU0uB.jpg"
+          }
+        ],
+        "year": 2018,
+        "folder": "Avengers - Infinity War (2018)",
+        "isExisting": false,
+        "isExcluded": false
+      },
+      {
+        "tmdbId": 1003598,
+        "imdbId": "tt21361444",
+        "title": "Avengers: Secret Wars",
+        "sortTitle": "avengers secret wars",
+        "status": "announced",
+        "runtime": 0,
+        "images": [
+          {
+            "coverType": "poster",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/f0YBuh4hyiAheXhh4JnJWoKi9g5.jpg"
+          },
+          {
+            "coverType": "fanart",
+            "remoteUrl": "https://image.tmdb.org/t/p/original/rytc6Lf4447C0CDncwFa4gxe0vY.jpg"
+          }
+        ],
+        "year": 2027,
+        "folder": "Avengers - Secret Wars (2027)",
+        "isExisting": false,
+        "isExcluded": false
+      }
+    ],
+    "missingMovies": 5,
+    "tags": [],
+    "id": 2
+  }
+]
