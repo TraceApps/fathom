@@ -141,6 +141,23 @@ abstract class ArrClient {
   /// Renames the files the preview listed.
   Future<void> rename(int id, List<int> fileIds);
 
+  // Several titles at once, as the apps' select mode does.
+
+  /// Changes settings on several titles. [changes] holds only what changes:
+  /// monitored, qualityProfileId, rootFolderPath (with moveFiles), tags with
+  /// applyTags (add, remove, replace), and each app's own fields.
+  Future<void> editMany(List<int> ids, Map<String, dynamic> changes);
+
+  Future<void> deleteMany(
+    List<int> ids, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  });
+
+  Future<void> refreshMany(List<int> ids);
+  Future<void> renameMany(List<int> ids);
+  Future<void> searchMany(List<int> ids);
+
   /// Every tag on the server, by id.
   Future<List<ArrTag>> tags() async {
     final data = await _get('tag');
@@ -515,6 +532,53 @@ class SonarrClient extends ArrClient {
     );
   }
 
+  @override
+  Future<void> editMany(List<int> ids, Map<String, dynamic> changes) =>
+      _put('series/editor', {'seriesIds': ids, ...changes});
+
+  @override
+  Future<void> deleteMany(
+    List<int> ids, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _send(
+    'DELETE',
+    'series/editor',
+    body: {
+      'seriesIds': ids,
+      'deleteFiles': deleteFiles,
+      'addImportListExclusion': addExclusion,
+    },
+  );
+
+  @override
+  Future<void> refreshMany(List<int> ids) =>
+      command('RefreshSeries', {'seriesIds': ids});
+
+  @override
+  Future<void> renameMany(List<int> ids) =>
+      command('RenameSeries', {'seriesIds': ids});
+
+  /// Sonarr's search takes one show at a time.
+  @override
+  Future<void> searchMany(List<int> ids) async {
+    for (final id in ids) {
+      await searchSeries(id);
+    }
+  }
+
+  /// One Monitoring choice for several shows (see [applyMonitoring]). Each
+  /// show keeps its own switch (Sonarr leaves it alone when it isn't sent),
+  /// except None, which turns it off.
+  Future<void> applyMonitoringMany(List<int> ids, String monitor) =>
+      _post('seasonpass', {
+        'series': [
+          for (final id in ids)
+            {'id': id, if (monitor == 'none') 'monitored': false},
+        ],
+        'monitoringOptions': {'monitor': monitor},
+      });
+
   Future<void> deleteSeries(
     int id, {
     required bool deleteFiles,
@@ -691,6 +755,37 @@ class RadarrClient extends ArrClient {
       Map<String, dynamic>.from(await _post('movie', body) as Map),
     );
   }
+
+  @override
+  Future<void> editMany(List<int> ids, Map<String, dynamic> changes) =>
+      _put('movie/editor', {'movieIds': ids, ...changes});
+
+  @override
+  Future<void> deleteMany(
+    List<int> ids, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _send(
+    'DELETE',
+    'movie/editor',
+    body: {
+      'movieIds': ids,
+      'deleteFiles': deleteFiles,
+      'addImportExclusion': addExclusion,
+    },
+  );
+
+  @override
+  Future<void> refreshMany(List<int> ids) =>
+      command('RefreshMovie', {'movieIds': ids});
+
+  @override
+  Future<void> renameMany(List<int> ids) =>
+      command('RenameMovie', {'movieIds': ids});
+
+  @override
+  Future<void> searchMany(List<int> ids) =>
+      command('MoviesSearch', {'movieIds': ids});
 
   Future<void> deleteMovie(
     int id, {

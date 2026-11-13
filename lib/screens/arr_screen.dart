@@ -12,8 +12,10 @@ import '../routing/app_shell.dart';
 import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/context_menu.dart';
 import 'arr_activity_screens.dart';
 import '../widgets/arr_actions.dart';
+import '../widgets/arr_bulk.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
@@ -580,6 +582,87 @@ enum _Filter {
   ended,
 }
 
+/// Picking several titles in a library tab: the selection, keeping it to
+/// what's on screen when the search or filter changes, and a poster's
+/// long-press menu.
+mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
+  final selection = ArrSelection();
+
+  @override
+  void initState() {
+    super.initState();
+    selection.addListener(_onPick);
+  }
+
+  void _onPick() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    selection.removeListener(_onPick);
+    selection.dispose();
+    super.dispose();
+  }
+
+  /// After a search or filter change: titles no longer shown are dropped, so
+  /// a bulk action never reaches ones out of sight.
+  void keepShown(Iterable<int> shown) {
+    if (selection.active) selection.keepOnly(shown.toSet());
+  }
+
+  /// After the list reloads (a title deleted elsewhere, a refresh), picks
+  /// that are gone are dropped. After this frame: the selection notifies,
+  /// which can't happen mid-build.
+  void trimTo(List<int>? shown) {
+    if (shown == null || !selection.active) return;
+    if (selection.ids.every(shown.contains)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) keepShown(shown);
+    });
+  }
+
+  /// Back ends picking first, as it would in the apps' select mode, rather
+  /// than leaving the Arr section.
+  Widget backEndsPicking(Widget child) => PopScope(
+    canPop: !selection.active,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) selection.stop();
+    },
+    child: child,
+  );
+
+  /// A poster's long-press / right-click menu: start picking from it, or
+  /// search for it straight away.
+  void posterMenu(
+    Offset at, {
+    required int id,
+    required String title,
+    required String searchLabel,
+    required Future<void> Function() search,
+    required String done,
+  }) {
+    final l = AppLocalizations.of(context);
+    showContextMenu(
+      context,
+      at: at,
+      title: title,
+      actions: [
+        ContextMenuAction(
+          icon: Icons.check_circle_outline_rounded,
+          label: l.arrSelect,
+          onTap: () => selection.start(id),
+        ),
+        ContextMenuAction(
+          icon: Icons.search_rounded,
+          label: searchLabel,
+          onTap: () => arrRun(context, search, done: done),
+        ),
+      ],
+    );
+  }
+}
+
 class _MoviesTab extends ConsumerStatefulWidget {
   const _MoviesTab();
 
@@ -587,7 +670,8 @@ class _MoviesTab extends ConsumerStatefulWidget {
   ConsumerState<_MoviesTab> createState() => _MoviesTabState();
 }
 
-class _MoviesTabState extends ConsumerState<_MoviesTab> {
+class _MoviesTabState extends ConsumerState<_MoviesTab>
+    with _Picking<_MoviesTab> {
   final _search = TextEditingController();
   _Sort _sort = _Sort.title;
   _Filter _filter = _Filter.all;
@@ -629,11 +713,19 @@ class _MoviesTabState extends ConsumerState<_MoviesTab> {
     final client = ref.watch(radarrClientProvider);
     final async = ref.watch(radarrMoviesProvider);
     final shown = async.whenData(_apply);
-    return _LibraryFrame(
+    final shownIds = [for (final m in shown.asData?.value ?? const <ArrMovie>[]) m.id];
+    trimTo(shown.hasValue ? shownIds : null);
+    void reshown() => keepShown([
+      for (final m in _apply(async.asData?.value ?? const [])) m.id,
+    ]);
+    return backEndsPicking(_LibraryFrame(
       addRow: shown.asData?.value.isNotEmpty ?? false,
       search: _search,
       hint: l.arrSearchMovies,
-      onSearch: () => setState(() {}),
+      onSearch: () {
+        setState(() {});
+        reshown();
+      },
       sort: _sort,
       onSort: (s) => setState(() => _sort = s),
       filter: _filter,
@@ -644,8 +736,27 @@ class _MoviesTabState extends ConsumerState<_MoviesTab> {
         _Filter.missing,
         _Filter.downloaded,
       ],
-      onFilter: (f) => setState(() => _filter = f),
+      onFilter: (f) {
+        setState(() => _filter = f);
+        reshown();
+      },
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
+      onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
+      bar: client == null || !selection.active
+          ? null
+          : ArrBulkBar(
+              client: client,
+              selection: selection,
+              all: shownIds,
+              sizes: {
+                for (final m in async.asData?.value ?? const <ArrMovie>[])
+                  m.id: m.sizeOnDisk,
+              },
+              onChanged: () {
+                ref.invalidate(radarrMoviesProvider);
+                ref.invalidate(arrCalendarProvider);
+              },
+            ),
       kind: ArrKind.radarr,
       body: async.when(
         loading: () => const SliverFillRemaining(
@@ -702,13 +813,26 @@ class _MoviesTabState extends ConsumerState<_MoviesTab> {
                   color: arrStateColor(m.state, Theme.of(context).colorScheme),
                 ),
                 icon: Icons.movie_rounded,
-                onTap: () => context.push('/arr/movie/${m.id}'),
+                selected: selection.active ? selection.contains(m.id) : null,
+                onTap: () => selection.active
+                    ? selection.toggle(m.id)
+                    : context.push('/arr/movie/${m.id}'),
+                onMenu: client == null || selection.active
+                    ? null
+                    : (at) => posterMenu(
+                        at,
+                        id: m.id,
+                        title: m.title,
+                        searchLabel: l.arrSearchMovie,
+                        search: () => client.searchMovie(m.id),
+                        done: l.arrSearchStarted(client.kind.appName),
+                      ),
               );
             },
           );
         },
       ),
-    );
+    ));
   }
 }
 
@@ -719,7 +843,8 @@ class _ShowsTab extends ConsumerStatefulWidget {
   ConsumerState<_ShowsTab> createState() => _ShowsTabState();
 }
 
-class _ShowsTabState extends ConsumerState<_ShowsTab> {
+class _ShowsTabState extends ConsumerState<_ShowsTab>
+    with _Picking<_ShowsTab> {
   final _search = TextEditingController();
   _Sort _sort = _Sort.title;
   _Filter _filter = _Filter.all;
@@ -763,11 +888,19 @@ class _ShowsTabState extends ConsumerState<_ShowsTab> {
     final async = ref.watch(sonarrSeriesListProvider);
     final shown = async.whenData(_apply);
     final scheme = Theme.of(context).colorScheme;
-    return _LibraryFrame(
+    final shownIds = [for (final s in shown.asData?.value ?? const <ArrSeries>[]) s.id];
+    trimTo(shown.hasValue ? shownIds : null);
+    void reshown() => keepShown([
+      for (final s in _apply(async.asData?.value ?? const [])) s.id,
+    ]);
+    return backEndsPicking(_LibraryFrame(
       addRow: shown.asData?.value.isNotEmpty ?? false,
       search: _search,
       hint: l.arrSearchShows,
-      onSearch: () => setState(() {}),
+      onSearch: () {
+        setState(() {});
+        reshown();
+      },
       sort: _sort,
       onSort: (s) => setState(() => _sort = s),
       filter: _filter,
@@ -779,8 +912,27 @@ class _ShowsTabState extends ConsumerState<_ShowsTab> {
         _Filter.continuing,
         _Filter.ended,
       ],
-      onFilter: (f) => setState(() => _filter = f),
+      onFilter: (f) {
+        setState(() => _filter = f);
+        reshown();
+      },
       onRefresh: () => ref.refresh(sonarrSeriesListProvider.future),
+      onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
+      bar: client == null || !selection.active
+          ? null
+          : ArrBulkBar(
+              client: client,
+              selection: selection,
+              all: shownIds,
+              sizes: {
+                for (final s in async.asData?.value ?? const <ArrSeries>[])
+                  s.id: s.sizeOnDisk,
+              },
+              onChanged: () {
+                ref.invalidate(sonarrSeriesListProvider);
+                ref.invalidate(arrCalendarProvider);
+              },
+            ),
       kind: ArrKind.sonarr,
       body: async.when(
         loading: () => const SliverFillRemaining(
@@ -845,13 +997,26 @@ class _ShowsTabState extends ConsumerState<_ShowsTab> {
                 subtitle: l.arrEpisodesOf(s.episodeFileCount, s.episodeCount),
                 bar: ArrPosterBar(color: color, fraction: s.progress),
                 icon: Icons.live_tv_rounded,
-                onTap: () => context.push('/arr/series/${s.id}'),
+                selected: selection.active ? selection.contains(s.id) : null,
+                onTap: () => selection.active
+                    ? selection.toggle(s.id)
+                    : context.push('/arr/series/${s.id}'),
+                onMenu: client == null || selection.active
+                    ? null
+                    : (at) => posterMenu(
+                        at,
+                        id: s.id,
+                        title: s.title,
+                        searchLabel: l.arrSearchMonitored,
+                        search: () => client.searchSeries(s.id),
+                        done: l.arrSearchStarted(client.kind.appName),
+                      ),
               );
             },
           );
         },
       ),
-    );
+    ));
   }
 }
 
@@ -867,6 +1032,13 @@ class _LibraryFrame extends StatelessWidget {
   final ValueChanged<_Filter> onFilter;
   final Future<void> Function() onRefresh;
   final Widget body; // a sliver
+
+  /// Starts picking several titles; null hides Select (nothing to pick, or
+  /// already picking).
+  final VoidCallback? onSelect;
+
+  /// The bar for the picked titles, above the grid while picking.
+  final Widget? bar;
 
   /// The app new titles are added to, for the "Add" row under a search.
   final ArrKind kind;
@@ -887,6 +1059,8 @@ class _LibraryFrame extends StatelessWidget {
     required this.onFilter,
     required this.onRefresh,
     required this.body,
+    this.onSelect,
+    this.bar,
   });
 
   @override
@@ -907,7 +1081,7 @@ class _LibraryFrame extends StatelessWidget {
       _Filter.continuing => l.arrContinuing,
       _Filter.ended => l.arrEnded,
     };
-    return RefreshIndicator(
+    final frame = RefreshIndicator(
       onRefresh: onRefresh,
       child: CustomScrollView(
         slivers: [
@@ -955,6 +1129,12 @@ class _LibraryFrame extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (onSelect != null)
+                    IconButton(
+                      tooltip: l.arrSelect,
+                      icon: const Icon(Icons.checklist_rounded),
+                      onPressed: onSelect,
+                    ),
                 ],
               ),
             ),
@@ -981,6 +1161,8 @@ class _LibraryFrame extends StatelessWidget {
         ],
       ),
     );
+    if (bar == null) return frame;
+    return Column(children: [bar!, Expanded(child: frame)]);
   }
 }
 
@@ -1047,6 +1229,12 @@ class _ArrPosterCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
+  /// While picking, whether this one is picked (null: not picking).
+  final bool? selected;
+
+  /// Long-press / right-click menu.
+  final void Function(Offset at)? onMenu;
+
   const _ArrPosterCard({
     super.key,
     required this.client,
@@ -1056,6 +1244,8 @@ class _ArrPosterCard extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.subtitle,
+    this.selected,
+    this.onMenu,
   });
 
   @override
@@ -1065,10 +1255,60 @@ class _ArrPosterCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: HoverPosterArt(
-            onTap: onTap,
-            art: ArrArt(client: client, images: images, placeholderIcon: icon),
-            overlay: bar,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: HoverPosterArt(
+                  onTap: onTap,
+                  onMenu: onMenu,
+                  art: ArrArt(
+                    client: client,
+                    images: images,
+                    placeholderIcon: icon,
+                  ),
+                  overlay: bar,
+                ),
+              ),
+              // The same tick as the Jellyfin library's picking, announced
+              // to screen readers as picked or not.
+              if (selected != null)
+                Positioned.fill(
+                  child: Semantics(
+                    selected: selected,
+                    child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: selected!
+                            ? theme.colorScheme.primary.withValues(alpha: 0.28)
+                            : Colors.black.withValues(alpha: 0.28),
+                        border: selected!
+                            ? Border.all(
+                                color: theme.colorScheme.primary,
+                                width: 3,
+                              )
+                            : null,
+                      ),
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            selected!
+                                ? Icons.check_circle_rounded
+                                : Icons.circle_outlined,
+                            color: selected!
+                                ? theme.colorScheme.primary
+                                : Colors.white70,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 6),
