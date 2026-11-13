@@ -12,6 +12,7 @@ import '../state/preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
+import '../widgets/arr_tags.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
@@ -571,6 +572,15 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
         ? arrRootOf(existing.path, [for (final r in setup.roots) r.path]) ??
               d.rootFolder!
         : d.rootFolder!;
+    // Saved defaults may name a tag deleted since; send only live ones,
+    // once the server's list is known (not loaded yet: send them as they
+    // are rather than drop them all).
+    final known = ref.read(arrTagsProvider(_kind)).asData?.value;
+    final live = known == null ? null : {for (final t in known) t.id};
+    final tags = [
+      for (final t in d.tags)
+        if (live == null || live.contains(t)) t,
+    ];
     setState(() => _busy = true);
     var id = 0;
     final ok = await arrRun(context, () async {
@@ -583,6 +593,9 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
           seriesType: d.seriesType,
           seasonFolder: d.seasonFolder,
           search: d.search,
+          searchCutoff: d.searchCutoff,
+          monitorNewSeasons: d.monitorNewSeasons,
+          tags: tags,
           path: existing?.path,
         )).id;
       } else {
@@ -593,6 +606,7 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
           monitor: d.monitor,
           minimumAvailability: d.minimumAvailability,
           search: d.search,
+          tags: tags,
           path: existing?.path,
         )).id;
       }
@@ -676,6 +690,7 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
             showRoot: !_useExisting,
             enabled: !_busy,
             explainProfile: true,
+            client: widget.client,
             onChanged: () => setState(() {}),
           ),
         ],
@@ -794,6 +809,9 @@ class ArrChoiceDraft {
   String seriesType;
   bool seasonFolder;
   bool search;
+  bool monitorNewSeasons;
+  bool searchCutoff;
+  List<int> tags;
 
   /// The search setting Add started with, to go back to when "use the
   /// existing folder" is switched off again.
@@ -808,6 +826,9 @@ class ArrChoiceDraft {
       seriesType = c.seriesType,
       seasonFolder = c.seasonFolder,
       search = c.search,
+      monitorNewSeasons = c.monitorNewSeasons,
+      searchCutoff = c.searchCutoff,
+      tags = [...c.tags],
       searchDefault = c.search,
       profileSource = c.profileSource;
 
@@ -825,6 +846,9 @@ class ArrChoiceDraft {
       seriesType: shows ? seriesType : null,
       seasonFolder: shows ? seasonFolder : null,
       search: keep != null ? keep.search : search,
+      monitorNewSeasons: shows ? monitorNewSeasons : null,
+      searchCutoff: shows ? (keep != null ? keep.searchCutoff : searchCutoff) : null,
+      tags: [...tags]..sort(),
     );
   }
 }
@@ -842,6 +866,9 @@ class ArrChoiceFields extends StatelessWidget {
   final bool explainProfile;
   final VoidCallback onChanged;
 
+  /// For the tags (the server's list, and making new ones).
+  final ArrClient? client;
+
   const ArrChoiceFields({
     super.key,
     required this.kind,
@@ -851,6 +878,7 @@ class ArrChoiceFields extends StatelessWidget {
     this.showRoot = true,
     this.enabled = true,
     this.explainProfile = false,
+    this.client,
   });
 
   @override
@@ -915,6 +943,14 @@ class ArrChoiceFields extends StatelessWidget {
             value: d.seasonFolder,
             onChanged: enabled ? (v) => set(() => d.seasonFolder = v) : null,
           ),
+          ArrCheck(
+            label: l.arrMonitorNewSeasons,
+            hint: l.arrMonitorNewSeasonsHint,
+            value: d.monitorNewSeasons,
+            onChanged: enabled
+                ? (v) => set(() => d.monitorNewSeasons = v)
+                : null,
+          ),
         ] else
           ArrDropdownField<String>(
             label: l.arrMinimumAvailability,
@@ -926,11 +962,23 @@ class ArrChoiceFields extends StatelessWidget {
                   )
                 : null,
           ),
+        if (client case final c?)
+          ArrTagPicker(
+            client: c,
+            selected: d.tags,
+            onChanged: enabled ? (ids) => set(() => d.tags = ids) : null,
+          ),
         ArrCheck(
           label: shows ? l.arrSearchMissingNow : l.arrSearchMovieNow,
           value: d.search,
           onChanged: enabled ? (v) => set(() => d.search = v) : null,
         ),
+        if (shows)
+          ArrCheck(
+            label: l.arrSearchCutoffNow,
+            value: d.searchCutoff,
+            onChanged: enabled ? (v) => set(() => d.searchCutoff = v) : null,
+          ),
       ],
     );
   }
@@ -942,6 +990,7 @@ Map<String, String> arrMonitorOptions(AppLocalizations l) => {
   'future': l.arrMonitorFuture,
   'missing': l.arrMonitorMissing,
   'existing': l.arrMonitorExisting,
+  'recent': l.arrMonitorRecent,
   'pilot': l.arrMonitorPilot,
   'firstSeason': l.arrMonitorFirstSeason,
   'lastSeason': l.arrMonitorLastSeason,

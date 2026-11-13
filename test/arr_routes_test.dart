@@ -22,15 +22,24 @@ void main() {
     expect(sonarrAt, greaterThan(0));
     expect(radarrAt, greaterThan(sonarrAt));
 
-    // _get/_post/_put/_delete('path'), plus _api('path') for a GET made
-    // directly (the slow release search).
-    final call = RegExp(r"_(get|post|put|delete|api)\(\s*'([^']*)'");
+    // _get/_post/_put/_delete('path'), _send('METHOD', 'path') for calls
+    // that need a body or query the short forms don't take, plus
+    // _api('path') for a GET made directly (the slow release search).
+    final call = RegExp(
+      r"_(get|post|put|delete|api)\(\s*'([^']*)'"
+      r"|_send\(\s*'(GET|POST|PUT|DELETE)',\s*'([^']*)'",
+    );
     final checked = <String>[];
+    final sent = <String>[];
+    String route0(String method, String path) => '$method $path';
     final unknown = <String>[];
     for (final m in call.allMatches(src)) {
       // '$id' and '${x.y}' segments are the spec's {id}.
-      final path = '/api/v3/${m.group(2)!.replaceAll(RegExp(r'\$\{[^}]*\}|\$\w+'), '{}')}';
-      final method = m.group(1) == 'api' ? 'GET' : m.group(1)!.toUpperCase();
+      final raw = m.group(2) ?? m.group(4)!;
+      final path = '/api/v3/${raw.replaceAll(RegExp(r'\$\{[^}]*\}|\$\w+'), '{}')}';
+      final method = m.group(3) ??
+          (m.group(1) == 'api' ? 'GET' : m.group(1)!.toUpperCase());
+      if (m.group(3) != null) sent.add(route0(method, path));
       final route = '$method $path';
       final apps = m.start > radarrAt
           ? {'radarr': radarr}
@@ -43,6 +52,12 @@ void main() {
       }
     }
     expect(checked.length, greaterThan(40), reason: 'the scan found too few calls');
+    // The _send calls are seen too (they once slipped past this scan).
+    expect(sent, containsAll([
+      'PUT /api/v3/series/{}',
+      'PUT /api/v3/movie/{}',
+      'DELETE /api/v3/episodefile/bulk',
+    ]));
     expect(unknown, isEmpty, reason: 'Not in the app\'s API:\n${unknown.join('\n')}');
   });
 }

@@ -465,7 +465,11 @@ class ArrEpisode {
     overview: j['overview'] as String?,
     hasFile: j['hasFile'] == true,
     monitored: j['monitored'] == true,
-    episodeFileId: _intOrNull(j['episodeFileId']),
+    // Sonarr sends 0 for an episode with no file, not null.
+    episodeFileId: switch (_intOrNull(j['episodeFileId'])) {
+      0 => null,
+      final id => id,
+    },
     finaleType: j['finaleType'] as String?,
     series: j['series'] is Map
         ? ArrSeries.fromJson(Map<String, dynamic>.from(j['series']))
@@ -987,6 +991,26 @@ String? arrFolderNameOf(String? path, {required bool isFile}) {
   return parts.isEmpty ? null : parts.last;
 }
 
+/// A label the apps can put on titles (to route them to a download client,
+/// an indexer or a release profile, or just to sort by).
+class ArrTag {
+  final int id;
+  final String label;
+  const ArrTag(this.id, this.label);
+
+  factory ArrTag.fromJson(Map<String, dynamic> j) =>
+      ArrTag(_int(j['id']), (j['label'] as String?) ?? '');
+}
+
+bool _sameInts(List<int>? a, List<int>? b) {
+  if (a == null || b == null) return a == b;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
 /// What Add starts with for a new title. Every field is optional: one that's
 /// missing, or no longer exists on the server, falls back to what most of the
 /// library uses.
@@ -998,6 +1022,9 @@ class ArrAddDefaults {
   final String? seriesType; // Sonarr
   final bool? seasonFolder; // Sonarr
   final bool? search;
+  final bool? monitorNewSeasons; // Sonarr
+  final bool? searchCutoff; // Sonarr
+  final List<int>? tags;
 
   const ArrAddDefaults({
     this.rootFolder,
@@ -1007,6 +1034,9 @@ class ArrAddDefaults {
     this.seriesType,
     this.seasonFolder,
     this.search,
+    this.monitorNewSeasons,
+    this.searchCutoff,
+    this.tags,
   });
 
   bool get isEmpty =>
@@ -1016,7 +1046,10 @@ class ArrAddDefaults {
       minimumAvailability == null &&
       seriesType == null &&
       seasonFolder == null &&
-      search == null;
+      search == null &&
+      monitorNewSeasons == null &&
+      searchCutoff == null &&
+      tags == null;
 
   factory ArrAddDefaults.fromJson(Map<String, dynamic> j) => ArrAddDefaults(
     rootFolder: j['rootFolder'] as String?,
@@ -1026,6 +1059,9 @@ class ArrAddDefaults {
     seriesType: j['seriesType'] as String?,
     seasonFolder: j['seasonFolder'] as bool?,
     search: j['search'] as bool?,
+    monitorNewSeasons: j['monitorNewSeasons'] as bool?,
+    searchCutoff: j['searchCutoff'] as bool?,
+    tags: (j['tags'] as List?)?.whereType<num>().map((n) => n.toInt()).toList(),
   );
 
   @override
@@ -1037,7 +1073,10 @@ class ArrAddDefaults {
       other.minimumAvailability == minimumAvailability &&
       other.seriesType == seriesType &&
       other.seasonFolder == seasonFolder &&
-      other.search == search;
+      other.search == search &&
+      other.monitorNewSeasons == monitorNewSeasons &&
+      other.searchCutoff == searchCutoff &&
+      _sameInts(other.tags, tags);
 
   @override
   int get hashCode => Object.hash(
@@ -1048,6 +1087,9 @@ class ArrAddDefaults {
     seriesType,
     seasonFolder,
     search,
+    monitorNewSeasons,
+    searchCutoff,
+    tags == null ? null : Object.hashAll(tags!),
   );
 
   Map<String, dynamic> toJson() => {
@@ -1058,6 +1100,9 @@ class ArrAddDefaults {
     if (seriesType != null) 'seriesType': seriesType,
     if (seasonFolder != null) 'seasonFolder': seasonFolder,
     if (search != null) 'search': search,
+    if (monitorNewSeasons != null) 'monitorNewSeasons': monitorNewSeasons,
+    if (searchCutoff != null) 'searchCutoff': searchCutoff,
+    if (tags != null) 'tags': tags,
   };
 }
 
@@ -1083,6 +1128,9 @@ class ArrAddChoice {
   final String seriesType;
   final bool seasonFolder;
   final bool search;
+  final bool monitorNewSeasons;
+  final bool searchCutoff;
+  final List<int> tags;
 
   /// Where the quality profile came from, which is the choice people most
   /// want explained.
@@ -1097,6 +1145,9 @@ class ArrAddChoice {
     required this.seasonFolder,
     required this.search,
     required this.profileSource,
+    this.monitorNewSeasons = true,
+    this.searchCutoff = false,
+    this.tags = const [],
   });
 }
 
@@ -1179,6 +1230,9 @@ ArrAddChoice arrStartingChoice({
         _mostCommon(library.map((t) => t.seasonFolder)) ??
         true,
     search: saved.search ?? true,
+    monitorNewSeasons: saved.monitorNewSeasons ?? true,
+    searchCutoff: saved.searchCutoff ?? false,
+    tags: saved.tags ?? const [],
     profileSource: savedProfile != null
         ? ArrChoiceSource.saved
         : libraryProfile != null

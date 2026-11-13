@@ -8,6 +8,7 @@ import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
 import 'app_snack.dart';
 import 'app_spinner.dart';
+import 'arr_tags.dart';
 import 'arr_widgets.dart';
 import 'context_menu.dart';
 import 'detail_header.dart';
@@ -504,6 +505,14 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
   Map<String, dynamic>? _raw;
   String? _error;
   bool _busy = false;
+  final _path = TextEditingController();
+  String _pathBefore = '';
+
+  @override
+  void dispose() {
+    _path.dispose();
+    super.dispose();
+  }
 
   bool get _sonarr => widget.client is SonarrClient;
 
@@ -519,7 +528,12 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
       final raw = c is SonarrClient
           ? await c.seriesRaw(widget.id)
           : await (c as RadarrClient).movieRaw(widget.id);
-      if (mounted) setState(() => _raw = raw);
+      if (!mounted) return;
+      setState(() {
+        _raw = raw;
+        _pathBefore = (raw['path'] as String?) ?? '';
+        _path.text = _pathBefore;
+      });
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     }
@@ -528,14 +542,50 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
   void _set(String key, Object? value) => setState(() => _raw![key] = value);
 
   Future<void> _save() async {
-    setState(() => _busy = true);
     final l = AppLocalizations.of(context);
     final c = widget.client;
+    // A cleared field keeps the old path; a trailing slash isn't a move.
+    String bare(String p) => p.replaceAll(RegExp(r'[/\\]+$'), '');
+    final typed = _path.text.trim();
+    final path = typed.isEmpty || bare(typed) == bare(_pathBefore)
+        ? _pathBefore
+        : typed;
+    var move = false;
+    // Always from the field, so a failed save can't leave a path behind.
+    _raw!['path'] = path;
+    if (path != _pathBefore) {
+      // As in Sonarr and Radarr: a new path asks whether to move the files.
+      final answer = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l.arrMoveFilesTitle),
+          content: Text(l.arrMoveFilesMessage(_pathBefore, path)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.arrMoveFilesNo),
+            ),
+            FilledButton(
+              style: kInlineButtonStyle,
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.arrMoveFilesYes),
+            ),
+          ],
+        ),
+      );
+      if (answer == null || !mounted) return;
+      move = answer;
+    }
+    setState(() => _busy = true);
     final ok = await arrRun(
       context,
       () => c is SonarrClient
-          ? c.updateSeries(_raw!)
-          : (c as RadarrClient).updateMovie(_raw!),
+          ? c.updateSeries(_raw!, moveFiles: move)
+          : (c as RadarrClient).updateMovie(_raw!, moveFiles: move),
       done: l.arrSaved,
     );
     if (!mounted) return;
@@ -571,16 +621,18 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.arrMonitored),
-            subtitle: Text(
-              _sonarr ? l.arrMonitoredShowHint : l.arrMonitoredMovieHint,
+          // A show's monitoring lives in its Monitoring dialog (with which
+          // episodes, specials and new seasons); a movie has just the switch.
+          if (!_sonarr) ...[
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l.arrMonitored),
+              subtitle: Text(l.arrMonitoredMovieHint),
+              value: raw['monitored'] == true,
+              onChanged: _busy ? null : (v) => _set('monitored', v),
             ),
-            value: raw['monitored'] == true,
-            onChanged: _busy ? null : (v) => _set('monitored', v),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
           ArrDropdownField<int>(
             label: l.arrQualityProfile,
             value: (raw['qualityProfileId'] as num?)?.toInt(),
@@ -613,6 +665,31 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
                   ? null
                   : (v) => v == null ? null : _set('minimumAvailability', v),
             ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              l.arrPath,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          TextField(
+            controller: _path,
+            enabled: !_busy,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              helperText: l.arrPathHint,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ArrTagPicker(
+            client: widget.client,
+            selected: [
+              for (final t in (raw['tags'] as List?) ?? const [])
+                if (t is num) t.toInt(),
+            ],
+            onChanged: _busy ? null : (ids) => _set('tags', ids),
+          ),
         ],
       );
     }

@@ -141,6 +141,23 @@ abstract class ArrClient {
   /// Renames the files the preview listed.
   Future<void> rename(int id, List<int> fileIds);
 
+  /// Every tag on the server, by id.
+  Future<List<ArrTag>> tags() async {
+    final data = await _get('tag');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrTag.fromJson(Map<String, dynamic>.from(m)),
+    ]..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+  }
+
+  /// Makes a tag (the apps keep labels lowercase and unique; an existing
+  /// label comes back as the existing tag).
+  Future<ArrTag> createTag(String label) async => ArrTag.fromJson(
+    Map<String, dynamic>.from(
+      await _post('tag', {'label': label.trim()}) as Map,
+    ),
+  );
+
   /// Which app answers at this address, and its version. Throws when it isn't
   /// the app this client is for, so a Radarr address typed in the Sonarr box
   /// is caught on Save & Test.
@@ -362,11 +379,40 @@ class SonarrClient extends ArrClient {
   Future<Map<String, dynamic>> seriesRaw(int id) async =>
       Map<String, dynamic>.from(await _get('series/$id') as Map);
 
-  /// Saves a changed show. [raw] is what [seriesRaw] gave, edited.
-  Future<void> updateSeries(Map<String, dynamic> raw) async {
+  /// Saves a changed show. [raw] is what [seriesRaw] gave, edited. With
+  /// [moveFiles], a changed path moves the show's folder there too.
+  Future<void> updateSeries(
+    Map<String, dynamic> raw, {
+    bool moveFiles = false,
+  }) async {
     final id = _int(raw['id']);
-    await _put('series/$id', raw);
+    await _send(
+      'PUT',
+      'series/$id',
+      body: raw,
+      query: moveFiles ? {'moveFiles': true} : null,
+    );
   }
+
+  /// Changes which episodes are monitored, the way Sonarr's Monitoring
+  /// options do: [monitor] is all, future, missing, existing, recent, pilot,
+  /// firstSeason, lastSeason, monitorSpecials, unmonitorSpecials or none.
+  /// [monitored] is the show's own switch, sent with it because the options
+  /// leave it alone (only none turns it off).
+  Future<void> applyMonitoring(
+    int id, {
+    required String monitor,
+    required bool monitored,
+  }) => _post('seasonpass', {
+    'series': [
+      {'id': id, 'monitored': monitored},
+    ],
+    'monitoringOptions': {'monitor': monitor},
+  });
+
+  /// Deletes episode files from disk, several at once.
+  Future<void> deleteEpisodeFiles(List<int> ids) =>
+      _send('DELETE', 'episodefile/bulk', body: {'episodeFileIds': ids});
 
   /// Monitors or stops monitoring a show, and with it every season, as
   /// Sonarr's own toggle does.
@@ -442,6 +488,9 @@ class SonarrClient extends ArrClient {
     required String seriesType, // standard, daily, anime
     required bool seasonFolder,
     required bool search,
+    bool searchCutoff = false,
+    bool monitorNewSeasons = true,
+    List<int> tags = const [],
     String? path,
   }) async {
     final body = Map<String, dynamic>.from(lookupRaw)
@@ -449,12 +498,14 @@ class SonarrClient extends ArrClient {
       ..['qualityProfileId'] = qualityProfileId
       ..['rootFolderPath'] = rootFolderPath
       ..['monitored'] = monitor != 'none'
+      ..['monitorNewItems'] = monitorNewSeasons ? 'all' : 'none'
       ..['seriesType'] = seriesType
       ..['seasonFolder'] = seasonFolder
+      ..['tags'] = tags
       ..['addOptions'] = {
         'monitor': monitor,
         'searchForMissingEpisodes': search,
-        'searchForCutoffUnmetEpisodes': false,
+        'searchForCutoffUnmetEpisodes': searchCutoff,
       };
     // An existing folder on disk: the app uses it (and the files in it)
     // instead of making a new one from its naming rules.
@@ -559,10 +610,19 @@ class RadarrClient extends ArrClient {
   Future<Map<String, dynamic>> movieRaw(int id) async =>
       Map<String, dynamic>.from(await _get('movie/$id') as Map);
 
-  /// Saves a changed movie. [raw] is what [movieRaw] gave, edited.
-  Future<void> updateMovie(Map<String, dynamic> raw) async {
+  /// Saves a changed movie. [raw] is what [movieRaw] gave, edited. With
+  /// [moveFiles], a changed path moves the movie's folder there too.
+  Future<void> updateMovie(
+    Map<String, dynamic> raw, {
+    bool moveFiles = false,
+  }) async {
     final id = _int(raw['id']);
-    await _put('movie/$id', raw);
+    await _send(
+      'PUT',
+      'movie/$id',
+      body: raw,
+      query: moveFiles ? {'moveFiles': true} : null,
+    );
   }
 
   Future<void> setMovieMonitored(int id, bool monitored) async {
@@ -615,6 +675,7 @@ class RadarrClient extends ArrClient {
     required String monitor, // movieOnly, movieAndCollection, none
     required String minimumAvailability, // announced, inCinemas, released
     required bool search,
+    List<int> tags = const [],
     String? path,
   }) async {
     final body = Map<String, dynamic>.from(lookupRaw)
@@ -623,6 +684,7 @@ class RadarrClient extends ArrClient {
       ..['rootFolderPath'] = rootFolderPath
       ..['monitored'] = monitor != 'none'
       ..['minimumAvailability'] = minimumAvailability
+      ..['tags'] = tags
       ..['addOptions'] = {'monitor': monitor, 'searchForMovie': search};
     if (path != null) body['path'] = path;
     return ArrMovie.fromJson(

@@ -10,6 +10,9 @@ import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
+import '../widgets/arr_delete_files.dart';
+import '../widgets/arr_monitoring.dart';
+import '../widgets/context_menu.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/error_view.dart';
@@ -210,7 +213,13 @@ class ArrSeriesScreen extends ConsumerWidget {
           ].join(' · ');
           final state = s.ended ? ArrState.ended : ArrState.continuing;
           final wide = MediaQuery.sizeOf(context).width >= 620;
-          final actions = _seriesActions(context, ref, client, s);
+          final actions = _seriesActions(
+            context,
+            ref,
+            client,
+            s,
+            episodes.asData?.value,
+          );
           // Newest season first, specials at the end, as Sonarr lists them.
           final seasons = [
             ...s.seasons.where((x) => x.seasonNumber > 0),
@@ -321,6 +330,7 @@ class ArrSeriesScreen extends ConsumerWidget {
                     itemCount: seasons.length,
                     itemBuilder: (context, i) => _SeasonTile(
                       client: client,
+                      series: s,
                       seriesId: id,
                       season: seasons[i],
                       episodes:
@@ -566,6 +576,7 @@ Widget Function(bool header) _seriesActions(
   WidgetRef ref,
   SonarrClient? client,
   ArrSeries s,
+  List<ArrEpisode>? episodes,
 ) {
   final l = AppLocalizations.of(context);
   if (client == null) return (_) => const SizedBox.shrink();
@@ -581,16 +592,19 @@ Widget Function(bool header) _seriesActions(
         done: l.arrSearchStarted(client.kind.appName),
       ),
     ),
+    // Sonarr's show toggle and its Monitoring options in one place: the
+    // show's switch, which episodes, specials and new seasons.
     ArrAction(
       icon: s.monitored
           ? Icons.bookmark_rounded
           : Icons.bookmark_border_rounded,
-      label: s.monitored ? l.arrUnmonitor : l.arrMonitor,
+      label: l.arrMonitoring,
       onTap: () async {
-        if (await arrRun(
+        if (await showArrMonitoringDialog(
           context,
-          () => client.setSeriesMonitored(s.id, !s.monitored),
-          done: s.monitored ? l.arrNowUnmonitored : l.arrNowMonitored,
+          client: client,
+          series: s,
+          episodes: episodes,
         )) {
           changed();
         }
@@ -613,6 +627,12 @@ Widget Function(bool header) _seriesActions(
     ),
   ];
   final more = [
+    if (s.episodeFileCount > 0)
+      ArrAction(
+        icon: Icons.folder_open_rounded,
+        label: l.arrManageFiles,
+        onTap: () => context.push('/arr/series/${s.id}/files'),
+      ),
     ArrAction(
       icon: Icons.sync_rounded,
       label: l.arrRefreshScan,
@@ -729,6 +749,7 @@ class _ErrorPage extends StatelessWidget {
 /// A season of a show, opening into its episodes.
 class _SeasonTile extends ConsumerWidget {
   final SonarrClient? client;
+  final ArrSeries series;
   final int seriesId;
   final ArrSeason season;
   final List<ArrEpisode> episodes;
@@ -737,6 +758,7 @@ class _SeasonTile extends ConsumerWidget {
 
   const _SeasonTile({
     required this.client,
+    required this.series,
     required this.seriesId,
     required this.season,
     required this.episodes,
@@ -834,14 +856,11 @@ class _SeasonTile extends ConsumerWidget {
                     done: l.arrSearchStarted(c.kind.appName),
                   ),
                 ),
-                IconButton(
-                  tooltip: l.arrInteractiveSearch,
-                  icon: const Icon(Icons.manage_search_rounded),
-                  onPressed: () => context.push(
-                    ArrReleaseTarget.season(
-                      seriesId,
-                      season.seasonNumber,
-                    ).location,
+                Builder(
+                  builder: (anchor) => IconButton(
+                    tooltip: l.arrSeasonActions,
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onPressed: () => _openMenu(context, ref, anchor, c, name),
                   ),
                 ),
               ],
@@ -857,6 +876,68 @@ class _SeasonTile extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+extension on _SeasonTile {
+  /// The season's other actions: Interactive Search, and deleting all of its
+  /// files (Sonarr has no season delete; its Manage Episodes does this).
+  void _openMenu(
+    BuildContext context,
+    WidgetRef ref,
+    BuildContext anchor,
+    SonarrClient c,
+    String name,
+  ) {
+    final l = AppLocalizations.of(context);
+    final box = anchor.findRenderObject() as RenderBox?;
+    final at = box == null
+        ? Offset.zero
+        : box.localToGlobal(box.size.bottomCenter(Offset.zero));
+    final seasonFiles = [
+      for (final f in files.values)
+        if ((f.seasonNumber ??
+                episodes
+                    .where((e) => e.episodeFileId == f.id)
+                    .firstOrNull
+                    ?.seasonNumber) ==
+            season.seasonNumber)
+          f,
+    ];
+    showContextMenu(
+      context,
+      at: at,
+      title: name,
+      actions: [
+        ContextMenuAction(
+          icon: Icons.manage_search_rounded,
+          label: l.arrInteractiveSearch,
+          onTap: () => context.push(
+            ArrReleaseTarget.season(seriesId, season.seasonNumber).location,
+          ),
+        ),
+        if (seasonFiles.isNotEmpty)
+          ContextMenuAction(
+            icon: Icons.delete_sweep_rounded,
+            label: l.arrDeleteSeasonFiles,
+            color: Theme.of(context).colorScheme.error,
+            onTap: () async {
+              if (await showArrDeleteFilesDialog(
+                context,
+                client: c,
+                series: series,
+                files: seasonFiles,
+                episodeIds: [
+                  for (final e in episodes)
+                    if (e.episodeFileId != null) e.id,
+                ],
+              )) {
+                arrSeriesChanged(ref, seriesId);
+              }
+            },
+          ),
+      ],
     );
   }
 }

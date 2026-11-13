@@ -58,6 +58,12 @@ void main() {
       expect(pilot.code, 'S01E01');
       expect(pilot.hasFile, isTrue);
       expect(pilot.aired(DateTime.now()), isTrue);
+      // Sonarr sends episodeFileId 0 for "no file": reading that as a file
+      // made Delete Season Files unmonitor every episode of the season.
+      expect(eps.where((e) => !e.hasFile).map((e) => e.episodeFileId),
+          everyElement(isNull));
+      expect(eps.where((e) => e.hasFile).map((e) => e.episodeFileId),
+          everyElement(isNotNull));
       final files = [
         for (final m in _fixture('sonarr_episodefiles') as List)
           ArrFile.fromJson(m)

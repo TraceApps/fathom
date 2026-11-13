@@ -356,6 +356,7 @@ class _DefaultsDialogState extends ConsumerState<_DefaultsDialog> {
             setup: setup,
             draft: _draft!,
             explainProfile: !widget.hasSaved,
+            client: arrClient(ref, widget.kind),
             onChanged: () => setState(() {}),
           ),
         ],

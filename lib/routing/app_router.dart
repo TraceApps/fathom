@@ -57,6 +57,7 @@ import '../models/arr.dart';
 import '../screens/arr_activity_screens.dart';
 import '../screens/arr_add_screen.dart';
 import '../screens/arr_detail_screens.dart';
+import '../screens/arr_files_screen.dart';
 import '../screens/arr_releases_screen.dart';
 import '../screens/arr_screen.dart';
 import '../screens/arr_settings_screen.dart';
@@ -555,6 +556,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, state) => _fadePage(ArrReleasesScreen(
                   target: ArrReleaseTarget.fromQuery(
                       state.uri.queryParameters)))),
+          GoRoute(
+              path: '/arr/series/:id/files',
+              pageBuilder: (_, state) => _fadePage(ArrSeriesFilesScreen(
+                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
               path: '/arr/series/:id',
               pageBuilder: (_, state) => _fadePage(ArrSeriesScreen(

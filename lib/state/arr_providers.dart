@@ -188,6 +188,15 @@ ArrClient? arrClient(WidgetRef ref, ArrKind kind) => kind == ArrKind.sonarr
     ? ref.read(sonarrClientProvider)
     : ref.read(radarrClientProvider);
 
+/// One app's tags, sorted by name.
+final arrTagsProvider = FutureProvider.autoDispose
+    .family<List<ArrTag>, ArrKind>((ref, kind) async {
+      final c = kind == ArrKind.sonarr
+          ? ref.watch(sonarrClientProvider)
+          : ref.watch(radarrClientProvider);
+      return c == null ? const [] : c.tags();
+    });
+
 /// Root folders for one app, for adding a title.
 final arrRootFoldersProvider = FutureProvider.autoDispose
     .family<List<ArrRootFolder>, ArrKind>((ref, kind) async {
