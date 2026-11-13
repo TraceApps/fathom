@@ -31,6 +31,7 @@ import '../widgets/live_record_button.dart';
 import '../state/sleep_timer.dart';
 import '../widgets/sleep_timer_sheet.dart';
 import '../widgets/app_spinner.dart';
+import '../services/system_pip_controls.dart';
 
 /// Whether the native Media3 ExoPlayer backend should handle playback, given the
 /// user's `playerBackend` preference. Android only.
@@ -240,10 +241,32 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
       return null;
     });
     _pipChannel.invokeMethod('setActive', true);
+    SystemPipControls.claimPip(this);
+    // The PiP window's own buttons (same skips as the on-screen ones).
+    // Labels need the localizations, which aren't readable in initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
+      SystemPipControls.bind(
+        owner: this,
+        playing: _controller.state.value.playing,
+        onPlay: () async => _safePlay(),
+        onPause: () async => _safePause(),
+        onSeekBy: _seekBy,
+        backSeconds: 10,
+        forwardSeconds: 30,
+        playPauseLabel: l.playerPlayPause,
+        backLabel: l.playerSeekBack(10),
+        forwardLabel: l.playerSeekForward(30),
+      );
+    });
   }
 
   void _disableSystemPip() {
     if (!isAndroidPlatform || isTvDevice) return;
+    SystemPipControls.unbind(this);
+    // The next episode's screen already took PiP over: leave it on.
+    if (!SystemPipControls.releasePip(this)) return;
     _pipChannel.invokeMethod('setActive', false);
     _pipChannel.setMethodCallHandler(null);
   }
@@ -719,6 +742,7 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
   void _onState() {
     if (!mounted) return;
     final s = _controller.state.value;
+    SystemPipControls.update(owner: this, playing: s.playing);
     // A live broadcast never "ends"; only VOD auto-closes on completion.
     if (s.ended && _started && !_isLive) {
       _started = false;

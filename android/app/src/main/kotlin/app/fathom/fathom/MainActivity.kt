@@ -1,14 +1,21 @@
 package app.fathom.fathom
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
+import android.app.RemoteAction
+import android.content.BroadcastReceiver
 import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.IntentFilter
 import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.media.MediaCodecList
 import android.os.Build
+import android.os.Bundle
 import android.util.Rational
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -25,6 +32,34 @@ import java.io.File
 class MainActivity : AudioServiceActivity() {
     private var pipActive = false
     private var channel: MethodChannel? = null
+
+    // The PiP window's own buttons (back, play/pause, forward). Without them
+    // Android shows the app's media session controls instead, which belong to
+    // the music player, so taps there never reached the video. Set by the
+    // video screen; a tap comes back over [controls] as "action".
+    private var controls: MethodChannel? = null
+    private val pipReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.getStringExtra(EXTRA_PIP_ACTION) ?: return
+            controls?.invokeMethod("action", action)
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        ContextCompat.registerReceiver(
+            this, pipReceiver, IntentFilter(ACTION_PIP_CONTROL),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
+    override fun onDestroy() {
+        try {
+            unregisterReceiver(pipReceiver)
+        } catch (_: Exception) {
+        }
+        super.onDestroy()
+    }
 
     private var castBridge: CastBridge? = null
     private var wheelSfx: WheelSfx? = null
@@ -51,6 +86,20 @@ class MainActivity : AudioServiceActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "app.fathom.player/pip",
         )
+        controls = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.fathom.player/pip_controls",
+        )
+        controls?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setButtons" -> {
+                    pipButtons = call.arguments as? Map<*, *>
+                    updatePipParams()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
         channel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "setActive" -> {
@@ -152,12 +201,60 @@ class MainActivity : AudioServiceActivity() {
 
     private fun enterPip() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val params = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build()
             @Suppress("DEPRECATION")
-            enterPictureInPictureMode(params)
+            enterPictureInPictureMode(pipParams())
         }
+    }
+
+    private fun pipParams(): PictureInPictureParams {
+        val b = PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9))
+        // An empty list falls back to the system's default controls.
+        b.setActions(pipActions())
+        return b.build()
+    }
+
+    // Refresh the window's buttons (play turns to pause and back) while it's
+    // open; outside PiP this just primes the next entry.
+    private fun updatePipParams() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        try {
+            setPictureInPictureParams(pipParams())
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun pipActions(): List<RemoteAction> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return emptyList()
+        val b = pipButtons ?: return emptyList()
+        val playing = b["playing"] == true
+        val list = mutableListOf<RemoteAction>()
+        fun add(id: String, icon: Int, label: String?, code: Int) {
+            val text = label ?: id
+            val intent = Intent(ACTION_PIP_CONTROL)
+                .setPackage(packageName)
+                .putExtra(EXTRA_PIP_ACTION, id)
+            val pending = PendingIntent.getBroadcast(
+                this, code, intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            list.add(RemoteAction(Icon.createWithResource(this, icon), text, text, pending))
+        }
+        add("back", android.R.drawable.ic_media_rew, b["backLabel"] as? String, 1)
+        if (playing) {
+            add("pause", android.R.drawable.ic_media_pause, b["playPauseLabel"] as? String, 2)
+        } else {
+            add("play", android.R.drawable.ic_media_play, b["playPauseLabel"] as? String, 2)
+        }
+        add("forward", android.R.drawable.ic_media_ff, b["forwardLabel"] as? String, 3)
+        // Some devices allow fewer than three buttons; keep play/pause.
+        val max = maxPipActions()
+        return if (list.size <= max) list else listOf(list[1])
+    }
+
+    private fun maxPipActions(): Int = try {
+        maxNumPictureInPictureActions
+    } catch (_: Exception) {
+        3
     }
 
     // Fired when the user leaves the app (e.g. Home). Enter PiP if a video is
@@ -165,6 +262,14 @@ class MainActivity : AudioServiceActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (pipActive) enterPip()
+    }
+
+    companion object {
+        // Kept here, not on the activity, so a recreated activity still shows
+        // the buttons the video set (the Flutter engine outlives it).
+        private var pipButtons: Map<*, *>? = null
+        private const val ACTION_PIP_CONTROL = "app.fathom.player.PIP_CONTROL"
+        private const val EXTRA_PIP_ACTION = "action"
     }
 
     override fun onPictureInPictureModeChanged(

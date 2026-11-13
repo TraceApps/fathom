@@ -47,6 +47,7 @@ import '../widgets/live_record_button.dart';
 import '../widgets/live_info_panel.dart';
 import '../services/live_players.dart';
 import '../services/live_streams.dart';
+import '../services/system_pip_controls.dart';
 
 /// Full-screen libmpv-backed player. Direct-streams the original file (mpv
 /// handles the codecs), resumes from the saved position, and reports progress
@@ -336,10 +337,33 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       }
     });
     _pipChannel.invokeMethod('setActive', true);
+    SystemPipControls.claimPip(this);
+    // The PiP window's own buttons (not on TV, where PiP stays the
+    // system's). Labels need the localizations, unreadable in initState.
+    if (isTvDevice) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
+      SystemPipControls.bind(
+        owner: this,
+        playing: _player.state.playing,
+        onPlay: () => _player.play(),
+        onPause: () => _player.pause(),
+        onSeekBy: _seekBy,
+        backSeconds: _kSeekBack,
+        forwardSeconds: _kSeekForward,
+        playPauseLabel: l.playerPlayPause,
+        backLabel: l.playerSeekBack(_kSeekBack),
+        forwardLabel: l.playerSeekForward(_kSeekForward),
+      );
+    });
   }
 
   void _disableSystemPip() {
     if (!Platform.isAndroid) return;
+    SystemPipControls.unbind(this);
+    // The next episode's screen already took PiP over: leave it on.
+    if (!SystemPipControls.releasePip(this)) return;
     _pipChannel.invokeMethod('setActive', false);
     _pipChannel.setMethodCallHandler(null);
   }
@@ -422,6 +446,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     });
     _playingSub = _player.stream.playing.listen((playing) {
       _mediaSession?.updatePlayback(playing: playing, token: _sessionToken);
+      SystemPipControls.update(owner: this, playing: playing);
       if (playing && !_isPlaying) {
         _isPlaying = true;
         _loadTimer?.cancel();
