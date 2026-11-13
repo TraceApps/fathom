@@ -221,10 +221,13 @@ class AudioController extends Notifier<AudioState> {
   // blast through every track in a couple seconds — stop after this many in a
   // row. Reset on any successful open or user-initiated skip.
   int _ytResolveFailStreak = 0;
-  // Dropouts on the current YouTube track (see YtDropoutWatch), reset per
-  // track, so a dropped connection reloads the track instead of skipping it.
+  // Dropouts on the current YouTube track (see YtDropoutWatch), fresh for
+  // every play of a track, so a dropped connection reloads the track instead
+  // of skipping it.
   YtDropoutWatch _ytDropout = YtDropoutWatch();
-  String? _ytDropoutId;
+  // A dropped track whose reload couldn't get through (still offline): Play
+  // tries it again from this spot rather than resuming a dead link.
+  ({YoutubeAudioItem item, Duration at})? _ytStalled;
   static const _ytMaxResolveFailStreak = 4;
   // Bumped on every YouTube-audio open, so a load-watchdog from a track we've
   // already moved past can't skip the current one.
@@ -310,7 +313,7 @@ class AudioController extends Notifier<AudioState> {
       // retries, or the next one starts the station again.
       h.onPlay = () => state.isRadio && _radioNeedsReconnect
           ? _reconnectRadio(force: true)
-          : _player.play();
+          : (_retryStalledYt() ?? _player.play());
       h.onPause = () async {
         if (state.isRadio) _cancelRadioReconnect('paused');
         await _player.pause();
@@ -493,10 +496,6 @@ class AudioController extends Notifier<AudioState> {
       final pos = _player.state.position;
       if (cur != null &&
           YtDropoutWatch.endedEarly(pos, _player.state.duration)) {
-        if (_ytDropoutId != cur.videoId) {
-          _ytDropoutId = cur.videoId;
-          _ytDropout = YtDropoutWatch();
-        }
         if (_ytDropout.takeTry(pos)) {
           Diagnostics.instance.add('yt', 'track dropped at ${pos.inSeconds}s; '
               'reloading (try ${_ytDropout.tries})');
@@ -512,6 +511,7 @@ class AudioController extends Notifier<AudioState> {
       // Repeat-one: replay the current track instead of advancing. The Next
       // button still skips, because it calls _ytNext directly.
       if (state.repeat == PlaylistMode.single) {
+        _ytDropout = YtDropoutWatch(); // a new play of the track
         unawaited(_player.seek(Duration.zero));
         unawaited(_player.play());
         return;
@@ -1023,6 +1023,10 @@ class AudioController extends Notifier<AudioState> {
     // slow resolve is still running) supersedes it — otherwise the stale resolve
     // opens over the track the user actually skipped to.
     final token = ++_ytLoadToken;
+    _ytStalled = null;
+    // A new play of a track starts its dropout tries over; a reload keeps
+    // counting.
+    if (!reload) _ytDropout = YtDropoutWatch();
     final url = await _resolveYtUrl(item.videoId);
     if (token != _ytLoadToken) return; // superseded by a newer skip
     if (url == null) {
@@ -1034,8 +1038,14 @@ class AudioController extends Notifier<AudioState> {
       // only adds requests and deepens any rate-limit throttle.
       if (token != _ytLoadToken) return; // superseded by a newer skip
       // Reloading a dropped track: the network is likely still down, and
-      // moving on would ignore repeat-one and the sleep timer. Stop here.
-      if (reload) return;
+      // moving on would ignore repeat-one and the sleep timer. Stop here,
+      // and let Play try again from the same spot.
+      if (reload) {
+        _ytStalled = (item: item, at: startAt);
+        Diagnostics.instance.add('yt',
+            'track reload failed (offline?); Play retries at ${startAt.inSeconds}s');
+        return;
+      }
       if (++_ytResolveFailStreak >= _ytMaxResolveFailStreak) {
         _ytResolveFailStreak = 0;
         _ytAdvancing = false; // release so the user can start playback again
@@ -1046,7 +1056,7 @@ class AudioController extends Notifier<AudioState> {
     }
     if (!state.isYoutubeAudio) return; // left YouTube mode while resolving
     _ytResolveFailStreak = 0; // resolved OK — clear the failure guard
-    _ytPlayed.add(item.videoId);
+    if (!reload) _ytPlayed.add(item.videoId);
     state = state.copyWith(ytCurrent: item);
     await _activateAudioSession();
     if (token != _ytLoadToken) return; // superseded during session activation
@@ -1054,11 +1064,17 @@ class AudioController extends Notifier<AudioState> {
     await _player.open(
         Media(url, start: startAt > Duration.zero ? startAt : null));
     _applyVolume();
-    _pushYtNowPlaying(item);
-    _pushPlaybackState();
-    _pushQueue(); // current track advanced — refresh the car's up-next
-    final up = ref.read(youtubeQueueProvider);
-    if (up.isNotEmpty) unawaited(_resolveYtUrl(up.first.id));
+    // A reload is the same track: the now-playing card, the queue and the
+    // next track's link are already in place.
+    if (!reload) {
+      _pushYtNowPlaying(item);
+      _pushPlaybackState();
+      _pushQueue(); // current track advanced: refresh the car's up-next
+      final up = ref.read(youtubeQueueProvider);
+      if (up.isNotEmpty) unawaited(_resolveYtUrl(up.first.id));
+    } else {
+      _pushPlaybackState();
+    }
     unawaited(_watchLoad(item, token, retried, startAt, reload));
   }
 
@@ -1087,6 +1103,10 @@ class AudioController extends Notifier<AudioState> {
             startAt: startAt, retried: true, reload: reload);
       } else if (!reload) {
         await _ytNext();
+      } else {
+        _ytStalled = (item: item, at: startAt);
+        Diagnostics.instance.add('yt',
+            'track reload never loaded (offline?); Play retries at ${startAt.inSeconds}s');
       }
     }
   }
@@ -1823,6 +1843,22 @@ class AudioController extends Notifier<AudioState> {
     _reportedId = null;
   }
 
+  /// Play on a YouTube track whose dropout reload couldn't get through:
+  /// reload it from where it stopped. Null when there's nothing to retry.
+  Future<void>? _retryStalledYt() {
+    final st = _ytStalled;
+    if (st == null ||
+        !state.isYoutubeAudio ||
+        state.ytCurrent?.videoId != st.item.videoId ||
+        // Really playing (it loaded after all). A link that never loaded can
+        // still read as playing, and that tap must retry, not pause.
+        (_player.state.playing && _player.state.duration > Duration.zero)) {
+      return null;
+    }
+    Diagnostics.instance.add('yt', 'Play: retrying the dropped track');
+    return _playYtItem(st.item, startAt: st.at, reload: true);
+  }
+
   Future<void> togglePlay() {
     // While casting, drive the cast device, not local playback (otherwise
     // hitting play resumes audio on the phone alongside the cast).
@@ -1838,6 +1874,8 @@ class AudioController extends Notifier<AudioState> {
           .add('radio', 'togglePlay: resuming via reconnect (needsReconnect)');
       return _reconnectRadio();
     }
+    final stalled = _retryStalledYt();
+    if (stalled != null) return stalled;
     if (state.isRadio) {
       Diagnostics.instance.add('radio',
           'togglePlay: playing=${_player.state.playing}, needsReconnect=$_radioNeedsReconnect');

@@ -10,8 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../l10n/generated/app_localizations.dart';
-import '../services/youtube_dock_recovery.dart';
-import '../services/youtube_dropout.dart';
+import '../services/youtube_stream_recovery.dart';
 import '../services/youtube_streams.dart';
 import '../routing/route_observer.dart';
 import '../state/audio_player.dart';
@@ -166,45 +165,43 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         .edit((x) => x.copyWith(volume: v)),
   );
   StreamSubscription<bool>? _playingSub;
-  StreamSubscription<bool>? _completedSub;
   // OS media session (desktop tray / media keys), same mechanism as the Jellyfin
   // video player. Captured so dispose() can release it without touching ref.
   StreamSubscription<Duration>? _mediaPosSub;
   VideoMediaSessionController? _mediaSession;
   final Object _mediaToken = Object();
   int _mediaLastPosSec = -1;
-  bool _ready = false;
+  // Dropout recovery (see YtStreamRecovery). It outlives this screen when the
+  // video is minimized, so the state a reload needs lives there.
+  late final YtStreamRecovery _rec;
+  bool get _ready => _rec.ready;
+  set _ready(bool v) => _rec.ready = v;
   String? _error;
   double _preMuteVolume = 100;
 
   YtStreams _streams = const YtStreams();
   List<YtQuality> _qualities = const [];
-  String _qualityLabel = 'Auto';
+  String get _qualityLabel => _rec.qualityLabel;
+  set _qualityLabel(String v) => _rec.qualityLabel = v;
   // Stats-overlay open state, shared with the fullscreen route (a new controls
   // instance) so toggling fullscreen keeps it open.
   final ValueNotifier<bool> _statsOpen = ValueNotifier<bool>(false);
   List<YoutubeCaption> _captions = const [];
-  YoutubeCaption? _caption; // null = subtitles off
+  YoutubeCaption? get _caption => _rec.caption; // null = subtitles off
+  set _caption(YoutubeCaption? v) => _rec.caption = v;
 
   List<SponsorSegment> _sponsors = const [];
   StreamSubscription<Duration>? _sponsorSub;
   /// Skipped once each: re-skipping fights the viewer who seeks back in.
   final Set<String> _skipped = {};
   String? _audioUrl; // set in adaptive mode
-  bool _isLive = false; // muxedUrl is a live HLS/DASH manifest
+  bool get _isLive => _rec.live; // muxedUrl is a live HLS/DASH manifest
+  set _isLive(bool v) => _rec.live = v;
   StreamSubscription<int?>? _firstFrameSub;
   // PERF DIAGNOSTIC (temporary): mpv verbose log + throttle probe, to pinpoint
   // the video-startup cost. Flip _perfDiag off to silence it.
   static const bool _perfDiag = false;
   StreamSubscription<PlayerLog>? _mpvLogSub;
-  // Stream dropouts (see YtDropoutWatch): resolve fresh links and carry on
-  // from the same spot instead of skipping to the next video.
-  StreamSubscription<PlayerLog>? _dropSub;
-  final YtDropoutWatch _dropout = YtDropoutWatch();
-  YtQuality? _openQuality; // the rendition _playAdaptive last opened
-  Future<bool>? _recovery; // the reload under way, shared by every caller
-  Timer? _recoveryWatchdog;
-  YtDockRecovery? _dock; // the mini player's recovery, once minimized
   // Contexts inside media_kit's controls trees (windowed and fullscreen), so
   // fullscreen can be left when this player goes away.
   final Set<BuildContext> _controlsContexts = {};
@@ -217,7 +214,9 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   static final Set<_YoutubeVideoPlayerState> _alive = {};
   String? _probeUrl;
   int _probeBitrate = 0;
-  bool _fellBack = false;
+  bool get _fellBack => _rec.fellBack;
+  set _fellBack(bool v) => _rec.fellBack = v;
+  set _openQuality(YtQuality v) => _rec.openQuality = v;
   Timer? _fallbackTimer;
   Timer? _progressTimer;
   bool _resumed = false;
@@ -275,6 +274,11 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       _player = dockedPlayer;
       _controller = dockedController;
       _reclaimed = true;
+      // The recovery travelled with the player (older docks had none).
+      final docked = pipNotifier.handoffData;
+      _rec = docked is YtStreamRecovery && docked.player == _player
+          ? docked
+          : YtStreamRecovery(player: _player, url: widget.url);
       // Release the dock's ownership after this frame.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         pipNotifier.detachForReclaim();
@@ -291,6 +295,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
                   const PlayerConfiguration(logLevel: MPVLogLevel.warn));
       _controller = VideoController(_player);
       _reclaimed = false;
+      _rec = YtStreamRecovery(player: _player, url: widget.url);
       if (_perfDiag) {
         _mpvLogSub = _player.stream.log.listen((e) {
           final t = e.text.trim();
@@ -331,22 +336,10 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         if (!_ready && mounted) setState(() => _ready = true);
       }
     });
-    _dropSub = _player.stream.log.listen((e) {
-      // Acting on the refused reconnect saves the seconds of silence before
-      // the video track runs out too.
-      if (_dropout.refusedAfterReconnect(e.prefix, e.text)) {
-        debugPrint('[yt] stream refused: ${e.text.trim()}');
-        unawaited(_recoverStream());
-      }
-    });
-    _completedSub = _player.stream.completed.listen((done) async {
-      if (!done) return;
-      // mpv reports a dropped stream as the end of the video. Well short of
-      // the real end, reload instead of moving on. A reload already under way
-      // (started from the log) is waited for, and if it fails, this ends.
-      if (_endedEarly() && await _recoverStream()) return;
-      await _finish();
-    });
+    _rec
+      ..qualityPref = _qualityPref
+      ..onReloaded = _onReloaded
+      ..onEnded = () => unawaited(_finish());
     if (widget.onProgress != null) {
       _progressTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         // The timer outlives deactivation; don't report from a dead widget.
@@ -454,6 +447,9 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       // _load() runs synchronously from initState up to the first await, so set
       // the field directly here rather than via setState (illegal pre-build).
       _ready = true;
+      // The mini player gave up on a dropped stream (offline at the time):
+      // reopening is a fresh chance, and failing that, the video has ended.
+      unawaited(_rec.resumeIfDropped());
       unawaited(_refreshMetadata());
       return;
     }
@@ -552,25 +548,14 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       if (!mounted) return;
       _streams = s;
       _isLive = s.isLive;
-      // The stream dropped while docked and the dock's reload was cut short
-      // by reopening: the end already fired, so nothing else would notice.
-      if (_player.state.completed && _endedEarly()) {
-        unawaited(_recoverStream());
-      }
       unawaited(_loadCaptions());
       unawaited(_loadSponsors());
-      if (s.isAdaptive) {
-        _audioUrl = s.audioUrl;
-        setState(() {
-          _qualities = s.qualities;
-          // The docked player's exact rendition isn't known; label it Auto
-          // until the viewer picks one.
-          _qualityLabel =
-              defaultQualityFor(s.qualities, _qualityPref)?.label ?? 'Auto';
-        });
-      } else {
-        setState(() => _qualities = s.muxedQualities);
-      }
+      // The quality pick and a fall back to the muxed stream came back with
+      // the player (see YtStreamRecovery), so the menu matches what's open:
+      // a fallen-back video offers muxed choices, never video-only ones.
+      final adaptive = s.isAdaptive && !_fellBack;
+      _audioUrl = adaptive ? s.audioUrl : null;
+      setState(() => _qualities = adaptive ? s.qualities : s.muxedQualities);
     } catch (_) {
       // Menus stay minimal; playback is unaffected.
     }
@@ -714,16 +699,6 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     }
   }
 
-  /// Whether mpv stopped short of the real end (a dropped stream, not the
-  /// video finishing). VOD from YouTube only; a download or a live stream
-  /// ending early is not something fresh links fix.
-  bool _endedEarly() =>
-      !_isLive &&
-      _ready &&
-      isYoutubeUrl(widget.url) &&
-      YtDropoutWatch.endedEarly(
-          _player.state.position, _player.state.duration);
-
   void _onControlsContext(BuildContext c) {
     _controlsContexts.add(c);
     // The previous video handed over while fullscreen: go back in.
@@ -743,7 +718,6 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   /// The video is done: hand over, unless the sleep timer is set to stop
   /// here.
   Future<void> _finish() async {
-    _recoveryWatchdog?.cancel();
     if (!mounted) return;
     // The sleep timer is set to stop at the end of this video.
     if (ref.read(sleepTimerProvider.notifier).consumeEndOfItem()) return;
@@ -796,86 +770,13 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     return false;
   }
 
-  /// Resolves fresh links and reopens the video at the current position and
-  /// rendition. True when it reloaded; false when it gave up, so the caller
-  /// can treat the video as ended. Callers during a reload share its result.
-  Future<bool> _recoverStream() =>
-      _recovery ??= _reload().whenComplete(() => _recovery = null);
-
-  Future<bool> _reload() async {
-    _recoveryWatchdog?.cancel();
-    if (_isLive || !_ready || _minimized || !mounted) return false;
-    if (!isYoutubeUrl(widget.url)) return false;
-    final pos = _player.state.position;
-    // Keep a paused video paused. completed clears playing, so a video that
-    // ran out was playing.
-    final play = _player.state.playing || _player.state.completed;
-    if (!_dropout.takeTry(pos)) {
-      debugPrint('[yt] stream keeps dropping; giving up at ${pos.inSeconds}s');
-      return false;
-    }
-    debugPrint('[yt] stream dropped at ${pos.inSeconds}s; '
-        'reloading (try ${_dropout.tries})');
-    try {
-      final s = await resolveYoutubeStreams(widget.url, live: false);
-      // Minimized while resolving: the mini player reloads it instead.
-      if (_minimized) {
-        unawaited(_dock?.recover());
-        return true;
-      }
-      if (!mounted) return true;
-      _streams = s;
-      // Open at the spot rather than at 0:00 and seek: no flash of the start,
-      // and no SponsorBlock skip firing on the way.
-      final start = pos > Duration.zero ? pos : null;
-      if (s.isAdaptive && !_fellBack) {
-        _audioUrl = s.audioUrl;
-        final label = _openQuality?.label;
-        setState(() => _qualities = s.qualities);
-        final q = s.qualities.where((x) => x.label == label).firstOrNull ??
-            await _preferredQuality();
-        if (q == null) return false;
-        await _playAdaptive(q, start: start, play: play);
-      } else {
-        // Muxed: keep the viewer's pick if the fresh list still has it.
-        final q = s.muxedQualities
-            .where((x) => x.label == _qualityLabel)
-            .firstOrNull;
-        final url = q?.url ?? s.muxedUrl;
-        if (url == null) return false;
-        _audioUrl = null;
-        setState(() => _qualities = s.muxedQualities);
-        await _player.open(Media(url, start: start), play: play);
-        await _reapplyCaption();
-      }
-      debugPrint('[yt] stream reloaded at ${pos.inSeconds}s');
-      // open() can succeed and the new link still never play (offline, refused
-      // again); that raises no end, so nothing else would notice. Check it got
-      // going, and try again (or end) if it didn't.
-      if (play) _watchReload(pos);
-      return true;
-    } catch (e) {
-      debugPrint('[yt] stream reload failed: $e');
-      return false;
-    }
-  }
-
-  /// Checks a reload got going: every 15 s, up to a minute while mpv is still
-  /// buffering (a weak connection right after a network change can be slow),
-  /// then tries again, or ends the video once the tries are used up.
-  void _watchReload(Duration pos, [int checks = 1]) {
-    _recoveryWatchdog = Timer(const Duration(seconds: 15), () async {
-      if (!mounted || _minimized || _recovery != null) return;
-      if (_player.state.position > pos + const Duration(seconds: 1)) return;
-      // Paused by the viewer since: not stuck.
-      if (!_player.state.playing && !_player.state.completed) return;
-      if (_player.state.buffering && checks < 4) {
-        _watchReload(pos, checks + 1);
-        return;
-      }
-      debugPrint('[yt] reload never started playing');
-      if (!await _recoverStream()) await _finish();
-    });
+  /// A dropout reload opened fresh streams: refill the quality menu.
+  void _onReloaded(YtStreams s) {
+    if (!mounted) return;
+    _streams = s;
+    final adaptive = s.isAdaptive && !_fellBack;
+    _audioUrl = adaptive ? s.audioUrl : null;
+    setState(() => _qualities = adaptive ? s.qualities : s.muxedQualities);
   }
 
   Future<void> _playAdaptive(YtQuality q,
@@ -991,30 +892,18 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     if (_minimized) return;
     _minimized = true;
     _playingSub?.cancel();
-    _completedSub?.cancel();
-    _dropSub?.cancel();
-    _recoveryWatchdog?.cancel();
     _sponsorSub?.cancel();
     _fallbackTimer?.cancel();
     _progressTimer?.cancel();
     _reportProgress();
     _volume.dispose();
     final vid = widget.matchId ?? youtubeVideoId(widget.url) ?? '';
-    // The dock carries on recovering dropouts (with this screen's tries and
-    // choices) until the video is reopened here or closed.
-    final dock = _dock = !_isLive && _ready && isYoutubeUrl(widget.url)
-        ? YtDockRecovery(
-            player: _player,
-            url: widget.url,
-            watch: _dropout,
-            // A screen reopened from the dock never opened a rendition
-            // itself; its label is the preference's default.
-            adaptiveLabel: _openQuality?.label ?? _qualityLabel,
-            muxedLabel: _qualityLabel,
-            muxedOnly: _fellBack,
-            caption: _caption,
-          )
-        : null;
+    // The recovery goes with the player: the mini player keeps reloading
+    // dropped streams (no autoplay there), and a reopened page takes it back.
+    _rec
+      ..qualityPref = _qualityPref
+      ..onReloaded = null
+      ..onEnded = null;
     ref.read(pipProvider.notifier).adopt(
           player: _player,
           controller: _controller,
@@ -1023,7 +912,8 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
           route: widget.reopenRoute ?? '/youtube/watch',
           routeExtra:
               widget.reopenExtra ?? (videoId: vid, title: widget.title),
-          onRelease: dock?.cancel,
+          handoffData: _rec,
+          onRelease: _rec.dispose,
         );
     if (mounted) Navigator.of(context).maybePop();
   }
@@ -1049,15 +939,13 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     _sponsorSub?.cancel();
     _firstFrameSub?.cancel();
     _mpvLogSub?.cancel();
-    _dropSub?.cancel();
-    _recoveryWatchdog?.cancel();
+    _rec.dispose();
     LivePlayers.remove(_player);
     _fallbackTimer?.cancel();
     _progressTimer?.cancel();
     // Capture the position before teardown, so leaving mid-video keeps the spot.
     _reportProgress();
     _playingSub?.cancel();
-    _completedSub?.cancel();
     // Sequence the teardown: stop() and dispose() both mutate the native mpv
     // player, and firing them concurrently makes mpv invoke a callback into a
     // half-freed player ("Callback invoked after it has been deleted"), which

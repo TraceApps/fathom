@@ -113,4 +113,36 @@ void main() {
       expect(w.takeTry(Duration(seconds: s)), isTrue, reason: 'drop at ${s}s');
     }
   });
+
+  test('going back before the drops starts a new run of tries', () {
+    // Repeat-one or Previous: the tries used at 3:00 don't carry over to a
+    // drop at 1:00 on the replay.
+    final w = YtDropoutWatch();
+    for (var i = 0; i < 3; i++) {
+      expect(w.takeTry(const Duration(seconds: 180)), isTrue);
+    }
+    expect(w.takeTry(const Duration(seconds: 180)), isFalse);
+    expect(w.takeTry(const Duration(seconds: 60)), isTrue);
+  });
+
+  test('a reload landing just before the drop still counts', () {
+    // A reload can resume a little before where it dropped; that must not
+    // reset the count, or a video dropping on the spot never moves on.
+    final w = YtDropoutWatch();
+    expect(w.takeTry(const Duration(seconds: 100)), isTrue);
+    expect(w.takeTry(const Duration(seconds: 98)), isTrue);
+    expect(w.takeTry(const Duration(seconds: 97)), isTrue);
+    expect(w.takeTry(const Duration(seconds: 96)), isFalse);
+  });
+
+  test('reset gives a video that ran out of tries a fresh chance', () {
+    final w = YtDropoutWatch();
+    for (var i = 0; i < 3; i++) {
+      w.takeTry(const Duration(seconds: 10));
+    }
+    expect(w.takeTry(const Duration(seconds: 10)), isFalse);
+    w.reset();
+    expect(w.takeTry(const Duration(seconds: 10)), isTrue);
+    expect(w.tries, 1);
+  });
 }

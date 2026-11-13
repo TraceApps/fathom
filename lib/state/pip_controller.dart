@@ -61,8 +61,8 @@ class PipController extends Notifier<PipState> {
   /// saved. Passed the live player so it can read the final position.
   Future<void> Function(Player player)? _onClose;
 
-  /// Run whenever the dock lets go of the player (reclaimed, closed or
-  /// replaced): the YouTube player uses it to stop its dropout recovery.
+  /// Run when the dock's player goes away (closed or replaced), not when it
+  /// is reclaimed: the YouTube player uses it to stop its dropout recovery.
   VoidCallback? _onRelease;
 
   void _release() {
@@ -136,7 +136,8 @@ class PipController extends Notifier<PipState> {
   /// it in a post-frame callback).
   void detachForReclaim() {
     if (player == null && controller == null) return;
-    _release();
+    // The reopened screen took over whatever onRelease would stop.
+    _onRelease = null;
     player = null;
     controller = null;
     routeExtra = null;

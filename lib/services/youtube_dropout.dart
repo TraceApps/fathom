@@ -47,17 +47,27 @@ class YtDropoutWatch {
 
   /// Takes one reload attempt for a dropout at [position]. False once
   /// [maxTries] dropouts came without the video getting more than 30 seconds
-  /// past the last one: a video that keeps dropping on the spot moves on, and
+  /// past the last one (or going back before it): a video that keeps dropping on the spot moves on, and
   /// one on a flaky network that plays on between drops recovers every time.
   bool takeTry(Duration position) {
     final last = _lastAt;
-    if (last != null && position - last > const Duration(seconds: 30)) {
+    // Well past the last drop (it played on), or well before it (the
+    // viewer went back, or the track started over): a new run of tries.
+    if (last != null &&
+        (position - last > const Duration(seconds: 30) ||
+            last - position > const Duration(seconds: 10))) {
       _tries = 0;
     }
     if (_tries >= maxTries) return false;
     _tries++;
     _lastAt = position;
     return true;
+  }
+
+  /// Starts a new run of tries (a fresh chance, like reopening the video).
+  void reset() {
+    _tries = 0;
+    _lastAt = null;
   }
 
   /// The attempt number [takeTry] last handed out, for the log.
