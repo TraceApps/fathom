@@ -36,4 +36,6 @@ On Android 11 and newer, finished downloads go to **Movies/Fathom** (video) and 
 
 ## Playback details
 
+If your connection changes in the middle of a video (moving between Wi-Fi and mobile data, say), YouTube refuses the old stream, so Fathom fetches a fresh one and carries on from the same spot, at the same quality and with the same captions, instead of skipping to the next video. The same goes for the mini player and for YouTube music. If the connection is still down after a few tries, the video ends as it would at its end (so autoplay moves on); in the mini player it stops where it is, and reopening it tries again. For music, pressing Play tries again from that spot.
+
 The [Playback Info](features.md#playback-info) overlay works here too. On YouTube its **Play method** line shows whether you are getting a high-quality **adaptive (DASH)** stream (separate video and audio) or the **muxed** fallback.
