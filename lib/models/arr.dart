@@ -114,6 +114,13 @@ class ArrFile {
   final bool qualityCutoffNotMet;
   final int? seasonNumber;
 
+  /// The quality as the app keeps it, and the languages with their ids: what
+  /// an edit sends back.
+  final Map<String, dynamic>? qualityModel;
+  final List<ArrLanguage> languageItems;
+  final int indexerFlags;
+  final String? releaseType; // Sonarr: singleEpisode, multiEpisode...
+
   const ArrFile({
     required this.id,
     this.relativePath,
@@ -126,6 +133,10 @@ class ArrFile {
     this.mediaInfo,
     this.qualityCutoffNotMet = false,
     this.seasonNumber,
+    this.qualityModel,
+    this.languageItems = const [],
+    this.indexerFlags = 0,
+    this.releaseType,
   });
 
   factory ArrFile.fromJson(Map<String, dynamic> j) => ArrFile(
@@ -145,6 +156,12 @@ class ArrFile {
         : null,
     qualityCutoffNotMet: j['qualityCutoffNotMet'] == true,
     seasonNumber: _intOrNull(j['seasonNumber']),
+    qualityModel: j['quality'] is Map
+        ? Map<String, dynamic>.from(j['quality'] as Map)
+        : null,
+    languageItems: _languages(j['languages']),
+    indexerFlags: _int(j['indexerFlags']),
+    releaseType: j['releaseType'] as String?,
   );
 }
 
@@ -508,6 +525,11 @@ class ArrQueueItem {
   final String? protocol; // torrent, usenet
   final String? quality;
   final List<ArrImage> images;
+  final String? downloadId;
+
+  /// The download client moves finished downloads to a category of its own
+  /// (qBittorrent and others): removing can change the category instead.
+  final bool clientHasPostImportCategory;
 
   const ArrQueueItem({
     required this.kind,
@@ -531,6 +553,8 @@ class ArrQueueItem {
     this.protocol,
     this.quality,
     this.images = const [],
+    this.downloadId,
+    this.clientHasPostImportCategory = false,
   });
 
   factory ArrQueueItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
@@ -544,7 +568,7 @@ class ArrQueueItem {
     return ArrQueueItem(
       kind: kind,
       id: _int(j['id']),
-      title: j['title'] as String? ?? '',
+      title: arrUnescape(j['title'] as String? ?? ''),
       mediaTitle: (movie?['title'] ?? series?['title']) as String?,
       episodeCode: ep?.code,
       episodeTitle: ep?.title,
@@ -569,8 +593,29 @@ class ArrQueueItem {
       protocol: j['protocol'] as String?,
       quality: _qualityName(j['quality']),
       images: _images(movie?['images'] ?? series?['images']),
+      downloadId: j['downloadId'] as String?,
+      clientHasPostImportCategory:
+          j['downloadClientHasPostImportCategory'] == true,
     );
   }
+
+  /// Not sent to the client yet (a delay profile, or the client is away):
+  /// removing only drops it, as the apps' own dialog says.
+  bool get isPending =>
+      status == 'delay' || status == 'downloadClientUnavailable';
+
+  /// The app can stop tracking it and leave it in the client only when it
+  /// knows the title (the apps' own rule).
+  bool get canIgnore =>
+      (kind == ArrKind.sonarr ? seriesId : movieId) != null;
+
+  /// Downloaded, but the app won't import it on its own (Import Blocked, or
+  /// waiting with a warning): Manual Import is how to finish it. The apps'
+  /// own queue offers it on exactly these.
+  bool get canManualImport =>
+      downloadId != null &&
+      status == 'completed' &&
+      trackedDownloadStatus == 'warning';
 
   /// How much is downloaded, 0 to 1.
   double get progress => size <= 0 ? 0 : ((size - sizeleft) / size).clamp(0, 1);
@@ -718,7 +763,10 @@ class ArrHistoryItem {
       id: _int(j['id']),
       date: _date(j['date']),
       eventType: j['eventType'] as String? ?? 'unknown',
-      sourceTitle: j['sourceTitle'] as String?,
+      sourceTitle: switch (j['sourceTitle']) {
+        final String t => arrUnescape(t),
+        _ => null,
+      },
       quality: _qualityName(j['quality']),
       episodeId: _intOrNull(j['episodeId']),
       seriesId: _intOrNull(j['seriesId']),
@@ -1047,7 +1095,7 @@ class ArrBlocklistItem {
       kind: kind,
       id: _int(j['id']),
       date: DateTime.tryParse((j['date'] as String?) ?? '')?.toLocal(),
-      sourceTitle: (j['sourceTitle'] as String?) ?? '',
+      sourceTitle: arrUnescape((j['sourceTitle'] as String?) ?? ''),
       title: owner?['title'] as String?,
       seriesId: _intOrNull(j['seriesId']),
       movieId: _intOrNull(j['movieId']),
@@ -1470,7 +1518,7 @@ class ArrSearchResult {
   factory ArrSearchResult.fromJson(Map<String, dynamic> j) => ArrSearchResult(
     guid: j['guid'] as String? ?? '',
     indexerId: _int(j['indexerId']),
-    title: j['title'] as String? ?? '',
+    title: arrUnescape(j['title'] as String? ?? ''),
     indexer: j['indexer'] as String?,
     quality: _qualityName(j['quality']),
     qualityWeight: _int(j['qualityWeight']),
@@ -1524,3 +1572,347 @@ class ArrRename {
     newPath: j['newPath'] as String? ?? '',
   );
 }
+
+// ------------------------------------------------------------ Manual Import
+
+/// A language as the apps list them (English, Japanese, Unknown...).
+class ArrLanguage {
+  final int id;
+  final String name;
+  const ArrLanguage(this.id, this.name);
+
+  factory ArrLanguage.fromJson(Map<String, dynamic> j) =>
+      ArrLanguage(_int(j['id']), (j['name'] as String?) ?? '');
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+
+  /// Unknown (0) says the app couldn't tell; Any and Original (negative) are
+  /// for profiles only, and the apps won't put them on a file.
+  bool get known => id > 0;
+
+  @override
+  bool operator ==(Object other) => other is ArrLanguage && other.id == id;
+  @override
+  int get hashCode => id;
+}
+
+List<ArrLanguage> _languages(Object? v) => [
+  for (final m in _maps(v)) ArrLanguage.fromJson(m),
+];
+
+/// One quality a file can be (WEBDL-1080p, Bluray-2160p...), from the app's
+/// quality definitions, in the app's order (worst to best).
+class ArrQualityChoice {
+  final Map<String, dynamic> quality; // the app's own {id, name, source, ...}
+  final String title;
+  const ArrQualityChoice(this.quality, this.title);
+
+  int get id => _int(quality['id']);
+  String get name => (quality['name'] as String?) ?? title;
+
+  factory ArrQualityChoice.fromJson(Map<String, dynamic> j) =>
+      ArrQualityChoice(
+        Map<String, dynamic>.from((j['quality'] as Map?) ?? const {}),
+        (j['title'] as String?) ?? '',
+      );
+}
+
+/// A file's quality as the apps keep it: the quality and its revision
+/// (proper, repack). Changing the quality keeps the revision.
+Map<String, dynamic> arrQualityModel(
+  ArrQualityChoice q, [
+  Map<String, dynamic>? old,
+]) => {
+  'quality': q.quality,
+  'revision':
+      old?['revision'] ?? const {'version': 1, 'real': 0, 'isRepack': false},
+};
+
+int? arrQualityId(Map<String, dynamic>? model) =>
+    _intOrNull((model?['quality'] as Map?)?['id']);
+
+/// A file found by Manual Import: a download, a folder, or a title's own
+/// folder. What the app guessed it is (show and episodes, or movie), its
+/// quality and languages, and why the app wouldn't import it on its own.
+class ArrImportItem {
+  final ArrKind kind;
+  final int id;
+  final String path;
+  final String? relativePath;
+  final String? folderName;
+  final int size;
+  final int? seriesId;
+  final String? seriesTitle;
+  final int? movieId;
+  final String? movieTitle;
+  final int? movieYear;
+  final int? seasonNumber;
+  final List<ArrEpisode> episodes;
+  final int? fileId; // already in the library: its episode or movie file
+  final String? releaseGroup;
+  final Map<String, dynamic>? quality;
+  final List<ArrLanguage> languages;
+  final int indexerFlags;
+  final String? releaseType; // Sonarr: singleEpisode, multiEpisode, seasonPack
+  final String? downloadId;
+  final List<String> rejections;
+
+  const ArrImportItem({
+    required this.kind,
+    required this.id,
+    required this.path,
+    this.relativePath,
+    this.folderName,
+    this.size = 0,
+    this.seriesId,
+    this.seriesTitle,
+    this.movieId,
+    this.movieTitle,
+    this.movieYear,
+    this.seasonNumber,
+    this.episodes = const [],
+    this.fileId,
+    this.releaseGroup,
+    this.quality,
+    this.languages = const [],
+    this.indexerFlags = 0,
+    this.releaseType,
+    this.downloadId,
+    this.rejections = const [],
+  });
+
+  factory ArrImportItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
+    final series = j['series'] as Map?;
+    final movie = j['movie'] as Map?;
+    final episodes = [
+      for (final m in _maps(j['episodes'])) ArrEpisode.fromJson(m),
+    ]..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+    return ArrImportItem(
+      kind: kind,
+      id: _int(j['id']),
+      path: (j['path'] as String?) ?? '',
+      relativePath: j['relativePath'] as String?,
+      folderName: j['folderName'] as String?,
+      size: _int(j['size']),
+      seriesId: _intOrNull(series?['id']) ?? _nonZero(j['seriesId']),
+      seriesTitle: series?['title'] as String?,
+      movieId: _intOrNull(movie?['id']) ?? _nonZero(j['movieId']),
+      movieTitle: movie?['title'] as String?,
+      movieYear: _intOrNull(movie?['year']),
+      seasonNumber: _intOrNull(j['seasonNumber']),
+      episodes: episodes,
+      // Both apps send 0 for "no file".
+      fileId: _nonZero(j['episodeFileId'] ?? j['movieFileId']),
+      releaseGroup: j['releaseGroup'] as String?,
+      quality: j['quality'] is Map
+          ? Map<String, dynamic>.from(j['quality'] as Map)
+          : null,
+      languages: _languages(j['languages']),
+      indexerFlags: _int(j['indexerFlags']),
+      releaseType: j['releaseType'] as String?,
+      downloadId: j['downloadId'] as String?,
+      rejections: [
+        for (final r in _maps(j['rejections']))
+          if (r['reason'] is String) r['reason'] as String,
+      ],
+    );
+  }
+
+  static const _keep = Object();
+
+  ArrImportItem copyWith({
+    Object? seriesId = _keep,
+    Object? seriesTitle = _keep,
+    Object? movieId = _keep,
+    Object? movieTitle = _keep,
+    Object? movieYear = _keep,
+    Object? seasonNumber = _keep,
+    List<ArrEpisode>? episodes,
+    Object? releaseGroup = _keep,
+    Object? quality = _keep,
+    List<ArrLanguage>? languages,
+    List<String>? rejections,
+    Object? releaseType = _keep,
+    int? indexerFlags,
+  }) => ArrImportItem(
+    kind: kind,
+    id: id,
+    path: path,
+    relativePath: relativePath,
+    folderName: folderName,
+    size: size,
+    seriesId: seriesId == _keep ? this.seriesId : seriesId as int?,
+    seriesTitle: seriesTitle == _keep
+        ? this.seriesTitle
+        : seriesTitle as String?,
+    movieId: movieId == _keep ? this.movieId : movieId as int?,
+    movieTitle: movieTitle == _keep ? this.movieTitle : movieTitle as String?,
+    movieYear: movieYear == _keep ? this.movieYear : movieYear as int?,
+    seasonNumber: seasonNumber == _keep
+        ? this.seasonNumber
+        : seasonNumber as int?,
+    episodes: episodes ?? this.episodes,
+    fileId: fileId,
+    releaseGroup: releaseGroup == _keep
+        ? this.releaseGroup
+        : releaseGroup as String?,
+    quality: quality == _keep
+        ? this.quality
+        : quality as Map<String, dynamic>?,
+    languages: languages ?? this.languages,
+    indexerFlags: indexerFlags ?? this.indexerFlags,
+    releaseType: releaseType == _keep
+        ? this.releaseType
+        : releaseType as String?,
+    downloadId: downloadId,
+    rejections: rejections ?? this.rejections,
+  );
+
+  /// The file's name, without the folders above it.
+  String get fileName {
+    final p = (relativePath?.isNotEmpty ?? false) ? relativePath! : path;
+    return p.split(RegExp(r'[/\\]')).last;
+  }
+
+  String? get qualityName => _qualityName(quality);
+
+  /// What's still missing before the app can import it, or null when ready.
+  ArrImportGap? get gap {
+    if (kind == ArrKind.sonarr) {
+      if (seriesId == null) return ArrImportGap.title;
+      if (seasonNumber == null) return ArrImportGap.season;
+      if (episodes.isEmpty) return ArrImportGap.episodes;
+    } else if (movieId == null) {
+      return ArrImportGap.title;
+    }
+    if (quality == null || arrQualityId(quality) == null) {
+      return ArrImportGap.quality;
+    }
+    if (languages.isEmpty) return ArrImportGap.languages;
+    return null;
+  }
+
+  /// "S02E03", "S02E03-E04" (a file holding episodes in a row), or each
+  /// one listed when they aren't.
+  String? get episodeCode {
+    if (episodes.isEmpty) return null;
+    final first = episodes.first.code;
+    if (episodes.length == 1) return first;
+    final inARow = [
+      for (var i = 1; i < episodes.length; i++)
+        episodes[i].seasonNumber == episodes[0].seasonNumber &&
+            episodes[i].episodeNumber == episodes[i - 1].episodeNumber + 1,
+    ].every((x) => x);
+    if (!inARow) return episodes.map((e) => e.code).join(', ');
+    return '$first-E${episodes.last.episodeNumber.toString().padLeft(2, '0')}';
+  }
+
+  /// What the app's "check again" (POST manualimport) takes.
+  Map<String, dynamic> toReprocessJson() => {
+    'id': id,
+    'path': path,
+    if (kind == ArrKind.sonarr) ...{
+      'seriesId': ?seriesId,
+      'seasonNumber': seasonNumber,
+      'episodeIds': [for (final e in episodes) e.id],
+      'releaseType': releaseType ?? 'unknown',
+    } else
+      'movieId': ?movieId,
+    'quality': quality,
+    'languages': [for (final l in languages) l.toJson()],
+    'releaseGroup': releaseGroup,
+    'indexerFlags': indexerFlags,
+    'downloadId': downloadId,
+  };
+
+  /// One file of the ManualImport command, as the apps' own pages send it.
+  Map<String, dynamic> toCommandJson() => {
+    'path': path,
+    'folderName': folderName,
+    if (kind == ArrKind.sonarr) ...{
+      'seriesId': seriesId,
+      'episodeIds': [for (final e in episodes) e.id],
+      'episodeFileId': fileId,
+      'releaseType': releaseType ?? 'unknown',
+    } else ...{
+      'movieId': movieId,
+      'movieFileId': fileId,
+    },
+    'quality': quality,
+    'languages': [for (final l in languages) l.toJson()],
+    'releaseGroup': releaseGroup,
+    'indexerFlags': indexerFlags,
+    'downloadId': downloadId,
+  };
+
+  /// Takes what the app worked out on a check: the season and episodes it
+  /// found and its verdict; quality and languages only where they were
+  /// unknown (the apps answer the same way). Sonarr leaves the season and
+  /// episodes out when it found none, which keeps the ones chosen.
+  ArrImportItem mergeReprocessed(ArrImportItem r) => copyWith(
+    seasonNumber: r.seasonNumber ?? seasonNumber,
+    episodes: r.episodes.isEmpty ? episodes : r.episodes,
+    rejections: r.rejections,
+    releaseType: r.releaseType ?? releaseType,
+    indexerFlags: r.indexerFlags,
+    quality: r.quality ?? quality,
+    languages: r.languages.isEmpty ? languages : r.languages,
+    releaseGroup: r.releaseGroup ?? releaseGroup,
+    movieTitle: r.movieTitle ?? movieTitle,
+    movieYear: r.movieYear ?? movieYear,
+  );
+}
+
+int? _nonZero(Object? v) => switch (_intOrNull(v)) {
+  0 => null,
+  final n => n,
+};
+
+/// What a Manual Import file still needs before it can go in.
+enum ArrImportGap { title, season, episodes, quality, languages }
+
+/// One folder on the app's server, for picking where to import from.
+class ArrServerFolder {
+  final String name;
+  final String path;
+  const ArrServerFolder(this.name, this.path);
+}
+
+/// A folder's sub-folders on the app's server, and the one above it.
+class ArrFolderListing {
+  final String path;
+  final String? parent;
+  final List<ArrServerFolder> folders;
+  const ArrFolderListing({
+    required this.path,
+    this.parent,
+    this.folders = const [],
+  });
+
+  factory ArrFolderListing.fromJson(String path, Map<String, dynamic> j) =>
+      ArrFolderListing(
+        path: path,
+        parent: (j['parent'] as String?)?.isEmpty ?? true
+            ? null
+            : j['parent'] as String?,
+        folders: [
+          for (final m in _maps(j['directories']))
+            ArrServerFolder(
+              (m['name'] as String?) ?? '',
+              (m['path'] as String?) ?? '',
+            ),
+        ],
+      );
+}
+
+/// Turns the HTML escapes some indexers leave in release names ("&amp;")
+/// back into the characters they stand for, for showing them.
+String arrUnescape(String s) => !s.contains('&')
+    ? s
+    : s
+          .replaceAll('&quot;', '"')
+          .replaceAll('&#39;', "'")
+          .replaceAll('&apos;', "'")
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>')
+          .replaceAll('&amp;', '&');

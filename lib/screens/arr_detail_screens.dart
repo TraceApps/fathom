@@ -11,6 +11,7 @@ import '../state/arr_providers.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_delete_files.dart';
+import '../widgets/arr_file_edit.dart';
 import '../widgets/arr_monitoring.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/arr_widgets.dart';
@@ -19,6 +20,7 @@ import '../widgets/error_view.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/meta_pill.dart';
 import '../widgets/ui_common.dart';
+import 'arr_import_screen.dart';
 import 'arr_releases_screen.dart';
 
 /// A movie in Radarr: where it stands, its file and its history.
@@ -140,18 +142,27 @@ class ArrMovieScreen extends ConsumerWidget {
                         if (m.movieFile != null) ...[
                           ArrFileCard(file: m.movieFile!),
                           if (client != null)
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: _DeleteFileButton(
+                            Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 4,
+                              children: [
+                                TextButton.icon(
+                                  icon: const Icon(Icons.edit_rounded, size: 18),
+                                  label: Text(l.arrEditFile),
+                                  onPressed: () =>
+                                      _editMovieFile(context, ref, client, m),
+                                ),
+                                _DeleteFileButton(
                                 fileName:
                                     m.movieFile!.relativePath ??
                                     m.movieFile!.path ??
                                     '',
                                 app: client.kind.appName,
-                                delete: () =>
-                                    client.deleteMovieFile(m.movieFile!.id),
-                                after: () => arrMovieChanged(ref, id),
-                              ),
+                                  delete: () =>
+                                      client.deleteMovieFile(m.movieFile!.id),
+                                  after: () => arrMovieChanged(ref, id),
+                                ),
+                              ],
                             ),
                         ] else
                           Text(
@@ -452,6 +463,44 @@ Future<void> _openIn(ArrClient client, String? slug) => launchUrl(
   mode: LaunchMode.externalApplication,
 );
 
+/// Corrects the movie file's quality, languages or release group, as on
+/// Radarr's Manage Files.
+Future<void> _editMovieFile(
+  BuildContext context,
+  WidgetRef ref,
+  RadarrClient client,
+  ArrMovie m,
+) async {
+  final f = m.movieFile;
+  if (f == null) return;
+  final l = AppLocalizations.of(context);
+  final changes = await showArrFileEditDialog(
+    context,
+    kind: ArrKind.radarr,
+    subtitle: (f.relativePath ?? f.path ?? '').split('/').last,
+    qualityId: arrQualityId(f.qualityModel),
+    languages: f.languageItems,
+    releaseGroup: f.releaseGroup,
+  );
+  if (changes == null || changes.isEmpty || !context.mounted) return;
+  if (await arrRun(
+    context,
+    () => client.updateFiles([
+      {
+        'id': f.id,
+        if (changes.quality != null)
+          'quality': arrQualityModel(changes.quality!, f.qualityModel),
+        if (changes.languages != null)
+          'languages': [for (final x in changes.languages!) x.toJson()],
+        if (changes.releaseGroup != null) 'releaseGroup': changes.releaseGroup,
+      },
+    ]),
+    done: l.arrSaved,
+  )) {
+    arrMovieChanged(ref, m.id);
+  }
+}
+
 /// A movie's actions; call with true for the header's round buttons.
 Widget Function(bool header) _movieActions(
   BuildContext context,
@@ -523,6 +572,15 @@ Widget Function(bool header) _movieActions(
         }
       },
     ),
+    // Files dropped in the movie's folder that Radarr hasn't taken in.
+    if (m.path != null && m.path!.isNotEmpty)
+      ArrAction(
+        icon: Icons.drive_folder_upload_rounded,
+        label: l.arrManualImport,
+        onTap: () => context.push(
+          ArrImportTarget.folder(ArrKind.radarr, m.path!).location,
+        ),
+      ),
     if (m.hasFile)
       ArrAction(
         icon: Icons.drive_file_rename_outline_rounded,
@@ -646,6 +704,14 @@ Widget Function(bool header) _seriesActions(
         }
       },
     ),
+    if (s.path != null && s.path!.isNotEmpty)
+      ArrAction(
+        icon: Icons.drive_folder_upload_rounded,
+        label: l.arrManualImport,
+        onTap: () => context.push(
+          ArrImportTarget.folder(ArrKind.sonarr, s.path!).location,
+        ),
+      ),
     if (s.episodeFileCount > 0)
       ArrAction(
         icon: Icons.drive_file_rename_outline_rounded,

@@ -5,13 +5,16 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../state/arr_providers.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/arr_actions.dart';
 import '../widgets/arr_delete_files.dart';
+import '../widgets/arr_file_edit.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 
-/// A show's files, by season, to pick and delete together: whole seasons at
-/// once or single episodes, which Sonarr's own Manage Episodes does too.
+/// A show's files, by season: tap one to correct it (which episodes it
+/// holds, its quality, languages, release group), or pick several to edit or
+/// delete together, as in Sonarr's own Manage Episodes.
 class ArrSeriesFilesScreen extends ConsumerStatefulWidget {
   final int id;
   const ArrSeriesFilesScreen({super.key, required this.id});
@@ -25,6 +28,91 @@ class _ArrSeriesFilesScreenState extends ConsumerState<ArrSeriesFilesScreen> {
   final Set<int> _picked = {};
 
   void _refresh() => arrSeriesChanged(ref, widget.id);
+
+  /// One file: a change of episodes re-imports it in place (how Sonarr's
+  /// own page does it); anything else is a plain edit.
+  Future<void> _editOne(ArrFile f, List<ArrEpisode> eps) async {
+    final l = AppLocalizations.of(context);
+    final client = ref.read(sonarrClientProvider);
+    if (client == null) return;
+    final changes = await showArrFileEditDialog(
+      context,
+      kind: ArrKind.sonarr,
+      subtitle: _fileTitle(eps, f),
+      episodeChoice: true,
+      seriesId: widget.id,
+      seasonNumber: eps.firstOrNull?.seasonNumber ?? f.seasonNumber,
+      episodeIds: [for (final e in eps) e.id],
+      qualityId: arrQualityId(f.qualityModel),
+      languages: f.languageItems,
+      releaseGroup: f.releaseGroup,
+    );
+    if (changes == null || changes.isEmpty || !mounted) return;
+    final ok = await arrRun(context, () async {
+      if (changes.episodes != null) {
+        final item = changes.applyTo(
+          ArrImportItem(
+            kind: ArrKind.sonarr,
+            id: f.id,
+            path: f.path ?? '',
+            seriesId: widget.id,
+            seasonNumber: eps.firstOrNull?.seasonNumber,
+            episodes: eps,
+            fileId: f.id,
+            releaseGroup: f.releaseGroup,
+            quality: f.qualityModel,
+            languages: f.languageItems,
+            indexerFlags: f.indexerFlags,
+            releaseType: f.releaseType,
+          ),
+        );
+        await client.manualImport([
+          item.copyWith(
+            releaseType: item.episodes.length > 1
+                ? 'multiEpisode'
+                : 'singleEpisode',
+          ),
+        ], 'auto');
+      } else {
+        await client.updateFiles([_fileChanges(f, changes)]);
+      }
+    }, done: changes.episodes != null ? l.arrFileMoving : l.arrSaved);
+    if (!ok || !mounted) return;
+    _refresh();
+    // A re-import runs as a task: look again once it's had a moment.
+    if (changes.episodes != null) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) _refresh();
+      });
+    }
+  }
+
+  Future<void> _editPicked(
+    List<ArrFile> picked,
+    Map<int, List<ArrEpisode>> byFile,
+  ) async {
+    // One file: its own edit, with what it is now filled in.
+    if (picked.length == 1) {
+      return _editOne(picked.single, byFile[picked.single.id] ?? const []);
+    }
+    final l = AppLocalizations.of(context);
+    final client = ref.read(sonarrClientProvider);
+    if (client == null) return;
+    final changes = await showArrFileEditDialog(
+      context,
+      kind: ArrKind.sonarr,
+      subtitle: '',
+      count: picked.length,
+    );
+    if (changes == null || changes.isEmpty || !mounted) return;
+    if (await arrRun(
+      context,
+      () => client.updateFiles([for (final f in picked) _fileChanges(f, changes)]),
+      done: l.arrSaved,
+    )) {
+      _refresh();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +185,14 @@ class _ArrSeriesFilesScreenState extends ConsumerState<ArrSeriesFilesScreen> {
               CheckboxListTile(
                 dense: true,
                 controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: const EdgeInsets.only(left: 24, right: 8),
+                contentPadding: const EdgeInsets.only(left: 24, right: 0),
+                secondary: IconButton(
+                  tooltip: l.arrEditFile,
+                  icon: const Icon(Icons.edit_rounded),
+                  onPressed: client == null || !episodesAsync.hasValue
+                      ? null
+                      : () => _editOne(f, byFile[f.id] ?? const []),
+                ),
                 value: _picked.contains(f.id),
                 onChanged: (v) => setState(
                   () => v == true ? _picked.add(f.id) : _picked.remove(f.id),
@@ -110,6 +205,8 @@ class _ArrSeriesFilesScreenState extends ConsumerState<ArrSeriesFilesScreen> {
                 subtitle: Text(
                   [
                     if (f.quality != null) f.quality!,
+                    if (f.languages.isNotEmpty) f.languages.join(', '),
+                    ?f.releaseGroup,
                     arrSize(f.size),
                   ].join(' · '),
                 ),
@@ -166,6 +263,16 @@ class _ArrSeriesFilesScreenState extends ConsumerState<ArrSeriesFilesScreen> {
                           style: theme.textTheme.titleSmall,
                         ),
                       ),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                        ),
+                        onPressed: !episodesAsync.hasValue
+                            ? null
+                            : () => _editPicked(picked, byFile),
+                        child: Text(l.arrEdit),
+                      ),
+                      const SizedBox(width: 8),
                       FilledButton.icon(
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.error,
@@ -205,6 +312,16 @@ class _ArrSeriesFilesScreenState extends ConsumerState<ArrSeriesFilesScreen> {
             ),
     );
   }
+
+  /// What [changes] sends for [f] in Sonarr's file edit: only what changed.
+  static Map<String, dynamic> _fileChanges(ArrFile f, ArrFileChanges changes) => {
+    'id': f.id,
+    if (changes.quality != null)
+      'quality': arrQualityModel(changes.quality!, f.qualityModel),
+    if (changes.languages != null)
+      'languages': [for (final l in changes.languages!) l.toJson()],
+    if (changes.releaseGroup != null) 'releaseGroup': changes.releaseGroup,
+  };
 
   /// "S02E03 · Title", or the file name when the episode isn't known.
   static String _fileTitle(List<ArrEpisode>? eps, ArrFile f) {

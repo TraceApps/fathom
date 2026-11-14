@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/context_menu.dart';
 import 'arr_activity_screens.dart';
+import 'arr_import_screen.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_bulk.dart';
 import '../widgets/arr_widgets.dart';
@@ -562,17 +563,19 @@ class _QueueCard extends ConsumerWidget {
       if (item.errorMessage?.isNotEmpty ?? false) item.errorMessage!,
       ...item.messages,
     ];
+    final titleId = item.kind == ArrKind.sonarr ? item.seriesId : item.movieId;
+    final importable = client != null && item.canManualImport;
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: picked != null
             ? onPick
-            : () => arrOpenTitle(
-                context,
-                item.kind,
-                item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,
-              ),
+            // A download the app couldn't match has no page: open what
+            // fixes it instead.
+            : titleId == null && importable
+            ? () => _manualImport(context, ref)
+            : () => arrOpenTitle(context, item.kind, titleId),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -614,14 +617,17 @@ class _QueueCard extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                    // The release name, unless it's already the heading (a
+                    // download the app couldn't match to a title).
+                    if (item.mediaTitle != null)
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 8),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
@@ -666,6 +672,21 @@ class _QueueCard extends ConsumerWidget {
                           ),
                         ),
                       ),
+                    // What the apps' own queue offers for these: say which
+                    // show and episode (or movie) it is, and bring it in.
+                    if (importable && picked == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: FilledButton.tonalIcon(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 40),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.download_done_rounded),
+                          label: Text(l.arrManualImport),
+                          onPressed: () => _manualImport(context, ref),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -703,6 +724,12 @@ class _QueueCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _manualImport(BuildContext context, WidgetRef ref) async {
+    if (await arrOpenDownloadImport(context, item)) {
+      ref.invalidate(arrQueueProvider);
+    }
   }
 
   (String, Color) _status(AppLocalizations l, ColorScheme scheme) {

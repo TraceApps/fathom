@@ -15,6 +15,7 @@ import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/ui_common.dart';
+import 'arr_import_screen.dart';
 
 // ------------------------------------------------------------------ Wanted
 
@@ -173,6 +174,14 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
                   onPressed: () => _searchAll(merged),
                   icon: const Icon(Icons.manage_search_rounded),
                   label: Text(l.arrSearchAll),
+                ),
+              // Files on the server that never came through the queue, as
+              // on the apps' Wanted page.
+              if (_picked == null)
+                IconButton(
+                  tooltip: l.arrManualImport,
+                  icon: const Icon(Icons.drive_folder_upload_rounded),
+                  onPressed: () => arrOpenFolderImport(context),
                 ),
               if (merged != null && merged.items.isNotEmpty && _picked == null)
                 IconButton(

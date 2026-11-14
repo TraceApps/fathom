@@ -1,0 +1,538 @@
+[
+  {
+    "path": "/downloads/watch/Breaking.Bad.S01E01.720p.HDTV.x264-LOL/Breaking.Bad.S01E01.720p.HDTV.x264-LOL.mkv",
+    "relativePath": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL.mkv",
+    "name": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+    "size": 124078,
+    "releaseGroup": "LOL",
+    "quality": {
+      "quality": {
+        "id": 4,
+        "name": "HDTV-720p",
+        "source": "tv",
+        "resolution": 720,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "languages": [
+      {
+        "id": 0,
+        "name": "Unknown"
+      }
+    ],
+    "qualityWeight": 15,
+    "downloadId": "Blackhole_Breaking.Bad.S01E01.720p.HDTV.x264-LOL_639302361885226826",
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "rejections": [
+      {
+        "reason": "Unknown Movie",
+        "type": "permanent"
+      }
+    ],
+    "id": 537793353
+  },
+  {
+    "path": "/downloads/watch/Interstellar.2014.720p.HDTV.x264-LOL/Interstellar.2014.720p.HDTV.x264-LOL.mkv",
+    "relativePath": "Interstellar.2014.720p.HDTV.x264-LOL.mkv",
+    "folderName": "Interstellar.2014.720p.HDTV.x264-LOL",
+    "name": "Interstellar.2014.720p.HDTV.x264-LOL",
+    "size": 124078,
+    "movie": {
+      "title": "Interstellar",
+      "originalTitle": "Interstellar",
+      "originalLanguage": {
+        "id": 1,
+        "name": "English"
+      },
+      "alternateTitles": [
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u661f\u9645\u7a7f\u8d8a",
+          "id": 1
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u661f\u969b\u555f\u793a\u9304",
+          "id": 2
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Interestelar",
+          "id": 3
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Csillagok K\u00f6z\u00f6tt",
+          "id": 4
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u30a4\u30f3\u30bf\u30fc\u30b9\u30c6\u30e9\u30fc",
+          "id": 5
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u10d8\u10dc\u10e2\u10d4\u10e0\u10e1\u10e2\u10d4\u10da\u10d0\u10e0\u10d8",
+          "id": 6
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "H\u1ed1 \u0110en T\u1eed Th\u1ea7n",
+          "id": 7
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Ulduzlararas\u0131",
+          "id": 8
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Interstellaire",
+          "id": 9
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0418\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u043b\u0430\u0440",
+          "id": 10
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0418\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u0430\u0440",
+          "id": 11
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0628\u064a\u0646 \u0627\u0644\u0646\u062c\u0648\u0645",
+          "id": 12
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0406\u043d\u0442\u044d\u0440\u0441\u0442\u044d\u043b\u0430\u0440",
+          "id": 13
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0645\u06cc\u0627\u0646\u200c \u0633\u062a\u0627\u0631\u0647\u200c \u0627\u06cc",
+          "id": 14
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0907\u0902\u091f\u0930\u0938\u094d\u091f\u0947\u0932\u0930",
+          "id": 15
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0a07\u0a70\u0a1f\u0a30\u0a38\u0a1f\u0a48\u0a32\u0a30",
+          "id": 16
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "T\u00e4htedevaheline",
+          "id": 17
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u05d1\u05d9\u05df \u05db\u05d5\u05db\u05d1\u05d9\u05dd",
+          "id": 18
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u10d5\u10d0\u10e0\u10e1\u10d9\u10d5\u10da\u10d0\u10d5\u10d7\u10e8\u10dd\u10e0\u10d8\u10e1\u10d8",
+          "id": 19
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Tarp \u017evaig\u017ed\u017ei\u0173",
+          "id": 20
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0d07\u0d28\u0d4d\u0d31\u0d7c\u0d38\u0d4d\u0d31\u0d4d\u0d31\u0d46\u0d32\u0d4d\u0d32\u0d3e\u0d7c",
+          "id": 21
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0642\u0627\u0626\u0645 \u0628\u064a\u0646 \u0627\u0644\u0646\u062c\u0648\u0645",
+          "id": 22
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0627\u06cc\u0646\u062a\u0631 \u0627\u0633\u062a\u0644\u0627\u0631",
+          "id": 23
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u041e\u0434\u043e\u0434 \u0445\u043e\u043e\u0440\u043e\u043d\u0434",
+          "id": 24
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0907\u0928\u094d\u091f\u0930\u0938\u094d\u091f\u0947\u0932\u0930",
+          "id": 25
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Interstellar: C\u0103l\u0103torind Prin Univers",
+          "id": 26
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Medzvezdje",
+          "id": 27
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0b87\u0ba9\u0bcd\u0b9f\u0bb0\u0bcd\u200c\u0bb8\u0bcd\u0b9f\u0bc6\u0bb2\u0bb0\u0bcd",
+          "id": 28
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0406\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u043b\u0430\u0440",
+          "id": 29
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0627\u0646\u0679\u0631\u0633\u0679\u06cc\u0644\u0631",
+          "id": 30
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Me\u0111uzvjezdani",
+          "id": 31
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "Y\u0131ld\u0131zlararas\u0131",
+          "id": 32
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u041c\u0435\u0452\u0443\u0437\u0432\u0435\u0437\u0434\u0430\u043d\u0438",
+          "id": 33
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0c07\u0c02\u0c1f\u0c30\u0c4d \u0c38\u0c4d\u0c1f\u0c46\u0c32\u0c4d\u0c32\u0c30\u0c4d",
+          "id": 34
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0e2d\u0e34\u0e19\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e2a\u0e40\u0e15\u0e25\u0e25\u0e32\u0e23\u0e4c \u0e17\u0e30\u0e22\u0e32\u0e19\u0e14\u0e32\u0e27\u0e01\u0e39\u0e49\u0e42\u0e25\u0e01",
+          "id": 35
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\uc778\ud130\uc2a4\ud154\ub77c",
+          "id": 36
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u661f\u969b\u6548\u61c9",
+          "id": 37
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u053b\u0576\u057f\u0565\u0580\u057d\u057f\u0565\u056c\u0565\u0580",
+          "id": 38
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u062f\u0631 \u0645\u06cc\u0627\u0646 \u0633\u062a\u0627\u0631\u06af\u0627\u0646",
+          "id": 39
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0623\u0646\u062a\u0631\u0633\u062a\u064a\u0644\u0631",
+          "id": 40
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u0418\u043d\u0442\u0435\u0440\u0441\u0442\u0435\u043b\u043b\u044d\u0440",
+          "id": 41
+        },
+        {
+          "sourceType": "tmdb",
+          "movieMetadataId": 1,
+          "title": "\u661f\u969b\u5553\u793a\u9304",
+          "id": 42
+        }
+      ],
+      "secondaryYearSourceId": 0,
+      "sortTitle": "interstellar",
+      "status": "released",
+      "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+      "inCinemas": "2014-11-05T00:00:00Z",
+      "physicalRelease": "2015-03-31T00:00:00Z",
+      "digitalRelease": "2014-11-07T00:00:00Z",
+      "releaseDate": "2014-11-07T00:00:00Z",
+      "images": [
+        {
+          "coverType": "poster",
+          "remoteUrl": "https://image.tmdb.org/t/p/original/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg"
+        },
+        {
+          "coverType": "fanart",
+          "remoteUrl": "https://image.tmdb.org/t/p/original/8sNiAPPYU14PUepFNeSNGUTiHW.jpg"
+        }
+      ],
+      "website": "http://www.interstellarmovie.net/",
+      "year": 2014,
+      "youTubeTrailerId": "LY19rHKAaAg",
+      "studio": "Legendary Pictures",
+      "path": "/movies/Interstellar",
+      "qualityProfileId": 1,
+      "movieFileId": 1,
+      "monitored": true,
+      "minimumAvailability": "released",
+      "isAvailable": true,
+      "folderName": "/movies/Interstellar",
+      "runtime": 169,
+      "cleanTitle": "interstellar",
+      "imdbId": "tt0816692",
+      "tmdbId": 157336,
+      "titleSlug": "157336",
+      "certification": "PG-13",
+      "genres": [
+        "Adventure",
+        "Drama",
+        "Science Fiction"
+      ],
+      "keywords": [
+        "2060s",
+        "artificial intelligence (a.i.)",
+        "astronaut",
+        "audacious",
+        "black hole",
+        "cryonics",
+        "dystopia",
+        "enthusiastic",
+        "expedition",
+        "family relationships",
+        "famine",
+        "father daughter relationship",
+        "gravity",
+        "hibernation",
+        "nasa",
+        "planet",
+        "quantum mechanics",
+        "race against time",
+        "scientist",
+        "single father",
+        "space",
+        "space adventure",
+        "space station",
+        "space travel",
+        "spacecraft",
+        "time travel",
+        "time warp",
+        "time-manipulation",
+        "wormhole"
+      ],
+      "tags": [
+        1
+      ],
+      "added": "2026-11-13T06:52:47Z",
+      "ratings": {
+        "imdb": {
+          "votes": 2631937,
+          "value": 8.7,
+          "type": "user"
+        },
+        "tmdb": {
+          "votes": 41867,
+          "value": 8.5,
+          "type": "user"
+        },
+        "metacritic": {
+          "votes": 0,
+          "value": 74,
+          "type": "user"
+        },
+        "rottenTomatoes": {
+          "votes": 0,
+          "value": 73,
+          "type": "user"
+        },
+        "trakt": {
+          "votes": 74602,
+          "value": 8.83471,
+          "type": "user"
+        }
+      },
+      "movieFile": {
+        "movieId": 1,
+        "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+        "path": "/movies/Interstellar/Interstellar (2014) Bluray-1080p.mkv",
+        "size": 291970,
+        "dateAdded": "2026-11-13T06:53:10Z",
+        "edition": "",
+        "languages": [
+          {
+            "id": 1,
+            "name": "English"
+          }
+        ],
+        "quality": {
+          "quality": {
+            "id": 7,
+            "name": "Bluray-1080p",
+            "source": "bluray",
+            "resolution": 1080,
+            "modifier": "none"
+          },
+          "revision": {
+            "version": 1,
+            "real": 0,
+            "isRepack": false
+          }
+        },
+        "indexerFlags": 0,
+        "mediaInfo": {
+          "audioBitrate": 448000,
+          "audioChannels": 5.1,
+          "audioCodec": "AC3",
+          "audioLanguages": "eng",
+          "audioStreamCount": 1,
+          "videoBitDepth": 8,
+          "videoBitrate": 0,
+          "videoCodec": "x264",
+          "videoFps": 24,
+          "videoDynamicRange": "",
+          "videoDynamicRangeType": "",
+          "resolution": "1920x1080",
+          "runTime": "0:03",
+          "scanType": "Progressive",
+          "subtitles": ""
+        },
+        "qualityCutoffNotMet": false,
+        "id": 1
+      },
+      "popularity": 53.1428,
+      "id": 1
+    },
+    "releaseGroup": "LOL",
+    "quality": {
+      "quality": {
+        "id": 4,
+        "name": "HDTV-720p",
+        "source": "tv",
+        "resolution": 720,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "languages": [
+      {
+        "id": 1,
+        "name": "English"
+      }
+    ],
+    "qualityWeight": 15,
+    "downloadId": "Blackhole_Interstellar.2014.720p.HDTV.x264-LOL_639302361897637002",
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "rejections": [
+      {
+        "reason": "Sample",
+        "type": "permanent"
+      },
+      {
+        "reason": "Not an upgrade for existing movie file. Existing quality: Bluray-1080p. New Quality HDTV-720p.",
+        "type": "permanent"
+      }
+    ],
+    "id": 126186150
+  },
+  {
+    "path": "/downloads/watch/Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL/Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL.mkv",
+    "relativePath": "Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL.mkv",
+    "name": "Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+    "size": 124078,
+    "releaseGroup": "LOL",
+    "quality": {
+      "quality": {
+        "id": 4,
+        "name": "HDTV-720p",
+        "source": "tv",
+        "resolution": 720,
+        "modifier": "none"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "languages": [
+      {
+        "id": 0,
+        "name": "Unknown"
+      }
+    ],
+    "qualityWeight": 15,
+    "downloadId": "Blackhole_Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL_639302361889316884",
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "rejections": [
+      {
+        "reason": "Unknown Movie",
+        "type": "permanent"
+      }
+    ],
+    "id": 1616139758
+  }
+]

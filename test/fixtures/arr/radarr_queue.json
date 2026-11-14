@@ -1,0 +1,312 @@
+{
+    "page": 1,
+    "pageSize": 500,
+    "sortKey": "timeleft",
+    "sortDirection": "descending",
+    "totalRecords": 3,
+    "records": [
+        {
+            "languages": [
+                {
+                    "id": 0,
+                    "name": "Unknown"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 0,
+                    "name": "Unknown",
+                    "source": "unknown",
+                    "resolution": 0,
+                    "modifier": "none"
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormatScore": 0,
+            "size": 124078,
+            "title": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+            "estimatedCompletionTime": "2026-11-14T07:10:39Z",
+            "status": "completed",
+            "trackedDownloadStatus": "warning",
+            "trackedDownloadState": "importBlocked",
+            "statusMessages": [
+                {
+                    "title": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+                    "messages": [
+                        "Movie title mismatch, automatic import is not possible. Manual Import required."
+                    ]
+                }
+            ],
+            "downloadId": "Blackhole_Breaking.Bad.S01E01.720p.HDTV.x264-LOL_639302361885226826",
+            "protocol": "usenet",
+            "downloadClient": "Blackhole",
+            "downloadClientHasPostImportCategory": false,
+            "outputPath": "/downloads/watch/Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+            "sizeleft": 0,
+            "timeleft": "00:00:00",
+            "id": 1633996191
+        },
+        {
+            "movieId": 1,
+            "movie": {
+                "title": "Interstellar",
+                "originalTitle": "Interstellar",
+                "originalLanguage": {
+                    "id": 1,
+                    "name": "English"
+                },
+                "alternateTitles": [],
+                "secondaryYearSourceId": 0,
+                "sortTitle": "interstellar",
+                "status": "released",
+                "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+                "inCinemas": "2014-11-05T00:00:00Z",
+                "physicalRelease": "2015-03-31T00:00:00Z",
+                "digitalRelease": "2014-11-07T00:00:00Z",
+                "releaseDate": "2014-11-07T00:00:00Z",
+                "images": [
+                    {
+                        "coverType": "poster",
+                        "remoteUrl": "https://image.tmdb.org/t/p/original/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg"
+                    },
+                    {
+                        "coverType": "fanart",
+                        "remoteUrl": "https://image.tmdb.org/t/p/original/8sNiAPPYU14PUepFNeSNGUTiHW.jpg"
+                    }
+                ],
+                "website": "http://www.interstellarmovie.net/",
+                "year": 2014,
+                "youTubeTrailerId": "LY19rHKAaAg",
+                "studio": "Legendary Pictures",
+                "path": "/movies/Interstellar",
+                "qualityProfileId": 1,
+                "movieFileId": 1,
+                "monitored": true,
+                "minimumAvailability": "released",
+                "isAvailable": true,
+                "folderName": "/movies/Interstellar",
+                "runtime": 169,
+                "cleanTitle": "interstellar",
+                "imdbId": "tt0816692",
+                "tmdbId": 157336,
+                "titleSlug": "157336",
+                "certification": "PG-13",
+                "genres": [
+                    "Adventure",
+                    "Drama",
+                    "Science Fiction"
+                ],
+                "keywords": [
+                    "2060s",
+                    "artificial intelligence (a.i.)",
+                    "astronaut",
+                    "audacious",
+                    "black hole",
+                    "cryonics",
+                    "dystopia",
+                    "enthusiastic",
+                    "expedition",
+                    "family relationships",
+                    "famine",
+                    "father daughter relationship",
+                    "gravity",
+                    "hibernation",
+                    "nasa",
+                    "planet",
+                    "quantum mechanics",
+                    "race against time",
+                    "scientist",
+                    "single father",
+                    "space",
+                    "space adventure",
+                    "space station",
+                    "space travel",
+                    "spacecraft",
+                    "time travel",
+                    "time warp",
+                    "time-manipulation",
+                    "wormhole"
+                ],
+                "tags": [
+                    1
+                ],
+                "added": "2026-11-13T06:52:47Z",
+                "ratings": {
+                    "imdb": {
+                        "votes": 2631937,
+                        "value": 8.7,
+                        "type": "user"
+                    },
+                    "tmdb": {
+                        "votes": 41867,
+                        "value": 8.5,
+                        "type": "user"
+                    },
+                    "metacritic": {
+                        "votes": 0,
+                        "value": 74,
+                        "type": "user"
+                    },
+                    "rottenTomatoes": {
+                        "votes": 0,
+                        "value": 73,
+                        "type": "user"
+                    },
+                    "trakt": {
+                        "votes": 74602,
+                        "value": 8.83471,
+                        "type": "user"
+                    }
+                },
+                "movieFile": {
+                    "movieId": 1,
+                    "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+                    "path": "/movies/Interstellar/Interstellar (2014) Bluray-1080p.mkv",
+                    "size": 291970,
+                    "dateAdded": "2026-11-13T06:53:10Z",
+                    "edition": "",
+                    "languages": [
+                        {
+                            "id": 1,
+                            "name": "English"
+                        }
+                    ],
+                    "quality": {
+                        "quality": {
+                            "id": 7,
+                            "name": "Bluray-1080p",
+                            "source": "bluray",
+                            "resolution": 1080,
+                            "modifier": "none"
+                        },
+                        "revision": {
+                            "version": 1,
+                            "real": 0,
+                            "isRepack": false
+                        }
+                    },
+                    "indexerFlags": 0,
+                    "mediaInfo": {
+                        "audioBitrate": 448000,
+                        "audioChannels": 5.1,
+                        "audioCodec": "AC3",
+                        "audioLanguages": "eng",
+                        "audioStreamCount": 1,
+                        "videoBitDepth": 8,
+                        "videoBitrate": 0,
+                        "videoCodec": "x264",
+                        "videoFps": 24,
+                        "videoDynamicRange": "",
+                        "videoDynamicRangeType": "",
+                        "resolution": "1920x1080",
+                        "runTime": "0:03",
+                        "scanType": "Progressive",
+                        "subtitles": ""
+                    },
+                    "qualityCutoffNotMet": false,
+                    "id": 1
+                },
+                "popularity": 53.1428,
+                "id": 1
+            },
+            "languages": [
+                {
+                    "id": 1,
+                    "name": "English"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 4,
+                    "name": "HDTV-720p",
+                    "source": "tv",
+                    "resolution": 720,
+                    "modifier": "none"
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormats": [],
+            "customFormatScore": 0,
+            "size": 124078,
+            "title": "Interstellar.2014.720p.HDTV.x264-LOL",
+            "estimatedCompletionTime": "2026-11-14T07:10:39Z",
+            "status": "completed",
+            "trackedDownloadStatus": "warning",
+            "trackedDownloadState": "importBlocked",
+            "statusMessages": [
+                {
+                    "title": "One or more movies expected in this release were not imported or missing",
+                    "messages": []
+                },
+                {
+                    "title": "Interstellar.2014.720p.HDTV.x264-LOL.mkv",
+                    "messages": [
+                        "Sample",
+                        "Not an upgrade for existing movie file. Existing quality: Bluray-1080p. New Quality HDTV-720p."
+                    ]
+                }
+            ],
+            "downloadId": "Blackhole_Interstellar.2014.720p.HDTV.x264-LOL_639302361897637002",
+            "protocol": "usenet",
+            "downloadClient": "Blackhole",
+            "downloadClientHasPostImportCategory": false,
+            "outputPath": "/downloads/watch/Interstellar.2014.720p.HDTV.x264-LOL",
+            "sizeleft": 0,
+            "timeleft": "00:00:00",
+            "id": 72231317
+        },
+        {
+            "languages": [
+                {
+                    "id": 0,
+                    "name": "Unknown"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 0,
+                    "name": "Unknown",
+                    "source": "unknown",
+                    "resolution": 0,
+                    "modifier": "none"
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormatScore": 0,
+            "size": 124078,
+            "title": "Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+            "estimatedCompletionTime": "2026-11-14T07:10:39Z",
+            "status": "completed",
+            "trackedDownloadStatus": "warning",
+            "trackedDownloadState": "importBlocked",
+            "statusMessages": [
+                {
+                    "title": "Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+                    "messages": [
+                        "Movie title mismatch, automatic import is not possible. Manual Import required."
+                    ]
+                }
+            ],
+            "downloadId": "Blackhole_Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL_639302361889316884",
+            "protocol": "usenet",
+            "downloadClient": "Blackhole",
+            "downloadClientHasPostImportCategory": false,
+            "outputPath": "/downloads/watch/Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+            "sizeleft": 0,
+            "timeleft": "00:00:00",
+            "id": 1130854718
+        }
+    ]
+}

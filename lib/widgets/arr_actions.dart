@@ -914,7 +914,9 @@ class _QueueRemoveDialog extends StatefulWidget {
 class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
   // Some were removed before another app failed: the queue must refresh.
   bool _removedSome = false;
-  bool _fromClient = true;
+  // What happens in the download client, as the apps' own Removal Method:
+  // remove it, move it to the post-import category, or leave it (ignore).
+  String _method = 'remove';
   bool _blocklist = false;
   bool _searchAgain = false;
   bool _busy = false;
@@ -928,7 +930,8 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
         final c = widget.clientFor(items.single.kind);
         await c?.removeFromQueue(
           items.single.id,
-          removeFromClient: _fromClient,
+          removeFromClient: _method == 'remove',
+          changeCategory: _method == 'category',
           blocklist: _blocklist,
           searchAgain: _searchAgain,
         );
@@ -940,7 +943,8 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
         try {
           await widget.clientFor(kind)?.removeManyFromQueue(
             [for (final i in items) if (i.kind == kind) i.id],
-            removeFromClient: _fromClient,
+            removeFromClient: _method == 'remove',
+            changeCategory: _method == 'category',
             blocklist: _blocklist,
             searchAgain: _searchAgain,
           );
@@ -971,6 +975,15 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
     // Named only when every one of them uses the same client.
     final clients = {for (final i in items) i.downloadClient};
     final client = clients.length == 1 ? clients.single : null;
+    // The choices every picked download allows, as the apps decide them.
+    final pending = items.every((i) => i.isPending);
+    final methods = <String, String>{
+      'remove': l.arrRemoveFromClient,
+      if (items.every((i) => i.clientHasPostImportCategory))
+        'category': l.arrChangeCategory,
+      if (items.every((i) => i.canIgnore)) 'ignore': l.arrIgnoreDownload,
+    };
+    final method = methods.containsKey(_method) ? _method : 'remove';
     return ArrDialogFrame(
       client: widget.clientFor(item.kind),
       images: one ? item.images : const [],
@@ -989,14 +1002,23 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
               ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           const SizedBox(height: 8),
-          ArrCheck(
-            label: l.arrRemoveFromClient,
-            hint: client == null
-                ? l.arrRemoveFromClientHint
-                : l.arrRemoveFromNamedClientHint(client),
-            value: _fromClient,
-            onChanged: _busy ? null : (v) => setState(() => _fromClient = v),
-          ),
+          // Held back (not sent yet): there's nothing in a client to touch.
+          if (!pending)
+            ArrDropdownField<String>(
+              label: l.arrInDownloadClient,
+              value: method,
+              options: methods,
+              helper: switch (method) {
+                'category' => l.arrChangeCategoryHint,
+                'ignore' => l.arrIgnoreDownloadHint,
+                _ => client == null
+                    ? l.arrRemoveFromClientHint
+                    : l.arrRemoveFromNamedClientHint(client),
+              },
+              onChanged: _busy || methods.length < 2
+                  ? null
+                  : (v) => setState(() => _method = v ?? 'remove'),
+            ),
           ArrCheck(
             label: l.arrBlocklistRelease,
             hint: l.arrBlocklistReleaseHint,

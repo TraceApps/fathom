@@ -1,0 +1,265 @@
+{
+    "page": 1,
+    "pageSize": 500,
+    "sortKey": "timeleft",
+    "sortDirection": "descending",
+    "totalRecords": 3,
+    "records": [
+        {
+            "languages": [
+                {
+                    "id": 0,
+                    "name": "Unknown"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 4,
+                    "name": "HDTV-720p",
+                    "source": "television",
+                    "resolution": 720
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormats": [],
+            "customFormatScore": 0,
+            "size": 124078,
+            "title": "Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+            "estimatedCompletionTime": "2026-11-14T07:10:44Z",
+            "status": "completed",
+            "trackedDownloadStatus": "warning",
+            "trackedDownloadState": "importBlocked",
+            "statusMessages": [
+                {
+                    "title": "Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+                    "messages": [
+                        "Series title mismatch; automatic import is not possible. Check the download troubleshooting entry on the wiki for common causes."
+                    ]
+                }
+            ],
+            "downloadId": "Blackhole_Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL_639302361889316884",
+            "protocol": "usenet",
+            "downloadClient": "Blackhole",
+            "downloadClientHasPostImportCategory": false,
+            "outputPath": "/downloads/watch/Totally.Made.Up.Show.S01E01.720p.HDTV.x264-LOL",
+            "episodeHasFile": false,
+            "sizeleft": 0,
+            "timeleft": "00:00:00",
+            "id": 1461288843
+        },
+        {
+            "languages": [
+                {
+                    "id": 0,
+                    "name": "Unknown"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 4,
+                    "name": "HDTV-720p",
+                    "source": "television",
+                    "resolution": 720
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormats": [],
+            "customFormatScore": 0,
+            "size": 124078,
+            "title": "Interstellar.2014.720p.HDTV.x264-LOL",
+            "estimatedCompletionTime": "2026-11-14T07:10:44Z",
+            "status": "completed",
+            "trackedDownloadStatus": "warning",
+            "trackedDownloadState": "importBlocked",
+            "statusMessages": [
+                {
+                    "title": "Interstellar.2014.720p.HDTV.x264-LOL",
+                    "messages": [
+                        "Series title mismatch; automatic import is not possible. Check the download troubleshooting entry on the wiki for common causes."
+                    ]
+                }
+            ],
+            "downloadId": "Blackhole_Interstellar.2014.720p.HDTV.x264-LOL_639302361897637002",
+            "protocol": "usenet",
+            "downloadClient": "Blackhole",
+            "downloadClientHasPostImportCategory": false,
+            "outputPath": "/downloads/watch/Interstellar.2014.720p.HDTV.x264-LOL",
+            "episodeHasFile": false,
+            "sizeleft": 0,
+            "timeleft": "00:00:00",
+            "id": 1001413869
+        },
+        {
+            "seriesId": 2,
+            "episodeId": 909,
+            "seasonNumber": 1,
+            "series": {
+                "title": "Breaking Bad",
+                "sortTitle": "breaking bad",
+                "status": "ended",
+                "ended": true,
+                "overview": "When Walter White, a chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of two years left to live, he chooses to enter a dangerous world of drugs and crime with the intent to secure his family's financial security.",
+                "network": "AMC",
+                "airTime": "21:00",
+                "images": [
+                    {
+                        "coverType": "banner",
+                        "remoteUrl": "https://artworks.thetvdb.com/banners/graphical/81189-g21.jpg"
+                    },
+                    {
+                        "coverType": "poster",
+                        "remoteUrl": "https://artworks.thetvdb.com/banners/posters/81189-10.jpg"
+                    },
+                    {
+                        "coverType": "fanart",
+                        "remoteUrl": "https://artworks.thetvdb.com/banners/fanart/original/81189-21.jpg"
+                    },
+                    {
+                        "coverType": "clearlogo",
+                        "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/81189/clearlogo/611b4df33bac5.png"
+                    }
+                ],
+                "originalLanguage": {
+                    "id": 1,
+                    "name": "English"
+                },
+                "seasons": [
+                    {
+                        "seasonNumber": 0,
+                        "monitored": true
+                    },
+                    {
+                        "seasonNumber": 1,
+                        "monitored": true
+                    },
+                    {
+                        "seasonNumber": 2,
+                        "monitored": true
+                    },
+                    {
+                        "seasonNumber": 3,
+                        "monitored": true
+                    },
+                    {
+                        "seasonNumber": 4,
+                        "monitored": true
+                    },
+                    {
+                        "seasonNumber": 5,
+                        "monitored": true
+                    }
+                ],
+                "year": 2008,
+                "path": "/tv/Breaking Bad",
+                "qualityProfileId": 1,
+                "seasonFolder": true,
+                "monitored": true,
+                "monitorNewItems": "all",
+                "useSceneNumbering": false,
+                "runtime": 48,
+                "tvdbId": 81189,
+                "tvRageId": 18164,
+                "tvMazeId": 169,
+                "tmdbId": 1396,
+                "firstAired": "2008-01-20T00:00:00Z",
+                "lastAired": "2013-09-29T00:00:00Z",
+                "seriesType": "standard",
+                "cleanTitle": "breakingbad",
+                "imdbId": "tt0903747",
+                "titleSlug": "breaking-bad",
+                "certification": "TV-MA",
+                "genres": [
+                    "Crime",
+                    "Drama",
+                    "Thriller",
+                    "Western"
+                ],
+                "tags": [
+                    2
+                ],
+                "added": "2026-11-13T06:52:46Z",
+                "ratings": {
+                    "votes": 2704185,
+                    "value": 9.5
+                },
+                "languageProfileId": 1,
+                "id": 2
+            },
+            "episode": {
+                "seriesId": 2,
+                "tvdbId": 349232,
+                "episodeFileId": 3,
+                "seasonNumber": 1,
+                "episodeNumber": 1,
+                "title": "Pilot",
+                "airDate": "2008-01-20",
+                "airDateUtc": "2008-01-21T02:00:00Z",
+                "lastSearchTime": "2026-11-13T08:40:55Z",
+                "runtime": 58,
+                "overview": "When an unassuming high school chemistry teacher discovers he has a rare form of lung cancer, he decides to team up with a former student and create a top of the line crystal meth in a used RV, to provide for his family once he is gone.",
+                "hasFile": true,
+                "monitored": true,
+                "absoluteEpisodeNumber": 1,
+                "unverifiedSceneNumbering": false,
+                "id": 909
+            },
+            "languages": [
+                {
+                    "id": 1,
+                    "name": "English"
+                }
+            ],
+            "quality": {
+                "quality": {
+                    "id": 4,
+                    "name": "HDTV-720p",
+                    "source": "television",
+                    "resolution": 720
+                },
+                "revision": {
+                    "version": 1,
+                    "real": 0,
+                    "isRepack": false
+                }
+            },
+            "customFormats": [],
+            "customFormatScore": 0,
+            "size": 124078,
+            "title": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+            "estimatedCompletionTime": "2026-11-14T07:10:44Z",
+            "status": "completed",
+            "trackedDownloadStatus": "warning",
+            "trackedDownloadState": "importBlocked",
+            "statusMessages": [
+                {
+                    "title": "One or more episodes expected in this release were not imported or missing from the release",
+                    "messages": []
+                },
+                {
+                    "title": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL.mkv",
+                    "messages": [
+                        "Sample",
+                        "Not an upgrade for existing episode file(s). Existing quality: Bluray-1080p. New Quality HDTV-720p."
+                    ]
+                }
+            ],
+            "downloadId": "Blackhole_Breaking.Bad.S01E01.720p.HDTV.x264-LOL_639302361885226826",
+            "protocol": "usenet",
+            "downloadClient": "Blackhole",
+            "downloadClientHasPostImportCategory": false,
+            "outputPath": "/downloads/watch/Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+            "episodeHasFile": true,
+            "sizeleft": 0,
+            "timeleft": "00:00:00",
+            "id": 367654959
+        }
+    ]
+}

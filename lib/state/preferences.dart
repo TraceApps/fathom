@@ -298,6 +298,10 @@ class Prefs {
   final Map<String, dynamic> sonarrAddDefaults;
   final Map<String, dynamic> radarrAddDefaults;
 
+  /// Manual Import's last folders per app ("sonarr" / "radarr": newest
+  /// first) and its Move or Copy choice ("mode").
+  final Map<String, dynamic> arrImport;
+
   /// Order of the Seerr Discover rows, and which are hidden. Matches the
   /// Jellyseerr web home, and is reorderable + toggleable from the Discover
   /// customize screen.
@@ -440,6 +444,7 @@ class Prefs {
     this.radarrApiKey = '',
     this.sonarrAddDefaults = const {},
     this.radarrAddDefaults = const {},
+    this.arrImport = const {},
     this.seerrRowOrder = kDefaultSeerrRows,
     this.seerrHiddenRows = const [],
     this.seerrCustomSliders = const [],
@@ -573,6 +578,7 @@ class Prefs {
     String? radarrApiKey,
     Map<String, dynamic>? sonarrAddDefaults,
     Map<String, dynamic>? radarrAddDefaults,
+    Map<String, dynamic>? arrImport,
     List<String>? seerrRowOrder,
     List<String>? seerrHiddenRows,
     List<Map<String, dynamic>>? seerrCustomSliders,
@@ -720,6 +726,7 @@ class Prefs {
         radarrApiKey: radarrApiKey ?? this.radarrApiKey,
         sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
         radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
+        arrImport: arrImport ?? this.arrImport,
         seerrRowOrder: seerrRowOrder ?? this.seerrRowOrder,
         seerrHiddenRows: seerrHiddenRows ?? this.seerrHiddenRows,
         seerrCustomSliders: seerrCustomSliders ?? this.seerrCustomSliders,
@@ -853,6 +860,7 @@ class Prefs {
         'radarrApiKey': radarrApiKey,
         'sonarrAddDefaults': sonarrAddDefaults,
         'radarrAddDefaults': radarrAddDefaults,
+        'arrImport': arrImport,
         'seerrRowOrder': seerrRowOrder,
         'seerrHiddenRows': seerrHiddenRows,
         'seerrCustomSliders': seerrCustomSliders,
@@ -1011,6 +1019,9 @@ class Prefs {
         radarrApiKey: j['radarrApiKey'] as String? ?? '',
         sonarrAddDefaults: j['sonarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['sonarrAddDefaults'] as Map)
+            : const {},
+        arrImport: j['arrImport'] is Map
+            ? Map<String, dynamic>.from(j['arrImport'] as Map)
             : const {},
         radarrAddDefaults: j['radarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['radarrAddDefaults'] as Map)

@@ -116,13 +116,17 @@ abstract class ArrClient {
 
   /// Takes a download out of the queue. [blocklist] stops the app taking the
   /// same release again, and with [searchAgain] it looks for another.
+  /// With [changeCategory] (and not [removeFromClient]) the client moves it
+  /// to its post-import category instead, keeping the data (to seed on).
   Future<void> removeFromQueue(
     int id, {
     required bool removeFromClient,
     required bool blocklist,
     bool searchAgain = false,
+    bool changeCategory = false,
   }) => _delete('queue/$id', {
     'removeFromClient': removeFromClient,
+    if (changeCategory) 'changeCategory': true,
     'blocklist': blocklist,
     if (blocklist) 'skipRedownload': !searchAgain,
   });
@@ -136,11 +140,13 @@ abstract class ArrClient {
     required bool removeFromClient,
     required bool blocklist,
     bool searchAgain = false,
+    bool changeCategory = false,
   }) => _send(
     'DELETE',
     'queue/bulk',
     query: {
       'removeFromClient': removeFromClient,
+      if (changeCategory) 'changeCategory': true,
       'blocklist': blocklist,
       if (blocklist) 'skipRedownload': !searchAgain,
     },
@@ -230,6 +236,88 @@ abstract class ArrClient {
     return s;
   }
 
+  // ------------------------------------------------------- Manual Import
+
+  /// The video files Manual Import finds: in a download ([downloadId]), a
+  /// folder on the server ([folder]), or with [titleId] a show's or movie's
+  /// own folder. [filterExisting] leaves out files already in the library.
+  Future<List<ArrImportItem>> importFiles({
+    String? downloadId,
+    String? folder,
+    int? titleId,
+    bool filterExisting = true,
+  }) async {
+    final data = await _get('manualimport', {
+      'downloadId': ?downloadId,
+      'folder': ?folder,
+      kind == ArrKind.sonarr ? 'seriesId' : 'movieId': ?titleId,
+      'filterExistingFiles': filterExisting,
+    });
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrImportItem.fromJson(kind, Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// Has the app look at [items] again after a change (a show, season,
+  /// movie, quality): it works out the episodes and says what it thinks now.
+  Future<List<ArrImportItem>> recheckImport(List<ArrImportItem> items) async {
+    final data = await _post('manualimport', [
+      for (final i in items) i.toReprocessJson(),
+    ]);
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrImportItem.fromJson(kind, Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// Imports [items] as they are now. [mode]: auto (a download: as the app's
+  /// settings say), move or copy (a folder).
+  Future<void> manualImport(List<ArrImportItem> items, String mode) =>
+      command('ManualImport', {
+        'importMode': mode,
+        'files': [for (final i in items) i.toCommandJson()],
+      });
+
+  /// Changes the quality, languages or release group of files already in
+  /// the library. Each map has the file's id and what changes.
+  Future<void> updateFiles(List<Map<String, dynamic>> files) => _put(
+    kind == ArrKind.sonarr ? 'episodefile/bulk' : 'moviefile/bulk',
+    files,
+  );
+
+  /// The languages a file can be marked with.
+  Future<List<ArrLanguage>> languages() async {
+    final data = await _get('language');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrLanguage.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// Every quality a file can be, worst to best, as the app ranks them.
+  Future<List<ArrQualityChoice>> qualities() async {
+    final data = await _get('qualitydefinition');
+    final list = [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) Map<String, dynamic>.from(m),
+    ]..sort((a, b) => _int(a['weight']).compareTo(_int(b['weight'])));
+    return [for (final m in list) ArrQualityChoice.fromJson(m)];
+  }
+
+  /// The folders in [path] on the app's server ('' for the top: drives or /).
+  Future<ArrFolderListing> folders(String path) async {
+    final data = await _get('filesystem', {
+      'path': path,
+      'includeFiles': false,
+      'allowFoldersWithoutTrailingSlashes': true,
+    });
+    return ArrFolderListing.fromJson(
+      path,
+      Map<String, dynamic>.from((data as Map?) ?? const {}),
+    );
+  }
+
   Future<List<ArrQualityProfile>> qualityProfiles() async {
     final data = await _get('qualityprofile');
     return [
@@ -238,7 +326,9 @@ abstract class ArrClient {
     ];
   }
 
-  /// Everything in the queue, with the title it belongs to.
+  /// Everything in the queue, with the title it belongs to. Downloads the
+  /// app couldn't match to a title come too, as on the apps' own queue:
+  /// they're the ones that need Manual Import.
   Future<List<ArrQueueItem>> queue() async {
     final data = await _get('queue', {
       'page': 1,
@@ -246,8 +336,11 @@ abstract class ArrClient {
       if (kind == ArrKind.sonarr) ...{
         'includeSeries': true,
         'includeEpisode': true,
-      } else
+        'includeUnknownSeriesItems': true,
+      } else ...{
         'includeMovie': true,
+        'includeUnknownMovieItems': true,
+      },
     });
     final records = (data as Map?)?['records'];
     return [

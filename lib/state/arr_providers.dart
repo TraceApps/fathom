@@ -231,6 +231,56 @@ final arrQualityProfileListProvider = FutureProvider.autoDispose
       return c.qualityProfiles();
     });
 
+/// The languages a file can be marked with in one app, by name, without
+/// the profile-only Any and Original.
+final arrLanguagesProvider = FutureProvider.autoDispose
+    .family<List<ArrLanguage>, ArrKind>((ref, kind) async {
+      final c = arrClientOf(ref, kind);
+      if (c == null) return const [];
+      final list = await c.languages();
+      return [for (final l in list) if (l.id >= 0) l]
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    });
+
+/// Every quality a file can be in one app, worst to best.
+final arrQualitiesProvider = FutureProvider.autoDispose
+    .family<List<ArrQualityChoice>, ArrKind>((ref, kind) async {
+      final c = arrClientOf(ref, kind);
+      if (c == null) return const [];
+      return c.qualities();
+    });
+
+/// Manual Import's recent folders in [kind], newest first.
+List<String> arrImportRecent(Prefs p, ArrKind kind) => [
+  for (final f in (p.arrImport[kind.name] as List?) ?? const [])
+    if (f is String && f.isNotEmpty) f,
+];
+
+/// Puts [path] first in [kind]'s recent folders (five kept).
+Future<void> rememberArrImportFolder(
+  WidgetRef ref,
+  ArrKind kind,
+  String path,
+) => ref.read(preferencesProvider.notifier).edit((p) {
+  final recent = [
+    path,
+    for (final f in arrImportRecent(p, kind))
+      if (f != path) f,
+  ].take(5).toList();
+  return p.copyWith(arrImport: {...p.arrImport, kind.name: recent});
+});
+
+/// Manual Import's last Move or Copy choice for folders, if any.
+String? arrImportMode(Prefs p) => switch (p.arrImport['mode']) {
+  'move' => 'move',
+  'copy' => 'copy',
+  _ => null,
+};
+
+Future<void> saveArrImportMode(WidgetRef ref, String mode) => ref
+    .read(preferencesProvider.notifier)
+    .edit((p) => p.copyWith(arrImport: {...p.arrImport, 'mode': mode}));
+
 /// The saved starting choices for Add in one app.
 ArrAddDefaults arrSavedDefaults(Prefs p, ArrKind kind) =>
     ArrAddDefaults.fromJson(
