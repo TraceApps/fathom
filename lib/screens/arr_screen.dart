@@ -935,10 +935,20 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
       },
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
       // Radarr's Collections: film series, and monitoring them.
-      extra: IconButton(
-        tooltip: l.arrCollections,
-        icon: const Icon(Icons.collections_bookmark_rounded),
-        onPressed: () => context.push('/arr/collections'),
+      extra: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: l.arrCollections,
+            icon: const Icon(Icons.collections_bookmark_rounded),
+            onPressed: () => context.push('/arr/collections'),
+          ),
+          IconButton(
+            tooltip: l.arrLibraryImport,
+            icon: const Icon(Icons.library_add_rounded),
+            onPressed: () => context.push('/arr/library-import?app=radarr'),
+          ),
+        ],
       ),
       onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
       bar: client == null || !selection.active
@@ -1116,6 +1126,12 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
         reshown();
       },
       onRefresh: () => ref.refresh(sonarrSeriesListProvider.future),
+      // Sonarr's Library Import: shows already on disk, all at once.
+      extra: IconButton(
+        tooltip: l.arrLibraryImport,
+        icon: const Icon(Icons.library_add_rounded),
+        onPressed: () => context.push('/arr/library-import?app=sonarr'),
+      ),
       onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
       bar: client == null || !selection.active
           ? null

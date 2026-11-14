@@ -375,6 +375,64 @@ void main() {
     });
   });
 
+  group('Import Library', () {
+    test('Sonarr adds every folder in one request, with its own path',
+        () async {
+      final (s, r) = _sonarr((_) => const []);
+      await s.importSeries(
+        [
+          (
+            lookupRaw: {'title': 'The Office (US)', 'tvdbId': 73244},
+            path: '/tv/The Office (US)',
+            root: '/tv',
+          ),
+        ],
+        qualityProfileId: 1,
+        monitor: 'all',
+        seriesType: 'standard',
+        seasonFolder: true,
+        search: false,
+      );
+      expect(r.sent.single.method, 'POST');
+      expect(r.sent.single.path, endsWith('/api/v3/series/import'));
+      final one = (r.sent.single.data as List).single as Map;
+      expect(one['path'], '/tv/The Office (US)');
+      expect(one['tvdbId'], 73244);
+      expect(one['qualityProfileId'], 1);
+      expect(one['monitored'], true);
+      expect(one.containsKey('id'), isFalse);
+      expect(one['addOptions'], {
+        'monitor': 'all',
+        'searchForMissingEpisodes': false,
+        'searchForCutoffUnmetEpisodes': false,
+      });
+    });
+
+    test('Radarr too, with each folder\'s root', () async {
+      final (m, r) = _radarr((_) => const []);
+      await m.importMovies(
+        [
+          (
+            lookupRaw: {'title': 'Dune', 'tmdbId': 438631, 'id': 0},
+            path: '/movies/Dune (2021)',
+            root: '/movies',
+          ),
+        ],
+        qualityProfileId: 4,
+        monitor: 'movieOnly',
+        minimumAvailability: 'released',
+        search: true,
+      );
+      expect(r.sent.single.path, endsWith('/api/v3/movie/import'));
+      final one = (r.sent.single.data as List).single as Map;
+      expect(one['path'], '/movies/Dune (2021)');
+      expect(one['rootFolderPath'], '/movies');
+      expect(one['minimumAvailability'], 'released');
+      expect(one['addOptions'], {'monitor': 'movieOnly', 'searchForMovie': true});
+      expect(one.containsKey('id'), isFalse);
+    });
+  });
+
   test('languages leave out the profile-only Any and Original', () {
     expect(const ArrLanguage(-2, 'Original').known, isFalse);
     expect(const ArrLanguage(0, 'Unknown').known, isFalse);

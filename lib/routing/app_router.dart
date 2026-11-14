@@ -59,6 +59,7 @@ import '../screens/arr_add_screen.dart';
 import '../screens/arr_detail_screens.dart';
 import '../screens/arr_files_screen.dart';
 import '../screens/arr_import_screen.dart';
+import '../screens/arr_library_import_screen.dart';
 import '../screens/arr_collections_screen.dart';
 import '../screens/arr_releases_screen.dart';
 import '../screens/arr_screen.dart';
@@ -564,6 +565,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, state) => _fadePage(ArrReleasesScreen(
                   target: ArrReleaseTarget.fromQuery(
                       state.uri.queryParameters)))),
+          GoRoute(
+              path: '/arr/library-import',
+              pageBuilder: (_, state) => _fadePage(ArrLibraryImportScreen(
+                  kind: state.uri.queryParameters['app'] == 'radarr'
+                      ? ArrKind.radarr
+                      : ArrKind.sonarr))),
           GoRoute(
               path: '/arr/import',
               pageBuilder: (_, state) => _fadePage(ArrImportScreen(

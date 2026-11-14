@@ -682,6 +682,36 @@ class SonarrClient extends ArrClient {
     );
   }
 
+  /// Import Library: adds shows already on disk, each in its own folder,
+  /// in one go (Sonarr's series/import). [items] pairs a [lookup] entry with
+  /// the folder it lives in.
+  Future<void> importSeries(
+    List<({Map<String, dynamic> lookupRaw, String path, String root})> items, {
+    required int qualityProfileId,
+    required String monitor,
+    required String seriesType,
+    required bool seasonFolder,
+    required bool search,
+    bool monitorNewSeasons = true,
+  }) => _post('series/import', [
+    for (final i in items)
+      Map<String, dynamic>.from(i.lookupRaw)
+        ..remove('id')
+        ..['path'] = i.path
+        ..['rootFolderPath'] = i.root
+        ..['qualityProfileId'] = qualityProfileId
+        ..['monitored'] = monitor != 'none'
+        ..['monitorNewItems'] = monitorNewSeasons ? 'all' : 'none'
+        ..['seriesType'] = seriesType
+        ..['seasonFolder'] = seasonFolder
+        ..['tags'] = const <int>[]
+        ..['addOptions'] = {
+          'monitor': monitor,
+          'searchForMissingEpisodes': search,
+          'searchForCutoffUnmetEpisodes': false,
+        },
+  ]);
+
   @override
   Future<void> editMany(List<int> ids, Map<String, dynamic> changes) =>
       _put('series/editor', {'seriesIds': ids, ...changes});
@@ -921,6 +951,27 @@ class RadarrClient extends ArrClient {
       Map<String, dynamic>.from(await _post('movie', body) as Map),
     );
   }
+
+  /// Import Library: adds movies already on disk, each in its own folder,
+  /// in one go (Radarr's movie/import).
+  Future<void> importMovies(
+    List<({Map<String, dynamic> lookupRaw, String path, String root})> items, {
+    required int qualityProfileId,
+    required String monitor,
+    required String minimumAvailability,
+    required bool search,
+  }) => _post('movie/import', [
+    for (final i in items)
+      Map<String, dynamic>.from(i.lookupRaw)
+        ..remove('id')
+        ..['path'] = i.path
+        ..['rootFolderPath'] = i.root
+        ..['qualityProfileId'] = qualityProfileId
+        ..['monitored'] = monitor != 'none'
+        ..['minimumAvailability'] = minimumAvailability
+        ..['tags'] = const <int>[]
+        ..['addOptions'] = {'monitor': monitor, 'searchForMovie': search},
+  ]);
 
   @override
   Future<void> editMany(List<int> ids, Map<String, dynamic> changes) =>
