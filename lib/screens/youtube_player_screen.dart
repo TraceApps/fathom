@@ -953,6 +953,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   Future<void> _playAdaptive(YtQuality q,
       {Stopwatch? sw, Duration? start, bool play = true}) async {
     _openQuality = q;
+    _rec.streamOpened();
     await _player.open(Media(q.url, start: start), play: play);
     if (sw != null) debugPrint('[yt] video open() issued at ${sw.elapsedMilliseconds}ms');
     if (_audioUrl != null) {
@@ -994,6 +995,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       });
     }
     try {
+      _rec.streamOpened();
       await _player.open(Media(muxed));
     } catch (_) {}
   }
@@ -1196,6 +1198,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
         if (target != null) await _playAdaptive(target);
       } else {
         final url = q?.url ?? (_streams.muxedUrl ?? widget.url);
+        _rec.streamOpened();
         await _player.open(Media(url));
       }
       if (pos > Duration.zero) {

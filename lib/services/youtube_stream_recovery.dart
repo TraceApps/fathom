@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../models/youtube_caption.dart';
+import 'diagnostics.dart';
 import 'youtube_dropout.dart';
 import 'youtube_streams.dart';
 
@@ -28,6 +29,7 @@ class YtStreamRecovery {
         _autoPick = autoPick ?? autoQualityByBandwidth {
     _subs = [
       player.stream.log.listen((e) {
+        _logToDiagnostics(e);
         if (watch.refusedAfterReconnect(e.prefix, e.text)) {
           debugPrint('[yt] stream refused: ${e.text.trim()}');
           unawaited(recover());
@@ -41,6 +43,17 @@ class YtStreamRecovery {
         if (_endedEarly() && await recover()) return;
         _end();
       }),
+      player.stream.playing.listen((playing) {
+        if (!playing || !_stallGaveUp) return;
+        _stallGaveUp = false;
+        _audioRestartedAt = null;
+        _stall.reset();
+        watch.reset();
+      }),
+      // Failures that never end the video: audio gone while the picture
+      // plays on, or a stream that hangs. Checked every few seconds.
+      Stream<int>.periodic(const Duration(seconds: 3), (i) => i)
+          .listen((_) => unawaited(_checkStall())),
       // Played on past the last reload's spot: that reload worked.
       player.stream.position.listen((p) {
         final at = _reloadAt;
@@ -51,9 +64,87 @@ class YtStreamRecovery {
 
   final Player player;
   final String url;
+
+  // mpv's warnings and errors, into Diagnostics (only while Diagnostic
+  // Logging is on), so a report of lost audio or a stalled stream shows what
+  // mpv saw. Capped and without repeats: some warnings come once per frame.
+  static const _maxLogLines = 60;
+  int _logLines = 0;
+  String? _lastLogLine;
+
+  void _logToDiagnostics(PlayerLog e) {
+    final diag = Diagnostics.instance;
+    if (!diag.enabled || _logLines >= _maxLogLines) return;
+    if (e.level != 'warn' && e.level != 'error' && e.level != 'fatal') return;
+    final line = '${e.prefix} [${e.level}] ${mpvLogWithoutQueries(e.text)}';
+    if (line == _lastLogLine) return;
+    _lastLogLine = line;
+    _logLines++;
+    diag.add('mpv', _logLines == _maxLogLines ? '$line (no more mpv lines)' : line);
+  }
   final Future<YtStreams> Function(String url) _resolve;
   final Future<YtQuality?> Function(List<YtQuality>, String) _autoPick;
   final YtDropoutWatch watch = YtDropoutWatch();
+  final YtStallWatch _stall = YtStallWatch();
+  bool _checking = false;
+  DateTime? _audioRestartedAt;
+  // Gave up on a stall; pressing Play starts a fresh run of tries.
+  bool _stallGaveUp = false;
+
+  /// The screen opened a stream itself (first load, a quality change): watch
+  /// that one afresh.
+  void streamOpened() => _stall.reset();
+
+  Future<void> _checkStall() async {
+    if (_checking || _disposed || _stallGaveUp || live || !ready) return;
+    if (_recovery != null || !isYoutubeUrl(url)) return;
+    final native = player.platform;
+    if (native is! NativePlayer) return;
+    _checking = true;
+    try {
+      // '' while unavailable (no audio clock while no audio plays).
+      final audio = double.tryParse(await native.getProperty('audio-pts'));
+      final seeking = await native.getProperty('seeking') == 'yes';
+      final waiting = await native.getProperty('paused-for-cache') == 'yes';
+      if (_disposed || _recovery != null) return;
+      final stall = _stall.sample(
+        position: player.state.position,
+        duration: player.state.duration,
+        audioPts: audio,
+        playing: player.state.playing,
+        loading: seeking || waiting || player.state.buffering,
+      );
+      if (stall == null) return;
+      final at = player.state.position.inSeconds;
+      final what = stall == YtStall.silent ? 'audio stopped' : 'stream froze';
+      // The audio output itself can die (an audio route or audio server
+      // change) with the stream fine, or block and stop the clock: restarting
+      // it is instant. Once a minute at most.
+      final now = DateTime.now();
+      final last = _audioRestartedAt;
+      if (last == null || now.difference(last) > const Duration(minutes: 1)) {
+        _audioRestartedAt = now;
+        debugPrint('[yt] $what at ${at}s while playing; restarting audio output');
+        await native.command(['ao-reload']);
+        return;
+      }
+      // Give the restart a moment to take effect.
+      if (now.difference(last) < YtStallWatch.silentAfter) return;
+      debugPrint('[yt] $what at ${at}s; reloading the stream');
+      if (await recover()) return;
+      // Out of tries, or no fresh link right now. Don't skip to the next
+      // video while this one may still be watchable: leave a silent one
+      // playing and stop a frozen one, so Play or reopening tries again.
+      _stallGaveUp = true;
+      debugPrint('[yt] giving up on the $what at ${at}s');
+      if (stall == YtStall.frozen) await player.pause();
+    } catch (_) {
+      // The player went away mid-check.
+    } finally {
+      _checking = false;
+    }
+  }
+
 
   // What a reload reopens, kept up to date by the screen showing the video.
   /// Playback has started at least once (a failed first load is not a drop).
@@ -132,6 +223,7 @@ class YtStreamRecovery {
       // and no SponsorBlock skip firing on the way.
       final start = pos > Duration.zero ? pos : null;
       _reloadAt = pos;
+      _stall.reset();
       if (s.isAdaptive && !fellBack) {
         final label = openQuality?.label;
         final q = s.qualities.where((x) => x.label == label).firstOrNull ??
@@ -211,3 +303,10 @@ class YtStreamRecovery {
     }
   }
 }
+
+/// An mpv log line with every URL cut down to its host: a googlevideo link
+/// carries the viewer's IP address and signatures (in its query, or in its
+/// path for some streams), which don't belong in a log someone may share.
+@visibleForTesting
+String mpvLogWithoutQueries(String text) => text.trim().replaceAllMapped(
+    RegExp(r'(https?://[^/\s?#]+)[^\s]*'), (m) => '${m[1]}/...');

@@ -73,3 +73,108 @@ class YtDropoutWatch {
   /// The attempt number [takeTry] last handed out, for the log.
   int get tries => _tries;
 }
+
+/// What [YtStallWatch] found wrong with a video that says it's playing.
+enum YtStall {
+  /// The audio stopped while the picture plays on: its connection dropped
+  /// and the reconnect failed without a refusal (reset, server error), so mpv
+  /// ended the audio track and keeps showing the video in silence.
+  silent,
+
+  /// Nothing moves although the video is playing and not buffering: a
+  /// connection that hangs instead of failing.
+  frozen,
+}
+
+/// Spots the stream failures that never end the video, so [YtDropoutWatch]
+/// and mpv's own end never see them. Fed a sample every few seconds; reports
+/// on every sample for as long as the failure lasts, so the caller can try a
+/// light fix first and a heavier one if it persists.
+class YtStallWatch {
+  /// How long the picture may play on without audio.
+  static const silentAfter = Duration(seconds: 6);
+
+  /// How long a playing video may stand still while mpv isn't seeking or
+  /// waiting for its cache. mpv can't tell a hung audio connection from one
+  /// too slow to play (neither shows in its cache state), and a picture stuck
+  /// this long is broken for the viewer either way: fresh links are the fix.
+  static const frozenAfter = Duration(seconds: 20);
+
+  /// The tail ignored for silence: some uploads' audio ends before the
+  /// picture does.
+  static const endTail = Duration(seconds: 15);
+
+  /// A jump bigger than playback could cover between samples (2x speed for
+  /// a few seconds) is a seek, not playback.
+  static const seekJump = Duration(seconds: 8);
+
+  bool _hadAudio = false;
+  Duration? _lastPos;
+  double? _lastAudio;
+  DateTime? _silentSince;
+  DateTime? _stillSince;
+
+  /// [position] and [duration] are the video's, [audioPts] mpv's audio clock
+  /// (null while no audio plays). [loading] is true while mpv seeks or waits
+  /// for its cache.
+  YtStall? sample({
+    required Duration position,
+    required Duration duration,
+    required double? audioPts,
+    required bool playing,
+    required bool loading,
+    DateTime? now,
+  }) {
+    final at = now ?? DateTime.now();
+    final lastPos = _lastPos;
+    final lastAudio = _lastAudio;
+    _lastPos = position;
+    _lastAudio = audioPts;
+    if (audioPts != null) _hadAudio = true;
+    final delta = lastPos == null ? null : position - lastPos;
+    if (!playing ||
+        loading ||
+        delta == null ||
+        delta.isNegative ||
+        delta > seekJump) {
+      _silentSince = null;
+      _stillSince = null;
+      return null;
+    }
+    final moved = delta > const Duration(milliseconds: 500);
+    final nearEnd =
+        duration > Duration.zero && position > duration - endTail;
+    final audioStuck = audioPts == null ||
+        (lastAudio != null && (audioPts - lastAudio).abs() <= 0.5);
+    // Audio back after a gap (a seek re-syncs it): not silent.
+    final audioBack = audioPts != null && lastAudio == null;
+    if (moved && _hadAudio && !nearEnd && audioStuck && !audioBack) {
+      _silentSince ??= at;
+    } else {
+      _silentSince = null;
+    }
+    if (!moved) {
+      _stillSince ??= at;
+    } else {
+      _stillSince = null;
+    }
+    final silent = _silentSince;
+    if (silent != null && at.difference(silent) >= silentAfter) {
+      return YtStall.silent;
+    }
+    final still = _stillSince;
+    if (still != null && at.difference(still) >= frozenAfter) {
+      return YtStall.frozen;
+    }
+    return null;
+  }
+
+  /// A new stream was opened: forget the old one.
+  void reset() {
+    _hadAudio = false;
+    _lastPos = null;
+    _lastAudio = null;
+    _silentSince = null;
+    _stillSince = null;
+  }
+}
