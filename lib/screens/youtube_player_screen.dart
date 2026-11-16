@@ -23,6 +23,7 @@ import '../widgets/player_controls.dart';
 import '../widgets/window_frame.dart';
 import '../services/live_players.dart';
 import '../services/sponsorblock.dart';
+import '../services/system_pip_controls.dart';
 import '../services/tv_mode.dart';
 import '../services/fold.dart';
 import '../models/youtube_caption.dart';
@@ -177,6 +178,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   bool get _ready => _rec.ready;
   set _ready(bool v) => _rec.ready = v;
   String? _error;
+  String? _loadFailedMsg;
   double _preMuteVolume = 100;
 
   YtStreams _streams = const YtStreams();
@@ -227,6 +229,24 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   // the widget really left the tree or was just reparented by its GlobalKey.
   bool _deactivating = false;
 
+  // Android's picture-in-picture window (phone/tablet, not TV): leaving the
+  // app with this player open floats the video, like the Jellyfin player.
+  static const _pipChannel = MethodChannel('app.fathom.player/pip');
+  bool get _canSystemPip => isAndroidPlatform && !isTvDevice;
+  // This player switched system PiP on (and hasn't switched it off).
+  bool _systemPip = false;
+  // In the PiP window now: the controls hide (in the page and the fullscreen
+  // view alike, hence a notifier the controls builder listens to).
+  final ValueNotifier<bool> _inPip = ValueNotifier<bool>(false);
+  // Entering the window opened the fullscreen view (the page around the
+  // player mustn't shrink into it); leaving the window closes it again.
+  bool _pipOpenedFullscreen = false;
+  // The app is in the PiP window now, and whether the fullscreen view was
+  // opened for it. Static, because the next video (autoplay, the queue) can
+  // replace this player while it floats and must carry on as this one would.
+  static bool _appInPip = false;
+  static bool _pipFullscreenCarried = false;
+
   String get _qualityPref {
     // A stalled/failed load can resume after the screen is gone; touching `ref`
     // then throws. Default to auto rather than read a dead provider.
@@ -255,6 +275,8 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   void initState() {
     super.initState();
     _alive.add(this);
+    // Opened while the app floats (the next video): no controls in the window.
+    _inPip.value = _canSystemPip && _appInPip;
     // Reopening a minimized video: take back its live player from the dock so
     // playback never restarts. The dock's player/controller are plain fields we
     // can read here, but every state change is deferred to a post-frame
@@ -330,6 +352,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     if (!_reclaimed) LivePlayers.add(_player);
     _playingSub = _player.stream.playing.listen((playing) {
       _mediaSession?.updatePlayback(playing: playing, token: _mediaToken);
+      SystemPipControls.update(owner: this, playing: playing);
       if (playing) {
         // Playback started, so the adaptive path is fine: cancel the fallback.
         _fallbackTimer?.cancel();
@@ -358,7 +381,137 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _beginMediaSession();
     });
+    _enableSystemPip();
     _load();
+  }
+
+  /// Leaving the app floats this video in Android's PiP window, with back,
+  /// play/pause and forward buttons. Called when the player opens and when
+  /// it's back on top; idempotent.
+  void _enableSystemPip() {
+    if (!_canSystemPip || _systemPip || _minimized || _error != null) return;
+    _systemPip = true;
+    _pipChannel.setMethodCallHandler((call) async {
+      if (call.method == 'pipModeChanged') {
+        _onPipModeChanged(call.arguments == true);
+      }
+      return null;
+    });
+    _pipChannel.invokeMethod('setActive', true).catchError((_) {});
+    SystemPipControls.claimPip(this);
+    // Labels need the localizations, which aren't readable in initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_systemPip) return;
+      final l = AppLocalizations.of(context);
+      SystemPipControls.bind(
+        owner: this,
+        playing: _player.state.playing,
+        onPlay: () => _player.play(),
+        onPause: () => _player.pause(),
+        onSeekBy: _seekBy,
+        backSeconds: widget.seekBackSeconds,
+        forwardSeconds: widget.seekForwardSeconds,
+        playLabel: l.commonPlay,
+        pauseLabel: l.commonPause,
+        backLabel: l.playerSeekBack(widget.seekBackSeconds),
+        forwardLabel: l.playerSeekForward(widget.seekForwardSeconds),
+      );
+    });
+  }
+
+  /// This player no longer floats when the app is left: it's closing, docked
+  /// in the mini player, or covered by another page. Leaves PiP on when the
+  /// next video's player already took it over.
+  void _disableSystemPip() {
+    if (!_systemPip) return;
+    _systemPip = false;
+    SystemPipControls.unbind(this);
+    if (!SystemPipControls.releasePip(this)) return;
+    _pipChannel.invokeMethod('setActive', false).catchError((_) {});
+    _pipChannel.setMethodCallHandler(null);
+  }
+
+  /// The PiP window opened or closed. Only the video belongs in it: the watch
+  /// page around an embedded player would shrink into it too, so the window
+  /// shows the fullscreen view (without controls) and the page comes back
+  /// when it's expanded. Closing the window stops the app, which pauses the
+  /// video (the Video widget does that).
+  void _onPipModeChanged(bool inPip) {
+    _appInPip = inPip;
+    if (!mounted) return;
+    _inPip.value = inPip;
+    // A video that replaced the one the window opened with: the fullscreen
+    // view it was handed was opened for the window too.
+    if (_pipFullscreenCarried) {
+      _pipFullscreenCarried = false;
+      if (!inPip) _pipOpenedFullscreen = true;
+    }
+    // The page's controls and the fullscreen view's each have a context.
+    final live = _controlsContexts.where((c) => c.mounted).toList();
+    final full = live.where(isFullscreen).firstOrNull;
+    if (inPip) {
+      if (full == null && live.isNotEmpty) {
+        _pipOpenedFullscreen = true;
+        unawaited(enterFullscreen(live.first));
+      } else if (full != null) {
+        // Already fullscreen: the window sizes itself, so drop the landscape
+        // lock (it fights the window), and put it back on the way out.
+        unawaited(_exitFullscreenSystemUi());
+      }
+    } else if (_pipOpenedFullscreen) {
+      _pipOpenedFullscreen = false;
+      if (full != null) unawaited(exitFullscreen(full));
+    } else if (full != null) {
+      unawaited(_enterFullscreenSystemUi());
+    }
+  }
+
+  /// Edge to edge for fullscreen. Orientation follows the video: a 9:16 Short
+  /// goes immersive portrait instead of being rotated into a landscape
+  /// letterbox. Normal (wider-than-tall) videos and Android TV keep landscape;
+  /// desktop uses native window fullscreen.
+  Future<void> _enterFullscreenSystemUi() async {
+    final w = _player.state.width ?? 0;
+    final h = _player.state.height ?? 0;
+    final platform = defaultTargetPlatform;
+    final androidOrIos =
+        platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+    try {
+      if (androidOrIos) {
+        final vertical = !isTvDevice && w > 0 && h > w;
+        await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky,
+            overlays: const []);
+        await SystemChrome.setPreferredOrientations(vertical
+            ? const [DeviceOrientation.portraitUp]
+            : const [
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ]);
+      } else {
+        // Desktop: drop the custom window title bar (min/max/close) while
+        // the video is edge-to-edge, matching the Jellyfin player.
+        if (isDesktopWindowFrame) desktopFullscreen.value = true;
+        await const MethodChannel('com.alexmercerind/media_kit_video')
+            .invokeMethod('Utils.EnterNativeFullscreen');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _exitFullscreenSystemUi() async {
+    final platform = defaultTargetPlatform;
+    final androidOrIos =
+        platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+    try {
+      if (androidOrIos) {
+        await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+            overlays: SystemUiOverlay.values);
+        await SystemChrome.setPreferredOrientations(const []);
+      } else {
+        if (isDesktopWindowFrame) desktopFullscreen.value = false;
+        await const MethodChannel('com.alexmercerind/media_kit_video')
+            .invokeMethod('Utils.ExitNativeFullscreen');
+      }
+    } catch (_) {}
   }
 
   void _beginMediaSession() {
@@ -454,10 +607,6 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       return;
     }
     final sw = Stopwatch()..start();
-    // Resolve the failure message now, while the context is definitely valid: a
-    // load can fail after the screen is deactivated, and looking it up then is
-    // unsafe.
-    final loadFailedMsg = AppLocalizations.of(context).playerYoutubeLoadFailed;
     try {
       if (!isYoutubeUrl(widget.url)) {
         await _player.open(Media(widget.url));
@@ -533,7 +682,26 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       debugPrint('[yt] load failed for ${widget.url}: $e');
       debugPrint('$st');
       if (mounted) {
-        setState(() => _error = loadFailedMsg);
+        // The error box replaces the Video. A fullscreen view (opened by hand
+        // or for the PiP window) would stay on the removed player: black, the
+        // error hidden under it, and a red error screen at its next rebuild
+        // (a rotation, the PiP window expanding). Leave it first.
+        _pipOpenedFullscreen = false;
+        final full = _controlsContexts
+            .where((c) => c.mounted && isFullscreen(c))
+            .toList();
+        for (final c in full) {
+          try {
+            if (c.mounted) await exitFullscreen(c);
+          } catch (_) {}
+        }
+      }
+      if (mounted) {
+        // Nothing to float any more: leaving the app mustn't shrink the
+        // page and its error into a PiP window.
+        _disableSystemPip();
+        setState(() => _error = _loadFailedMsg ??
+            AppLocalizations.of(context).playerYoutubeLoadFailed);
       }
     }
   }
@@ -741,6 +909,9 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     if (contexts.isEmpty) return;
     final handedOver = _handedOverAt != null &&
         DateTime.now().difference(_handedOverAt!) < const Duration(seconds: 5);
+    // Handing over in the PiP window: the next video's fullscreen view is
+    // the window's too, so expanding goes back to the page.
+    if (handedOver && _pipOpenedFullscreen) _pipFullscreenCarried = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       for (final c in contexts) {
         if (!c.mounted || !isFullscreen(c)) continue;
@@ -834,6 +1005,8 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     // page restructured its layout). It's a reparent, not a removal, so cancel
     // the pending pause that deactivate() armed.
     _deactivating = false;
+    // Back in the tree after a real leave.
+    _enableSystemPip();
   }
 
   @override
@@ -857,6 +1030,7 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     final player = _player;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_deactivating && mounted) {
+        _disableSystemPip();
         unawaited(() async {
           try {
             await player.pause();
@@ -871,6 +1045,10 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Read here, not in _load: that starts from initState, where looking up
+    // the localizations isn't allowed, and a load can fail after the screen
+    // is deactivated, when it's unsafe.
+    _loadFailedMsg = AppLocalizations.of(context).playerYoutubeLoadFailed;
     final route = ModalRoute.of(context);
     if (route is ModalRoute<void>) routeObserver.subscribe(this, route);
   }
@@ -884,12 +1062,18 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
     if (_minimized) return;
     if (navWatcher.lastPushWasImperative) return; // fullscreen, not a real leave
     _player.pause();
+    // Leaving the app from the page on top mustn't float a paused video.
+    _disableSystemPip();
   }
+
+  @override
+  void didPopNext() => _enableSystemPip();
 
   /// Hand the live player to the floating mini player and leave the screen, so
   /// it keeps playing while you browse (this is the background/PiP path).
   void _minimize() {
     if (_minimized) return;
+    _disableSystemPip();
     _minimized = true;
     _playingSub?.cancel();
     _sponsorSub?.cancel();
@@ -922,7 +1106,10 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
   void dispose() {
     _alive.remove(this);
     routeObserver.unsubscribe(this);
+    _disableSystemPip();
     _statsOpen.dispose();
+    // _inPip is left undisposed: media_kit can run the controls builder
+    // (which listens to it) again after this player is gone.
     // Hand the OS media session back (token-guarded so a newer player wins).
     _mediaSession?.end(_mediaToken);
     _mediaPosSub?.cancel();
@@ -1176,7 +1363,15 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
       controls: (state) => _TabletopFullscreen(
           controller: _controller,
           onContext: _onControlsContext,
-          controls: (split) => FathomPlayerControls(
+          controls: (split) => ValueListenableBuilder<bool>(
+        valueListenable: _inPip,
+        // The PiP window has its own buttons; ours would only cover the video.
+        // Hidden, not removed: media_kit builds the fullscreen view from the
+        // context of the button that opened it, which lives in here, and
+        // removing it under an open fullscreen view breaks that view's next
+        // rebuild (the PiP resize) with a red error screen.
+        builder: (_, inPip, child) => Offstage(offstage: inPip, child: child),
+        child: FathomPlayerControls(
         player: _player,
         title: _titleText(l),
         isLive: _isLive,
@@ -1218,54 +1413,14 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
           for (final s in _sponsors)
             (position: s.start, label: l.playerSkipSegment(s.category.label)),
         ],
-      )),
-      // Fullscreen orientation follows the video: a 9:16 Short goes immersive
-      // portrait instead of being rotated into a landscape letterbox. Normal
-      // (wider-than-tall) videos and Android TV keep landscape; desktop uses
-      // native window fullscreen.
+      ))),
+      // In the PiP window the system owns the window's shape: the fullscreen
+      // view opened for it leaves orientation and the system bars alone.
       onEnterFullscreen: () async {
-        final w = _player.state.width ?? 0;
-        final h = _player.state.height ?? 0;
-        final platform = defaultTargetPlatform;
-        final androidOrIos =
-            platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-        try {
-          if (androidOrIos) {
-            final vertical = !isTvDevice && w > 0 && h > w;
-            await SystemChrome.setEnabledSystemUIMode(
-                SystemUiMode.immersiveSticky,
-                overlays: const []);
-            await SystemChrome.setPreferredOrientations(vertical
-                ? const [DeviceOrientation.portraitUp]
-                : const [
-                    DeviceOrientation.landscapeLeft,
-                    DeviceOrientation.landscapeRight,
-                  ]);
-          } else {
-            // Desktop: drop the custom window title bar (min/max/close) while
-            // the video is edge-to-edge, matching the Jellyfin player.
-            if (isDesktopWindowFrame) desktopFullscreen.value = true;
-            await const MethodChannel('com.alexmercerind/media_kit_video')
-                .invokeMethod('Utils.EnterNativeFullscreen');
-          }
-        } catch (_) {}
+        if (_inPip.value) return;
+        await _enterFullscreenSystemUi();
       },
-      onExitFullscreen: () async {
-        final platform = defaultTargetPlatform;
-        final androidOrIos =
-            platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-        try {
-          if (androidOrIos) {
-            await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-                overlays: SystemUiOverlay.values);
-            await SystemChrome.setPreferredOrientations(const []);
-          } else {
-            if (isDesktopWindowFrame) desktopFullscreen.value = false;
-            await const MethodChannel('com.alexmercerind/media_kit_video')
-                .invokeMethod('Utils.ExitNativeFullscreen');
-          }
-        } catch (_) {}
-      },
+      onExitFullscreen: _exitFullscreenSystemUi,
     );
     // On TV, FathomPlayerControls owns the D-pad (arrows walk the control bar).
     // The desktop keyboard shortcuts + autofocus wrapper would intercept the

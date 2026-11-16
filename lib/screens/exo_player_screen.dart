@@ -255,7 +255,8 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
         onSeekBy: _seekBy,
         backSeconds: 10,
         forwardSeconds: 30,
-        playPauseLabel: l.playerPlayPause,
+        playLabel: l.commonPlay,
+        pauseLabel: l.commonPause,
         backLabel: l.playerSeekBack(10),
         forwardLabel: l.playerSeekForward(30),
       );

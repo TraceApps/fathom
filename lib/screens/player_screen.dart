@@ -352,7 +352,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         onSeekBy: _seekBy,
         backSeconds: _kSeekBack,
         forwardSeconds: _kSeekForward,
-        playPauseLabel: l.playerPlayPause,
+        playLabel: l.commonPlay,
+        pauseLabel: l.commonPause,
         backLabel: l.playerSeekBack(_kSeekBack),
         forwardLabel: l.playerSeekForward(_kSeekForward),
       );

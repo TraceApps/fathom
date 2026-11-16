@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// The buttons in Android's picture-in-picture window: back, play/pause and
@@ -44,14 +45,16 @@ class SystemPipControls {
     required void Function(int seconds) onSeekBy,
     required int backSeconds,
     required int forwardSeconds,
-    required String playPauseLabel,
+    required String playLabel,
+    required String pauseLabel,
     required String backLabel,
     required String forwardLabel,
   }) {
     _owner = owner;
     _handlers = _Handlers(onPlay, onPause, onSeekBy, backSeconds, forwardSeconds);
     _labels = {
-      'playPauseLabel': playPauseLabel,
+      'playLabel': playLabel,
+      'pauseLabel': pauseLabel,
       'backLabel': backLabel,
       'forwardLabel': forwardLabel,
     };
@@ -75,12 +78,16 @@ class SystemPipControls {
     _handlers = null;
     _labels = null;
     _channel.setMethodCallHandler(null);
+    // The next video already took PiP over and binds its buttons a frame
+    // later: clearing them now would flash the music controls in the window.
+    if (_pipOwner != null && !identical(_pipOwner, owner)) return;
     _invoke(null);
   }
 
   /// A button in the PiP window was tapped.
   static Future<void> handle(String action) async {
     final h = _handlers;
+    debugPrint('[pip] window button: $action${h == null ? ' (no video)' : ''}');
     if (h == null) return;
     switch (action) {
       case 'play':

@@ -30,7 +30,9 @@ import java.io.File
 // window, and PiP-mode changes are reported back so the player can hide its
 // controls.
 class MainActivity : AudioServiceActivity() {
-    private var pipActive = false
+    // Fathom itself is opening another app (a browser, the share sheet, the
+    // installer): that's not the user leaving to watch elsewhere, so don't float.
+    private var launchingOut = false
     private var channel: MethodChannel? = null
 
     // The PiP window's own buttons (back, play/pause, forward). Without them
@@ -41,6 +43,7 @@ class MainActivity : AudioServiceActivity() {
     private val pipReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val action = intent.getStringExtra(EXTRA_PIP_ACTION) ?: return
+            android.util.Log.d("FathomPip", "button $action, channel=${controls != null}")
             controls?.invokeMethod("action", action)
         }
     }
@@ -82,6 +85,9 @@ class MainActivity : AudioServiceActivity() {
         )
         // Downloads: publish to shared storage, Open With, Share.
         SharedFiles(this, flutterEngine.dartExecutor.binaryMessenger)
+        // A recreated activity with a video still open: give it the PiP
+        // settings (Android 12+ auto-enter) the video set on the old one.
+        updatePipParams()
         channel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "app.fathom.player/pip",
@@ -104,6 +110,9 @@ class MainActivity : AudioServiceActivity() {
             when (call.method) {
                 "setActive" -> {
                     pipActive = call.arguments as? Boolean ?: false
+                    // Android 12+ floats the video by itself on the way out
+                    // (see pipParams), so it has to hear about the change.
+                    updatePipParams()
                     result.success(null)
                 }
                 "enter" -> {
@@ -210,6 +219,15 @@ class MainActivity : AudioServiceActivity() {
         val b = PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9))
         // An empty list falls back to the system's default controls.
         b.setActions(pipActions())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+: float as the app is left, during the home swipe or a
+            // switch from the taskbar or recents, rather than after it from
+            // onUserLeaveHint (which gesture navigation and tablet taskbars
+            // don't reliably give). Off whenever no video is open.
+            b.setAutoEnterEnabled(pipActive && !launchingOut)
+            // Video: resize by scaling the picture, not by re-laying out.
+            b.setSeamlessResizeEnabled(false)
+        }
         return b.build()
     }
 
@@ -240,10 +258,14 @@ class MainActivity : AudioServiceActivity() {
             list.add(RemoteAction(Icon.createWithResource(this, icon), text, text, pending))
         }
         add("back", android.R.drawable.ic_media_rew, b["backLabel"] as? String, 1)
+        // Play and pause need their own label and request code: Android 12+
+        // only redraws the window's buttons when a title, description or
+        // intent changes (it never compares icons), so a shared one left the
+        // pause icon up after pausing.
         if (playing) {
-            add("pause", android.R.drawable.ic_media_pause, b["playPauseLabel"] as? String, 2)
+            add("pause", android.R.drawable.ic_media_pause, b["pauseLabel"] as? String, 2)
         } else {
-            add("play", android.R.drawable.ic_media_play, b["playPauseLabel"] as? String, 2)
+            add("play", android.R.drawable.ic_media_play, b["playLabel"] as? String, 4)
         }
         add("forward", android.R.drawable.ic_media_ff, b["forwardLabel"] as? String, 3)
         // Some devices allow fewer than three buttons; keep play/pause.
@@ -257,17 +279,40 @@ class MainActivity : AudioServiceActivity() {
         3
     }
 
-    // Fired when the user leaves the app (e.g. Home). Enter PiP if a video is
-    // active, so playback floats instead of pausing/backgrounding.
+    // Fired when the user leaves the app (e.g. Home). Before Android 12, enter
+    // PiP here if a video is active, so playback floats instead of pausing.
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (pipActive) enterPip()
+        // Android 12+ enters by itself (setAutoEnterEnabled in pipParams).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return
+        if (pipActive && !launchingOut) enterPip()
+    }
+
+    // Every activity Fathom starts goes through here (url_launcher, share,
+    // the installer). Android counts those as the user leaving too.
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        if (pipActive && !launchingOut) {
+            launchingOut = true
+            updatePipParams()
+        }
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (launchingOut) {
+            launchingOut = false
+            updatePipParams()
+        }
     }
 
     companion object {
         // Kept here, not on the activity, so a recreated activity still shows
         // the buttons the video set (the Flutter engine outlives it).
         private var pipButtons: Map<*, *>? = null
+        // Whether a video screen is open (it floats when the app is left).
+        // Kept here for the same reason as the buttons.
+        private var pipActive = false
         private const val ACTION_PIP_CONTROL = "app.fathom.player.PIP_CONTROL"
         private const val EXTRA_PIP_ACTION = "action"
     }

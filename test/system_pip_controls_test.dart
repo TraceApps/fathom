@@ -29,7 +29,8 @@ void main() {
         onSeekBy: (s) => calls.add('seek $s'),
         backSeconds: 10,
         forwardSeconds: 30,
-        playPauseLabel: 'Play / Pause',
+        playLabel: 'Play',
+        pauseLabel: 'Pause',
         backLabel: 'Back 10s',
         forwardLabel: 'Forward 30s',
       );
@@ -40,7 +41,8 @@ void main() {
     bind(screen);
     await Future<void>.delayed(Duration.zero);
     expect(sent.single, {
-      'playPauseLabel': 'Play / Pause',
+      'playLabel': 'Play',
+      'pauseLabel': 'Pause',
       'backLabel': 'Back 10s',
       'forwardLabel': 'Forward 30s',
       'playing': true,
@@ -92,5 +94,25 @@ void main() {
     expect(SystemPipControls.releasePip(ep1), isFalse);
     expect(SystemPipControls.releasePip(ep2), isTrue);
     expect(SystemPipControls.releasePip(ep2), isFalse);
+  });
+
+  test('the outgoing video leaves the buttons up when the next one took PiP',
+      () async {
+    final old = Object(), next = Object();
+    bind(old);
+    SystemPipControls.claimPip(old);
+    await Future<void>.delayed(Duration.zero);
+    sent.clear();
+    // The next video claims PiP in initState, the old one goes away, and the
+    // next binds its buttons after its first frame.
+    SystemPipControls.claimPip(next);
+    SystemPipControls.unbind(old);
+    await Future<void>.delayed(Duration.zero);
+    expect(sent, isEmpty, reason: 'no clearing in between');
+    bind(next);
+    await Future<void>.delayed(Duration.zero);
+    expect(sent.single, isNotNull);
+    SystemPipControls.unbind(next);
+    SystemPipControls.releasePip(next);
   });
 }

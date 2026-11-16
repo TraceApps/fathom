@@ -1045,12 +1045,9 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                                 active: widget.theaterActive,
                                 onTap: widget.onToggleTheater!,
                                 onInteract: _show),
-                          // No picture-in-picture while fullscreen: minimizing
-                          // there would hand the player to the dock from behind
-                          // the fullscreen route and strand it. Exit fullscreen
-                          // first, as the YouTube player does.
-                          if (widget.onMinimize != null &&
-                              !isFullscreen(context))
+                          // Also in fullscreen: the button leaves fullscreen
+                          // first (see _MinimizeButton).
+                          if (widget.onMinimize != null)
                             _MinimizeButton(
                                 onMinimize: widget.onMinimize!,
                                 onInteract: _show),
@@ -1175,8 +1172,7 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                               active: widget.theaterActive,
                               onTap: widget.onToggleTheater!,
                               onInteract: _show),
-                        // Hidden while fullscreen (see the folded branch above).
-                        if (widget.onMinimize != null && !isFullscreen(context))
+                        if (widget.onMinimize != null)
                           _MinimizeButton(
                               onMinimize: widget.onMinimize!,
                               onInteract: _show),
@@ -1620,9 +1616,12 @@ class _MinimizeButton extends StatelessWidget {
     return AnimatedIconButton(
       tooltip: AppLocalizations.of(context).playerMiniplayer,
       icon: Icons.picture_in_picture_alt_rounded,
-      onTap: () {
-        onMinimize();
+      onTap: () async {
         onInteract();
+        // From fullscreen, leave it first: docking from behind the fullscreen
+        // view would strand the player under it.
+        if (isFullscreen(context)) await exitFullscreen(context);
+        onMinimize();
       },
     );
   }
