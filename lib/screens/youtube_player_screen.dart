@@ -639,6 +639,16 @@ class _YoutubeVideoPlayerState extends ConsumerState<YoutubeVideoPlayer>
           // Start live HLS at the newest segment (lower latency, faster first
           // frame) rather than buffering from the start of the DVR window.
           await mpv.setProperty('demuxer-lavf-o', 'live_start_index=-1');
+        } else {
+          // Fetch in 10 MB ranges instead of one open-ended request. YouTube
+          // paces open-ended downloads to about the video's own bitrate (it
+          // measured below it: 3.6 Mbit/s for a 4.2 Mbit/s 720p stream) but
+          // serves bounded ranges at full speed, so after a seek past the
+          // buffer the video kept stalling on a buffer a few seconds deep.
+          // Measured on a real 720p stream, seek to 6:00: back playing in 1 s
+          // (was 3 s) and 264 s buffered 10 s later (was 6 s). Needs ffmpeg 7.1
+          // or newer (Android's has it); older ones ignore the option.
+          await mpv.setProperty('stream-lavf-o', 'request_size=10485760');
         }
       } catch (_) {}
       // One-shot: log when the first video frame actually lands, so start-up
