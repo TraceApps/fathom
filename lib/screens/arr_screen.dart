@@ -12,6 +12,7 @@ import '../models/arr.dart';
 import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
+import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/context_menu.dart';
 import 'arr_activity_screens.dart';
@@ -22,6 +23,7 @@ import 'arr_releases_screen.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_bulk.dart';
 import '../widgets/arr_pane.dart';
+import '../widgets/arr_queue_poll.dart';
 import '../widgets/arr_skeletons.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
@@ -38,7 +40,10 @@ import '../widgets/window_frame.dart';
 /// On a window wide enough, a title opens in a pane beside the lists rather
 /// than on a page over them, and stays there from tab to tab.
 class ArrScreen extends ConsumerStatefulWidget {
-  const ArrScreen({super.key});
+  /// The tab to open on, by name: `calendar`, `activity` or `wanted`.
+  /// Anything else is the Library. Home's rows open the tab they are from.
+  final String? tab;
+  const ArrScreen({super.key, this.tab});
 
   @override
   ConsumerState<ArrScreen> createState() => _ArrScreenState();
@@ -112,9 +117,12 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
     ref.invalidate(arrWantedProvider);
     ref.invalidate(arrRecentHistoryProvider);
     ref.invalidate(arrBlocklistProvider);
+    ref.invalidate(seerrPendingRequestsProvider);
     ref.invalidate(arrHealthProvider);
     final open = _open;
     if (open == null) return;
+    // Whether the library has it now is asked again too.
+    ref.invalidate(arrLibraryItemProvider);
     open.kind == ArrKind.radarr
         ? arrMovieChanged(ref, open.id)
         : arrSeriesChanged(ref, open.id);
@@ -206,8 +214,14 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
     final narrow = MediaQuery.sizeOf(context).width < 600;
     return DefaultTabController(
       length: 4,
+      initialIndex: switch (widget.tab) {
+        'calendar' => 1,
+        'activity' => 2,
+        'wanted' => 3,
+        _ => 0,
+      },
       // The Activity tab's count stays current while the section is open.
-      child: _QueuePoll(
+      child: ArrQueuePoll(
         countOnly: true,
         every: const Duration(seconds: 30),
         child: Builder(
@@ -402,90 +416,6 @@ class _QueueCount extends ConsumerWidget {
   }
 }
 
-/// Asks for the queue again every [every] while the window is showing: the
-/// whole queue, or with [countOnly] just the Activity tab's count.
-///
-/// Under a page opened over this one (a title, the settings) nothing is
-/// asked for: a page that isn't showing stops listening, so the reload waits
-/// and runs once, on the way back.
-class _QueuePoll extends ConsumerStatefulWidget {
-  final Duration every;
-  final bool countOnly;
-  final Widget child;
-  const _QueuePoll({
-    required this.every,
-    this.countOnly = false,
-    required this.child,
-  });
-
-  @override
-  ConsumerState<_QueuePoll> createState() => _QueuePollState();
-}
-
-class _QueuePollState extends ConsumerState<_QueuePoll>
-    with WidgetsBindingObserver {
-  Timer? _timer;
-
-  /// An answer is still on its way.
-  bool _waiting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _start();
-  }
-
-  void _reload() => widget.countOnly
-      ? ref.invalidate(arrQueueStatusProvider)
-      : ref.invalidate(arrQueueProvider);
-
-  void _start() {
-    _timer?.cancel();
-    _timer = Timer.periodic(widget.every, (_) {
-      // Asking again before a slow server has answered would throw its
-      // answer away, and so never show one.
-      if (mounted && !_waiting) _reload();
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        // Back from out of sight: catch up at once.
-        if (_timer == null) {
-          _start();
-          _reload();
-        }
-      case AppLifecycleState.inactive:
-        // Still showing (a desktop window that isn't the active one, a
-        // split screen): keep going.
-        break;
-      case AppLifecycleState.hidden ||
-          AppLifecycleState.paused ||
-          AppLifecycleState.detached:
-        _timer?.cancel();
-        _timer = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    _waiting = widget.countOnly
-        ? ref.watch(arrQueueStatusProvider.select((a) => a.isLoading))
-        : ref.watch(arrQueueProvider.select((a) => a.isLoading));
-    return widget.child;
-  }
-}
-
 // ---------------------------------------------------------------- Library
 
 /// Movies and Shows behind one switch. The search box is shared, so a title
@@ -548,13 +478,28 @@ class _ActivityTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final view = ref.watch(arrActivityViewProvider);
+    // Seerr's requests that wait for an answer, for whoever gives them: a
+    // request is the first step of a download.
+    final requests = ref.watch(seerrCanManageRequestsProvider);
+    final waiting = requests
+        ? ref.watch(seerrPendingRequestsProvider).value?.length ?? 0
+        : 0;
+    final chosen = ref.watch(arrActivityViewProvider);
+    final view = chosen == ArrActivityView.requests && !requests
+        ? ArrActivityView.queue
+        : chosen;
     final lead = ArrSwitch<ArrActivityView>(
       options: [
         (ArrActivityView.queue, l.arrQueue),
         (ArrActivityView.history, l.arrHistory),
         (ArrActivityView.blocklist, l.arrBlocklist),
+        if (requests)
+          (
+            ArrActivityView.requests,
+            waiting > 0 ? l.arrRequestsWaiting(waiting) : l.browseRequests,
+          ),
       ],
+      short: {ArrActivityView.requests: l.browseRequests},
       value: view,
       onChanged: ref.read(arrActivityViewProvider.notifier).set,
     );
@@ -562,6 +507,7 @@ class _ActivityTab extends ConsumerWidget {
       ArrActivityView.queue => _QueueTab(lead: lead),
       ArrActivityView.history => ArrHistoryTab(lead: lead),
       ArrActivityView.blocklist => ArrBlocklistView(lead: lead),
+      ArrActivityView.requests => ArrRequestsView(lead: lead),
     };
   }
 }
@@ -646,7 +592,7 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
     // Every few seconds while the queue is the list on show; switching to
     // another list or tab ends it.
     Widget polled(Widget child) =>
-        _QueuePoll(every: const Duration(seconds: 5), child: child);
+        ArrQueuePoll(every: const Duration(seconds: 5), child: child);
     if (merged == null) {
       return polled(
         Column(
@@ -766,7 +712,7 @@ class _QueueCard extends ConsumerWidget {
     final ArrClient? client = item.kind == ArrKind.sonarr
         ? ref.watch(sonarrClientProvider)
         : ref.watch(radarrClientProvider);
-    final (String status, Color color) = _status(l, scheme);
+    final (String status, Color color) = arrQueueStanding(l, scheme, item);
     final eta = item.estimatedCompletion?.difference(DateTime.now());
     final heading = [
       item.mediaTitle ?? item.title,
@@ -1003,34 +949,6 @@ class _QueueCard extends ConsumerWidget {
     if (await arrOpenDownloadImport(context, item)) {
       ref.invalidate(arrQueueProvider);
     }
-  }
-
-  (String, Color) _status(AppLocalizations l, ColorScheme scheme) {
-    if (item.status == 'failed' || item.trackedDownloadState == 'failed') {
-      return (l.arrFailed, arrMissingColor);
-    }
-    switch (item.trackedDownloadState) {
-      case 'importBlocked':
-        return (l.arrImportBlocked, arrWarningColor);
-      case 'importPending':
-        return (l.arrWaitingToImport, arrDownloadedColor);
-      case 'importing':
-        return (l.arrImporting, arrDownloadedColor);
-      case 'failedPending':
-        return (l.arrFailed, arrMissingColor);
-    }
-    if (item.trackedDownloadStatus == 'warning' ||
-        item.trackedDownloadStatus == 'error' ||
-        item.status == 'warning') {
-      return (l.arrNeedsAttention, arrWarningColor);
-    }
-    return switch (item.status) {
-      'paused' => (l.arrPaused, scheme.outline),
-      'queued' => (l.arrQueued, arrQueuedColor),
-      'delay' => (l.arrDelayed, scheme.outline),
-      'completed' => (l.arrWaitingToImport, arrDownloadedColor),
-      _ => (l.arrDownloading, arrUnreleasedColor),
-    };
   }
 }
 

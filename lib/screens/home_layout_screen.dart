@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../services/tv_mode.dart';
+import '../state/arr_providers.dart';
 import '../state/preferences.dart';
 import '../widgets/reorder.dart';
 
 /// Reorder and toggle the Home screen rows (Continue Watching / Recently Added
-/// / My Media), Moonfin-style. Saved to preferences.
+/// / My Media), Moonfin-style. Saved to preferences. Sonarr's and Radarr's
+/// rows are listed only where Home can show them.
 class HomeLayoutScreen extends ConsumerWidget {
   const HomeLayoutScreen({super.key});
 
@@ -15,6 +18,8 @@ class HomeLayoutScreen extends ConsumerWidget {
         'nextUp': l.homeLayoutNextUp,
         'recentlyAdded': l.homeLayoutRecentlyAdded,
         'myMedia': l.homeLayoutMyMedia,
+        'arrDownloading': l.arrHomeDownloading,
+        'arrComingUp': l.arrHomeComingUp,
       };
 
   bool _visible(Prefs p, String id) => switch (id) {
@@ -22,6 +27,8 @@ class HomeLayoutScreen extends ConsumerWidget {
         'nextUp' => p.showNextUp,
         'recentlyAdded' => p.showRecentlyAdded,
         'myMedia' => p.showMyMedia,
+        'arrDownloading' => p.showArrDownloading,
+        'arrComingUp' => p.showArrComingUp,
         _ => true,
       };
 
@@ -30,6 +37,8 @@ class HomeLayoutScreen extends ConsumerWidget {
         'nextUp' => p.copyWith(showNextUp: v),
         'recentlyAdded' => p.copyWith(showRecentlyAdded: v),
         'myMedia' => p.copyWith(showMyMedia: v),
+        'arrDownloading' => p.copyWith(showArrDownloading: v),
+        'arrComingUp' => p.copyWith(showArrComingUp: v),
         _ => p,
       };
 
@@ -39,10 +48,13 @@ class HomeLayoutScreen extends ConsumerWidget {
     final c = ref.read(preferencesProvider.notifier);
     final l = AppLocalizations.of(context);
     final titles = _titles(l);
-    // Guard against unknown/missing ids from older prefs.
+    final arrRows = !isTvDevice && ref.watch(arrConfiguredProvider);
+    // Every row, in the order Home shows them, and the ones listed here.
+    // Moving one of these keeps the rest (a row that isn't listed) in place.
+    final all = homeRowsInOrder(p.homeRowOrder);
     final rows = [
-      ...p.homeRowOrder.where(titles.containsKey),
-      ...titles.keys.where((k) => !p.homeRowOrder.contains(k)),
+      for (final id in all)
+        if (arrRows || !id.startsWith('arr')) id,
     ];
 
     return Scaffold(
@@ -59,7 +71,8 @@ class HomeLayoutScreen extends ConsumerWidget {
                 final list = [...rows];
                 if (newIndex > oldIndex) newIndex -= 1;
                 list.insert(newIndex, list.removeAt(oldIndex));
-                c.edit((x) => x.copyWith(homeRowOrder: list));
+                c.edit((x) => x.copyWith(
+                    homeRowOrder: homeRowsMoved(all, shown: list)));
               },
               children: [
                 for (final (i, id) in rows.indexed)

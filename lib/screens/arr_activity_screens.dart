@@ -7,6 +7,7 @@ import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../state/arr_providers.dart';
+import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
@@ -19,6 +20,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
+import 'discover_screen.dart' show SeerrRequestTile;
 import 'arr_releases_screen.dart';
 
 // ------------------------------------------------------------------ Wanted
@@ -987,6 +989,64 @@ class _LoadMore extends StatelessWidget {
 }
 
 // --------------------------------------------------------------- Blocklist
+
+/// Activity's Requests: what people asked for in Seerr that waits for a yes
+/// or no, with the same rows and buttons as Discover's own Requests tab.
+/// Approving one hands it to Sonarr or Radarr, and it's in the queue next.
+class ArrRequestsView extends ConsumerWidget {
+  /// The Activity switch, at the left of the row above the list.
+  final Widget lead;
+  const ArrRequestsView({super.key, required this.lead});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final async = ref.watch(seerrPendingRequestsProvider);
+    // An answer given reloads the list; the rows stay meanwhile.
+    final list = async.value;
+    final toolbar = ArrToolbar(lead: lead);
+    if (list == null) {
+      return Column(
+        children: [
+          ArrListColumn(child: toolbar),
+          Expanded(
+            child: async.hasError
+                ? ErrorView(
+                    message: async.error.toString(),
+                    onRetry: () => ref.invalidate(seerrPendingRequestsProvider),
+                  )
+                : const ArrRowsSkeleton(),
+          ),
+        ],
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => ref.refresh(seerrPendingRequestsProvider.future),
+      child: ArrListView(
+        slivers: [
+          SliverToBoxAdapter(child: toolbar),
+          if (list.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: EmptyState(
+                icon: Icons.inbox_rounded,
+                title: l.arrRequestsEmpty,
+                message: l.arrRequestsEmptyHint,
+              ),
+            )
+          else
+            SliverList.builder(
+              itemCount: list.length,
+              itemBuilder: (context, i) => SeerrRequestTile(
+                key: ValueKey(list[i].id),
+                request: list[i],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Releases Sonarr and Radarr won't grab again, newest first: remove one so
 /// it can be grabbed, pick several, or clear the lot. The apps' Activity >

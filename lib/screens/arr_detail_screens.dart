@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../models/base_item.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../widgets/arr_actions.dart';
@@ -63,6 +64,8 @@ class ArrMovieScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(radarrMovieHistoryProvider(id));
               ref.invalidate(radarrMovieProvider(id));
+              // And whether it can be watched: the library may have it now.
+              ref.invalidate(arrLibraryItemProvider);
               await ref.read(radarrMovieProvider(id).future);
             },
             child: CustomScrollView(
@@ -245,6 +248,7 @@ class ArrSeriesScreen extends ConsumerWidget {
               ref.invalidate(sonarrEpisodeFilesProvider(id));
               ref.invalidate(sonarrSeriesHistoryProvider(id));
               ref.invalidate(sonarrSeriesProvider(id));
+              ref.invalidate(arrLibraryItemProvider);
               await ref.read(sonarrSeriesProvider(id).future);
             },
             child: CustomScrollView(
@@ -648,6 +652,20 @@ Future<void> _editMovieFile(
   }
 }
 
+/// Watch, for a title the Jellyfin library has: it opens the title there,
+/// to play it. The main action then, ahead of searching for a release.
+ArrAction? _watchAction(BuildContext context, WidgetRef ref, ArrLibraryKey k) {
+  final itemId = ref.watch(arrLibraryItemProvider(k)).value;
+  if (itemId == null) return null;
+  return ArrAction(
+    icon: Icons.play_arrow_rounded,
+    label: AppLocalizations.of(context).detailWatch,
+    primary: true,
+    onTap: () =>
+        context.push('/item', extra: BaseItemDto(id: itemId, name: k.title)),
+  );
+}
+
 /// A movie's actions; call with true for the header's round buttons.
 Widget Function(bool header) _movieActions(
   BuildContext context,
@@ -658,11 +676,13 @@ Widget Function(bool header) _movieActions(
   final l = AppLocalizations.of(context);
   if (client == null) return (_) => const SizedBox.shrink();
   void changed() => arrMovieChanged(ref, m.id);
+  final watch = _watchAction(context, ref, arrLibraryKeyOfMovie(m));
   final main = [
+    ?watch,
     ArrAction(
       icon: Icons.search_rounded,
       label: l.arrSearchMovie,
-      primary: true,
+      primary: watch == null,
       onTap: () => arrRun(
         context,
         () => client.searchMovie(m.id),
@@ -787,11 +807,13 @@ Widget Function(bool header) _seriesActions(
   final l = AppLocalizations.of(context);
   if (client == null) return (_) => const SizedBox.shrink();
   void changed() => arrSeriesChanged(ref, s.id);
+  final watch = _watchAction(context, ref, arrLibraryKeyOfSeries(s));
   final main = [
+    ?watch,
     ArrAction(
       icon: Icons.search_rounded,
       label: l.arrSearchMonitored,
-      primary: true,
+      primary: watch == null,
       onTap: () => arrRun(
         context,
         () => client.searchSeries(s.id),

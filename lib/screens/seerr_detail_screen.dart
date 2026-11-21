@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../models/arr.dart';
 import '../models/base_item.dart';
 import '../models/seerr_detail.dart';
 import '../models/seerr_result.dart';
+import '../state/arr_providers.dart';
 import '../state/library_providers.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
@@ -15,6 +17,7 @@ import '../state/seerr_providers.dart';
 import '../state/session_controller.dart';
 import '../services/tv_mode.dart';
 import '../widgets/app_snack.dart';
+import '../widgets/arr_widgets.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/tv_focus.dart';
 import '../widgets/media_section.dart';
@@ -136,6 +139,35 @@ class _DetailBody extends ConsumerWidget {
     final showManage = canManage && d.mediaId != null;
     // Any title with a pending request (movie or TV) gets the View Request pill.
     final showViewRequest = canManage && d.pendingRequest != null;
+    // Fathom's own Radarr or Sonarr, when it has the title: its page there,
+    // where the download is followed and fixed. Not on a TV yet.
+    final arrKey = isTvDevice
+        ? null
+        : arrKeyOfSeerr(
+            mediaType: d.mediaType,
+            tmdbId: d.tmdbId,
+            tvdbId: d.tvdbId,
+          );
+    final arr = arrKey == null
+        ? null
+        : ref.watch(arrMatchProvider(arrKey)).value;
+    final arrId = arr?.id;
+    final manageIn = arr == null ? '' : l.arrManageIn(arr.kind.appName);
+    void openArr() => arrOpenTitlePage(context, arr!.kind, arrId!);
+    // An approved request is what puts a title into the app, so the app is
+    // asked again when Seerr's word on the title changes.
+    ref.listen(
+      seerrDetailProvider((mediaType: d.mediaType, tmdbId: d.tmdbId)),
+      (prev, next) {
+        final was = prev?.value;
+        final now = next.value;
+        if (arrKey == null || was == null || now == null) return;
+        if (was.status != now.status ||
+            was.downloadStatus.isEmpty != now.downloadStatus.isEmpty) {
+          ref.invalidate(arrMatchProvider(arrKey));
+        }
+      },
+    );
     final actionIcons = <Widget>[
       if (canWatch)
         HeaderActionButton(
@@ -160,6 +192,12 @@ class _DetailBody extends ConsumerWidget {
             '/trailer',
             extra: (url: d.trailerUrl!, title: d.title),
           ),
+        ),
+      if (arrId != null)
+        HeaderActionButton(
+          icon: kManageIcon,
+          tooltip: manageIn,
+          onTap: openArr,
         ),
       if (showManage)
         HeaderActionButton(
@@ -242,6 +280,8 @@ class _DetailBody extends ConsumerWidget {
                     mediaType: d.mediaType,
                     tmdbId: d.tmdbId,
                     downloads: d.downloadStatus,
+                    onOpen: arrId == null ? null : openArr,
+                    openLabel: manageIn,
                   ),
                 // On narrow windows the actions live here as labelled buttons;
                 // on wide ones they're the icon cluster in the header instead.
@@ -276,6 +316,12 @@ class _DetailBody extends ConsumerWidget {
                             '/trailer',
                             extra: (url: d.trailerUrl!, title: d.title),
                           ),
+                        ),
+                      if (arrId != null)
+                        HoverPillButton(
+                          icon: kManageIcon,
+                          label: manageIn,
+                          onTap: openArr,
                         ),
                       if (showManage)
                         HoverPillButton(
@@ -666,6 +712,7 @@ class _ViewRequestButtonState extends ConsumerState<_ViewRequestButton>
       );
       ref.invalidate(seerrRequestsProvider);
       ref.invalidate(seerrRecentRequestsProvider);
+      ref.invalidate(seerrPendingRequestsProvider);
     }
   }
 
@@ -687,6 +734,7 @@ class _ViewRequestButtonState extends ConsumerState<_ViewRequestButton>
       );
       ref.invalidate(seerrRequestsProvider);
       ref.invalidate(seerrRecentRequestsProvider);
+      ref.invalidate(seerrPendingRequestsProvider);
       if (mounted) {
         final l = AppLocalizations.of(context);
         showSnack(
@@ -1146,10 +1194,17 @@ class _DownloadProgress extends ConsumerStatefulWidget {
   final String mediaType;
   final int tmdbId;
   final List<SeerrDownload> downloads;
+
+  /// Opens the title in Fathom's own Sonarr or Radarr pages, where the
+  /// download can be followed and fixed. Null when the app doesn't have it.
+  final VoidCallback? onOpen;
+  final String openLabel;
   const _DownloadProgress({
     required this.mediaType,
     required this.tmdbId,
     required this.downloads,
+    this.onOpen,
+    this.openLabel = '',
   });
 
   @override
@@ -1190,24 +1245,28 @@ class _DownloadProgressState extends ConsumerState<_DownloadProgress> {
       child: Column(
         children: [
           for (final d in widget.downloads)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-              ),
+            _card(
+              scheme,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    d.title.isEmpty ? l.detailDownloading : d.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          d.title.isEmpty ? l.detailDownloading : d.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      if (widget.onOpen != null)
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -1249,6 +1308,30 @@ class _DownloadProgressState extends ConsumerState<_DownloadProgress> {
             ),
         ],
       ),
+    );
+  }
+
+  /// A download's card. With somewhere to open, the whole card is the
+  /// button for it.
+  Widget _card(ColorScheme scheme, {required Widget child}) {
+    final inner = Padding(padding: const EdgeInsets.all(14), child: child);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: widget.onOpen == null
+          ? inner
+          : Tooltip(
+              message: widget.openLabel,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(onTap: widget.onOpen, child: inner),
+              ),
+            ),
     );
   }
 

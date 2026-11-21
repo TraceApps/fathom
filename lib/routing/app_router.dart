@@ -531,7 +531,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, _) => _fadePage(const SeerrSettingsScreen())),
           GoRoute(
               path: '/arr',
-              pageBuilder: (_, _) => _fadePage(const ArrScreen())),
+              pageBuilder: (_, state) => _fadePage(
+                  ArrScreen(tab: state.uri.queryParameters['tab']))),
           GoRoute(
               path: '/arr-settings',
               pageBuilder: (_, _) => _fadePage(const ArrSettingsScreen())),

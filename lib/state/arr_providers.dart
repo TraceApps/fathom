@@ -1,8 +1,14 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/arr_client.dart';
+import '../api/jellyfin_client.dart';
 import '../models/arr.dart';
 import 'preferences.dart';
+import 'providers.dart';
+import 'session_controller.dart';
 
 /// The Sonarr server, when one is connected (an address and an API key).
 final sonarrClientProvider = Provider<SonarrClient?>((ref) {
@@ -64,6 +70,51 @@ Future<ArrMerged<T>> _both<T>(
         }),
   ]);
   return ArrMerged(items, errors);
+}
+
+/// What each app last said, for a Home row that mustn't blink when one
+/// answer goes missing. An app that didn't answer keeps what it had for
+/// [patience] answers in a row; after that it has nothing to show.
+class ArrLastKnown<T> {
+  final ArrKind Function(T) kindOf;
+  final int patience;
+
+  /// The order the answers come in, to put what's kept back in its place.
+  final Comparator<T>? order;
+  ArrLastKnown({required this.kindOf, required this.patience, this.order});
+
+  final _last = <ArrKind, List<T>>{};
+  final _missed = <ArrKind, int>{};
+  ArrMerged<T>? _seen;
+  List<T> _shown = const [];
+
+  /// What [of] gave last: it stands while the next answer is on its way.
+  List<T> get shown => _shown;
+
+  /// [answer], with what's kept for an app that gave none. The same answer
+  /// coming by again (a build for another reason) counts once.
+  List<T> of(ArrMerged<T> answer) {
+    if (identical(answer, _seen)) return _shown;
+    _seen = answer;
+    final kept = <T>[];
+    for (final kind in ArrKind.values) {
+      if (!answer.errors.containsKey(kind)) {
+        _missed.remove(kind);
+        _last[kind] = [
+          for (final i in answer.items)
+            if (kindOf(i) == kind) i,
+        ];
+        continue;
+      }
+      final missed = _missed[kind] = (_missed[kind] ?? 0) + 1;
+      if (missed > patience) _last.remove(kind);
+      kept.addAll(_last[kind] ?? const []);
+    }
+    if (kept.isEmpty) return _shown = answer.items;
+    final all = [...answer.items, ...kept];
+    if (order != null) all.sort(order);
+    return _shown = all;
+  }
 }
 
 /// A stretch of days on the Calendar: from [start], up to but not [end].
@@ -150,7 +201,7 @@ final arrLibraryKindProvider = NotifierProvider<ArrLibraryKind, ArrKind>(
 
 /// The lists under the Activity tab, as under the apps' own Activity.
 /// Forgotten on leaving the tab, so its count always opens the queue.
-enum ArrActivityView { queue, history, blocklist }
+enum ArrActivityView { queue, history, blocklist, requests }
 
 class ArrActivityViewChoice extends Notifier<ArrActivityView> {
   @override
@@ -186,13 +237,178 @@ final arrQueueProvider = FutureProvider.autoDispose<ArrMerged<ArrQueueItem>>((
     ref.watch(radarrClientProvider),
     (c) => c.queue(),
   );
-  // Problems first, then the closest to finishing.
-  merged.items.sort((a, b) {
-    if (a.hasProblem != b.hasProblem) return a.hasProblem ? -1 : 1;
-    return b.progress.compareTo(a.progress);
-  });
+  merged.items.sort(arrQueueOrder);
   return merged;
 });
+
+/// The queue's order: problems first, then the closest to finishing.
+int arrQueueOrder(ArrQueueItem a, ArrQueueItem b) {
+  if (a.hasProblem != b.hasProblem) return a.hasProblem ? -1 : 1;
+  return b.progress.compareTo(a.progress);
+}
+
+/// A movie or a show on Home's Downloading Now row, with everything of it
+/// that's in the queue.
+class ArrHomeDownload {
+  final ArrKind kind;
+  final int titleId;
+  final String title;
+  final List<ArrImage> images;
+
+  /// The queue's entries for the title, in the queue's order: one that needs
+  /// a look first, then the closest to finishing.
+  final List<ArrQueueItem> items;
+
+  const ArrHomeDownload({
+    required this.kind,
+    required this.titleId,
+    required this.title,
+    required this.images,
+    required this.items,
+  });
+
+  /// The entry that says how the title is doing.
+  ArrQueueItem get lead => items.first;
+
+  /// The downloads behind the entries. A season pack is one download, and
+  /// the queue lists it once for each episode in it, each time at the whole
+  /// pack's size: counted like that, three episodes would be three packs.
+  List<ArrQueueItem> get downloads {
+    final seen = <String>{};
+    return [
+      for (final i in items)
+        if (i.downloadId == null || seen.add(i.downloadId!)) i,
+    ];
+  }
+
+  /// How much of all of it has arrived, 0 to 1.
+  double get progress {
+    var size = 0.0, left = 0.0;
+    for (final d in downloads) {
+      size += d.size;
+      left += d.sizeleft;
+    }
+    return size <= 0 ? 0 : ((size - left) / size).clamp(0, 1).toDouble();
+  }
+
+  /// When the last of what's downloading is due to finish. Null when nothing
+  /// is, or the download client doesn't say.
+  DateTime? get finishes {
+    DateTime? last;
+    for (final d in downloads) {
+      final at = d.estimatedCompletion;
+      if (d.status != 'downloading' || at == null) continue;
+      if (last == null || at.isAfter(last)) last = at;
+    }
+    return last;
+  }
+}
+
+/// The queue as Home shows it: one card for a movie or a show, however many
+/// of its episodes are downloading. A download the app couldn't match to a
+/// title is left to the Activity tab, which can fix it.
+List<ArrHomeDownload> arrHomeDownloads(List<ArrQueueItem> queue) {
+  final byTitle = <(ArrKind, int), List<ArrQueueItem>>{};
+  for (final i in queue) {
+    final id = i.kind == ArrKind.sonarr ? i.seriesId : i.movieId;
+    if (id == null || i.mediaTitle == null) continue;
+    (byTitle[(i.kind, id)] ??= []).add(i);
+  }
+  return [
+    for (final e in byTitle.entries)
+      ArrHomeDownload(
+        kind: e.key.$1,
+        titleId: e.key.$2,
+        title: e.value.first.mediaTitle!,
+        images: e.value.first.images,
+        items: e.value,
+      ),
+  ];
+}
+
+/// A movie or a show on Home's Coming This Week row: the first of its
+/// releases due, and for a show how many more episodes follow in the week.
+typedef ArrHomeRelease = ({ArrCalendarEntry first, int more});
+
+/// The days Home's Coming This Week row covers: today and the six after it.
+ArrDays arrHomeWeek(DateTime now) => (
+  // By the calendar, not in hours: a day the clocks change isn't 24 long.
+  start: DateTime(now.year, now.month, now.day),
+  end: DateTime(now.year, now.month, now.day + 7),
+);
+
+/// What's due in [week] that the apps will go and get: monitored, and not
+/// here yet. One card for a title, at its first release in the week, the
+/// soonest first. A movie's later releases in the same week (cinemas, then
+/// digital) aren't counted as more of it.
+List<ArrHomeRelease> arrHomeComingUp(
+  List<ArrCalendarEntry> entries,
+  ArrDays week,
+) {
+  final due = [
+    for (final e in entries)
+      if (e.monitored &&
+          !e.hasFile &&
+          e.titleId != null &&
+          !e.date.isBefore(week.start) &&
+          e.date.isBefore(week.end))
+        e,
+  ]..sort((a, b) => a.date.compareTo(b.date));
+  final first = <(ArrKind, int), ArrCalendarEntry>{};
+  final count = <(ArrKind, int), int>{};
+  for (final e in due) {
+    final key = (e.kind, e.titleId!);
+    first.putIfAbsent(key, () => e);
+    count[key] = (count[key] ?? 0) + 1;
+  }
+  return [
+    for (final e in first.entries)
+      (
+        first: e.value,
+        more: e.key.$1 == ArrKind.sonarr ? count[e.key]! - 1 : 0,
+      ),
+  ];
+}
+
+/// Whether a download in [before] is gone from [after]: imported, most
+/// often, so what was due may be on disk now. An app in [unanswered] gave
+/// no queue this time, which says nothing about its downloads.
+bool arrQueueItemLeft(
+  List<ArrQueueItem> before,
+  List<ArrQueueItem> after, {
+  Set<ArrKind> unanswered = const {},
+}) {
+  final still = {for (final q in after) (q.kind, q.id)};
+  return before.any(
+    (q) => !unanswered.contains(q.kind) && !still.contains((q.kind, q.id)),
+  );
+}
+
+/// What Home's Coming This Week row is made from: the week's releases, and
+/// which app didn't answer. Asked for apart from the Calendar tab, whose
+/// answer changes with its Show Unmonitored switch.
+final arrHomeComingUpProvider = FutureProvider.autoDispose
+    .family<ArrMerged<ArrCalendarEntry>, ArrDays>((ref, week) {
+      // A download that finished takes its title off the row. Weak: this
+      // row mustn't be what makes the queue load.
+      ref.listen(arrQueueProvider, weak: true, (prev, next) {
+        final before = prev?.value;
+        if (before == null || !next.hasValue || next.isLoading) return;
+        final after = next.requireValue;
+        if (arrQueueItemLeft(
+          before.items,
+          after.items,
+          unanswered: after.errors.keys.toSet(),
+        )) {
+          ref.invalidateSelf();
+        }
+      });
+      return _both<ArrCalendarEntry>(
+        ref.watch(sonarrClientProvider),
+        ref.watch(radarrClientProvider),
+        (c) => c.calendar(week.start, week.end),
+      );
+    });
 
 final radarrMoviesProvider = FutureProvider.autoDispose<List<ArrMovie>>((
   ref,
@@ -451,6 +667,7 @@ void arrMovieChanged(WidgetRef ref, int id) {
   ref.invalidate(radarrMovieHistoryProvider(id));
   ref.invalidate(radarrMoviesProvider);
   ref.invalidate(arrCalendarProvider);
+  ref.invalidate(arrHomeComingUpProvider);
 }
 
 /// After a change to a show: everything that shows it reloads.
@@ -461,6 +678,7 @@ void arrSeriesChanged(WidgetRef ref, int id) {
   ref.invalidate(sonarrSeriesHistoryProvider(id));
   ref.invalidate(sonarrSeriesListProvider);
   ref.invalidate(arrCalendarProvider);
+  ref.invalidate(arrHomeComingUpProvider);
 }
 
 /// Wanted: missing, or below the cutoff.
@@ -609,6 +827,122 @@ final arrMatchProvider = FutureProvider.autoDispose
         return (kind: ArrKind.sonarr, id: s?.id);
       } catch (_) {
         return null;
+      }
+    });
+
+/// Where a title Seerr knows is looked up in Fathom's own Radarr (a movie,
+/// by its TMDB id) or Sonarr (a show, by its TVDB id), for [arrMatchProvider].
+/// Null without the id.
+({ArrKind kind, int providerId})? arrKeyOfSeerr({
+  required String mediaType,
+  required int tmdbId,
+  int? tvdbId,
+}) {
+  if (mediaType == 'tv') {
+    return tvdbId == null || tvdbId <= 0
+        ? null
+        : (kind: ArrKind.sonarr, providerId: tvdbId);
+  }
+  return tmdbId <= 0 ? null : (kind: ArrKind.radarr, providerId: tmdbId);
+}
+
+/// A Radarr movie or a Sonarr show, as the Jellyfin library is asked for it.
+typedef ArrLibraryKey = ({
+  ArrKind kind,
+  String title,
+  int? year,
+  int? tmdbId,
+  int? tvdbId,
+  String? imdbId,
+
+  /// The app has files of it, so it's worth a longer look.
+  bool onDisk,
+});
+
+ArrLibraryKey arrLibraryKeyOfMovie(ArrMovie m) => (
+  kind: ArrKind.radarr,
+  title: m.title,
+  year: m.year,
+  tmdbId: m.tmdbId,
+  tvdbId: null,
+  imdbId: m.imdbId,
+  onDisk: m.hasFile,
+);
+
+ArrLibraryKey arrLibraryKeyOfSeries(ArrSeries s) => (
+  kind: ArrKind.sonarr,
+  title: s.title,
+  year: s.year,
+  tmdbId: s.tmdbId,
+  tvdbId: s.tvdbId,
+  imdbId: s.imdbId,
+  onDisk: s.episodeFileCount > 0,
+);
+
+/// When the library is asked again for a title that's on disk and wasn't
+/// found: a new download isn't there until the server has scanned it in.
+/// After the last of these it's left to a refresh of the page.
+@visibleForTesting
+const arrLibraryLookAgain = [
+  Duration(seconds: 20),
+  Duration(seconds: 60),
+  Duration(seconds: 120),
+];
+
+/// The Jellyfin item of a Radarr movie or a Sonarr show, by the ids the two
+/// share: what Watch opens. Null when the library hasn't got it, and when
+/// the server can't be asked, where the button simply doesn't show.
+final arrLibraryItemProvider = StreamProvider.autoDispose
+    .family<String?, ArrLibraryKey>((ref, k) async* {
+      final session = ref.watch(sessionControllerProvider).asData?.value;
+      if (session == null) {
+        yield null;
+        return;
+      }
+      final client = ref.watch(jellyfinClientProvider);
+      String? id(int? n) => n == null || n <= 0 ? null : '$n';
+      Future<String?> look() async {
+        try {
+          return await client.findItemIdByProviderIds(
+            baseUrl: session.baseUrl,
+            userId: session.userId,
+            token: session.accessToken,
+            itemType: k.kind == ArrKind.radarr ? 'Movie' : 'Series',
+            title: k.title,
+            year: k.year,
+            byYear: k.onDisk,
+            providerIds: {
+              'Tmdb': ?id(k.tmdbId),
+              'Tvdb': ?id(k.tvdbId),
+              'Imdb': ?k.imdbId,
+            },
+          );
+        } catch (_) {
+          return null;
+        }
+      }
+
+      // The page closed while waiting: nothing more is asked.
+      var closed = false;
+      Timer? timer;
+      Completer<void>? wait;
+      ref.onDispose(() {
+        closed = true;
+        timer?.cancel();
+        final waiting = wait;
+        if (waiting != null && !waiting.isCompleted) waiting.complete();
+      });
+      var found = await look();
+      yield found;
+      if (!k.onDisk) return;
+      for (final after in arrLibraryLookAgain) {
+        if (found != null) return;
+        final waiting = wait = Completer<void>();
+        timer = Timer(after, waiting.complete);
+        await waiting.future;
+        if (closed) return;
+        found = await look();
+        if (found != null) yield found;
       }
     });
 

@@ -12,12 +12,16 @@ import '../models/seerr_custom_slider.dart';
 import '../models/seerr_genre.dart';
 import '../models/seerr_request.dart';
 import '../models/seerr_result.dart';
+import '../models/arr.dart';
+import '../services/tv_mode.dart';
+import '../state/arr_providers.dart';
 import '../state/preferences.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/reorder.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/app_snack.dart';
+import '../widgets/arr_widgets.dart';
 import '../widgets/cached_image.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/search_field.dart';
@@ -426,6 +430,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
           await client.retryRequest(r.id);
       }
       ref.invalidate(seerrRecentRequestsProvider);
+      ref.invalidate(seerrPendingRequestsProvider);
       ref.invalidate(seerrRequestsProvider);
       final done = switch (action) {
         'approve' => l.browseApprovedTitle(title),
@@ -1633,7 +1638,7 @@ class _RequestsTab extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       itemCount: list.length,
                       itemBuilder: (context, i) =>
-                          _RequestTile(request: list[i]),
+                          SeerrRequestTile(request: list[i]),
                     ),
                   ),
           ),
@@ -1656,9 +1661,11 @@ String _seerrAgo(AppLocalizations l, String? iso) {
 
 /// A Jellyseerr-style request row: backdrop, poster, title, the request fields
 /// (status, requested/modified by, profile), and permission-gated actions.
-class _RequestTile extends ConsumerWidget {
+/// Discover's Requests tab lists them all; the Manage section's Activity tab
+/// lists the ones waiting for an answer.
+class SeerrRequestTile extends ConsumerWidget {
   final SeerrRequest request;
-  const _RequestTile({required this.request});
+  const SeerrRequestTile({super.key, required this.request});
 
   (String, Color) _status(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -1692,6 +1699,7 @@ class _RequestTile extends ConsumerWidget {
       if (ok) {
         ref.invalidate(seerrRequestsProvider);
         ref.invalidate(seerrRecentRequestsProvider);
+        ref.invalidate(seerrPendingRequestsProvider);
         if (context.mounted) {
           showSnack(context, l.browseRequestUpdated, kind: SnackKind.success);
         }
@@ -1738,6 +1746,7 @@ class _RequestTile extends ConsumerWidget {
       }
       ref.invalidate(seerrRequestsProvider);
       ref.invalidate(seerrRecentRequestsProvider);
+      ref.invalidate(seerrPendingRequestsProvider);
       final done = switch (action) {
         'approve' => l.browseApprovedTitle(title),
         'decline' => l.browseDeclinedTitle(title),
@@ -1776,6 +1785,19 @@ class _RequestTile extends ConsumerWidget {
     final (statusLabel, statusColor) = _status(context);
     final profileName =
         r.profileId != null ? profileNames[r.profileId] : null;
+    // Fathom's own Radarr or Sonarr, when it has the title: its page there,
+    // where the download is followed and fixed. Not on a TV yet.
+    final arrKey = isTvDevice
+        ? null
+        : arrKeyOfSeerr(
+            mediaType: r.mediaType,
+            tmdbId: r.tmdbId,
+            tvdbId: detail?.tvdbId ?? r.tvdbId);
+    final arr =
+        arrKey == null ? null : ref.watch(arrMatchProvider(arrKey)).value;
+    final arrId = arr?.id;
+    final manageIn = arr == null ? '' : l.arrManageIn(arr.kind.appName);
+    void openArr() => arrOpenTitlePage(context, arr!.kind, arrId!);
 
     void openDetail() {
       if (detail == null) return;
@@ -1813,6 +1835,8 @@ class _RequestTile extends ConsumerWidget {
             label: l.commonRetry,
             color: scheme.primary,
             onTap: () => _act(context, ref, 'retry')),
+      if (arrId != null)
+        _RequestButton(icon: kManageIcon, label: manageIn, onTap: openArr),
       if (canManage || r.isPending)
         _RequestButton(
             icon: Icons.delete_outline_rounded,
@@ -1956,6 +1980,11 @@ class _RequestTile extends ConsumerWidget {
                                   icon: Icons.refresh_rounded,
                                   label: l.commonRetry,
                                   onTap: () => _act(context, ref, 'retry')),
+                            if (arrId != null)
+                              ContextMenuAction(
+                                  icon: kManageIcon,
+                                  label: manageIn,
+                                  onTap: openArr),
                             if (canManage || r.isPending)
                               ContextMenuAction(
                                   icon: Icons.delete_outline_rounded,

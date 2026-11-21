@@ -193,6 +193,7 @@ class SeerrDetail {
   final List<SeerrSeason> seasons; // TV only
   final List<String> studios;
   final String? jellyfinMediaId; // set when the title is on the Jellyfin server
+  final int? tvdbId; // a show's TVDB id, which is how Sonarr knows it
   final String? trailerUrl; // YouTube trailer, if any
   final int? rtCriticScore; // Rotten Tomatoes critics, 0-100
   final int? rtAudienceScore; // Rotten Tomatoes audience, 0-100
@@ -227,6 +228,7 @@ class SeerrDetail {
     this.seasons = const [],
     this.studios = const [],
     this.jellyfinMediaId,
+    this.tvdbId,
     this.trailerUrl,
     this.rtCriticScore,
     this.rtAudienceScore,
@@ -267,6 +269,7 @@ class SeerrDetail {
         seasons: seasons,
         studios: studios,
         jellyfinMediaId: jellyfinMediaId,
+        tvdbId: tvdbId,
         trailerUrl: trailerUrl,
         rtCriticScore: rtCriticScore ?? this.rtCriticScore,
         rtAudienceScore: rtAudienceScore ?? this.rtAudienceScore,
@@ -443,6 +446,9 @@ class SeerrDetail {
       ],
       jellyfinMediaId: (mediaInfo?['jellyfinMediaId'] ??
           mediaInfo?['jellyfinMediaId4k']) as String?,
+      // TMDB's own answer first; Seerr's record of the show has it too.
+      tvdbId: ((j['externalIds'] as Map?)?['tvdbId'] as num?)?.toInt() ??
+          (mediaInfo?['tvdbId'] as num?)?.toInt(),
       trailerUrl: _firstTrailer(j['relatedVideos']),
       statusText: j['status'] as String?,
       originalLanguage: j['originalLanguage'] as String?,

@@ -94,7 +94,7 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
 
   // Home
   SettingResult(title: l.searchHomeBanner, section: l.searchHome, icon: _home, route: '/preferences', extra: 'home', keywords: ['banner', 'hero', 'featured', 'spotlight']),
-  SettingResult(title: l.searchHomeLayout, section: l.searchHome, icon: _home, route: '/preferences', extra: 'home', keywords: ['layout', 'rows', 'reorder', 'sections', 'customize home']),
+  SettingResult(title: l.searchHomeLayout, section: l.searchHome, icon: _home, route: '/preferences', extra: 'home', keywords: ['layout', 'rows', 'reorder', 'sections', 'customize home', 'downloading now', 'coming this week', 'sonarr', 'radarr']),
   SettingResult(title: l.navLayoutTitle, section: l.searchHome, icon: Icons.view_sidebar_rounded, route: '/navigation-layout', keywords: ['navigation', 'sidebar', 'nav', 'rail', 'reorder', 'hide', 'menu', 'tabs', 'bottom bar', 'destinations', 'order', 'move']),
 
   // Player

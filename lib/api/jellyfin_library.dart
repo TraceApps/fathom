@@ -224,6 +224,77 @@ Future<List<BaseItemDto>> _getItems(
     );
   }
 
+  /// The id of the movie or show that carries one of [providerIds] (named
+  /// as the server names them: Tmdb, Tvdb, Imdb), or null when the library
+  /// hasn't got it.
+  ///
+  /// The server's item query has no filter for a provider id, so this asks
+  /// by name, which finds nearly every title in one small answer. A library
+  /// can hold a title under another name (a translated one, say): with
+  /// [byYear] the titles of the years around [year] are gone through as
+  /// well, which is a bigger answer, so it's only worth asking for a title
+  /// that's known to be on disk.
+  Future<String?> findItemIdByProviderIds({
+    required String baseUrl,
+    required String userId,
+    required String token,
+    required String itemType, // Movie, Series
+    required String title,
+    required Map<String, String> providerIds,
+    int? year,
+    bool byYear = false,
+  }) async {
+    final wanted = {
+      for (final e in providerIds.entries)
+        if (e.value.isNotEmpty) e.key.toLowerCase(): e.value.toLowerCase(),
+    };
+    if (wanted.isEmpty) return null;
+    Future<String?> among(Map<String, dynamic> by) async {
+      final res = await requestWithFallback(
+        'GET',
+        url: '$baseUrl/Items',
+        legacyUrl: '$baseUrl/Users/$userId/Items',
+        token: token,
+        query: {
+          'userId': userId,
+          'IncludeItemTypes': itemType,
+          'Recursive': 'true',
+          'Fields': 'ProviderIds',
+          'EnableImages': 'false',
+          'EnableUserData': 'false',
+          'EnableTotalRecordCount': 'false',
+          ...by,
+        },
+      );
+      final data = res.data;
+      final items = data is Map ? (data['Items'] as List? ?? const []) : const [];
+      for (final item in items.whereType<Map>()) {
+        final ids = item['ProviderIds'];
+        if (ids is! Map) continue;
+        for (final e in ids.entries) {
+          final want = wanted['${e.key}'.toLowerCase()];
+          if (want != null && want == '${e.value}'.toLowerCase()) {
+            return item['Id'] as String?;
+          }
+        }
+      }
+      return null;
+    }
+
+    try {
+      final byName = title.trim().isEmpty
+          ? null
+          : await among({'SearchTerm': title, 'Limit': '50'});
+      if (byName != null || !byYear || year == null) return byName;
+      return await among({
+        'Years': '${year - 1},$year,${year + 1}',
+        'Limit': '2000',
+      });
+    } on DioException catch (e) {
+      throw JellyfinException(_friendlyDioError(e));
+    }
+  }
+
 /// All genres present in the user's libraries.
   Future<List<BaseItemDto>> getGenres({
     required String baseUrl,

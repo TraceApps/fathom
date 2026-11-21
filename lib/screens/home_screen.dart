@@ -7,9 +7,11 @@ import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
+import '../state/arr_providers.dart';
 import '../state/library_providers.dart';
 import '../state/palette.dart';
 import '../state/preferences.dart';
+import '../widgets/arr_home_rows.dart';
 import '../widgets/featured_hero.dart';
 import '../widgets/tv_focus.dart';
 import '../widgets/media_cards.dart';
@@ -38,6 +40,9 @@ class HomeScreen extends ConsumerWidget {
     final hero = ref.watch(heroItemsProvider);
     final views = ref.watch(userViewsProvider);
     final prefs = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
+    // Sonarr's and Radarr's rows, where one of the apps is connected. Not on
+    // a TV yet: the pages they open aren't laid out for a remote.
+    final arrRows = !isTvDevice && ref.watch(arrConfiguredProvider);
 
     Future<void> refresh() async {
       ref.invalidate(resumeItemsProvider);
@@ -45,6 +50,10 @@ class HomeScreen extends ConsumerWidget {
       ref.invalidate(latestItemsProvider);
       ref.invalidate(heroItemsProvider);
       ref.invalidate(userViewsProvider);
+      // Not waited for: Sonarr or Radarr out of reach would hold the
+      // refresh until they gave up.
+      ref.invalidate(arrQueueProvider);
+      ref.invalidate(arrHomeComingUpProvider);
       await Future.wait([
         ref.read(continueWatchingProvider.future),
         ref.read(latestItemsProvider.future),
@@ -115,15 +124,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
-            // Rows in the user's chosen order (each gated by its toggle);
-            // append any known rows missing from older saved orders.
-            for (final rowId in <String>{
-              ...prefs.homeRowOrder,
-              'continueWatching',
-              'nextUp',
-              'recentlyAdded',
-              'myMedia',
-            })
+            // Rows in the user's chosen order (each gated by its toggle),
+            // with any an older saved order doesn't name put in.
+            for (final rowId in homeRowsInOrder(prefs.homeRowOrder))
               ?switch (rowId) {
                 'continueWatching' => prefs.showContinueWatching
                     ? _sectionSliver(
@@ -153,6 +156,16 @@ class HomeScreen extends ConsumerWidget {
                           item: item,
                           onTap: () => context.push('/item', extra: item),
                         ),
+                      )
+                    : null,
+                'arrDownloading' => arrRows && prefs.showArrDownloading
+                    ? const SliverToBoxAdapter(
+                        child: ArrDownloadingRow(height: _resumeRowHeight),
+                      )
+                    : null,
+                'arrComingUp' => arrRows && prefs.showArrComingUp
+                    ? const SliverToBoxAdapter(
+                        child: ArrComingUpRow(height: _posterRowHeight),
                       )
                     : null,
                 'recentlyAdded' => prefs.showRecentlyAdded

@@ -8155,5 +8155,17 @@
   "arrNextMonth": "Next Month",
   "@arrNextMonth": {"description": "Tooltip of the button that moves the Calendar's month grid on a month."},
   "arrMoreCount": "+{count} More",
-  "@arrMoreCount": {"description": "On a day of the Calendar's month grid that has more releases than fit: how many more there are. Opens the whole day.", "placeholders": {"count": {"type": "int"}}}
+  "@arrMoreCount": {"description": "On a day of the Calendar's month grid that has more releases than fit: how many more there are. Opens the whole day.", "placeholders": {"count": {"type": "int"}}},
+  "arrHomeDownloading": "Downloading Now",
+  "@arrHomeDownloading": {"description": "Row on Home and its name in Home Layout: the movies and shows Sonarr and Radarr are downloading right now."},
+  "arrHomeComingUp": "Coming This Week",
+  "@arrHomeComingUp": {"description": "Row on Home and its name in Home Layout: monitored episodes and movie releases due in the next seven days, from Sonarr and Radarr."},
+  "arrHomeEpisodeAndMore": "{episode} +{count} More",
+  "@arrHomeEpisodeAndMore": {"description": "Under a show on Home's Coming This Week row when more than one of its episodes is due this week: the first one's number (S02E05) and how many more follow.", "placeholders": {"episode": {"type": "String"}, "count": {"type": "int"}}},
+  "arrRequestsWaiting": "Requests ({count})",
+  "@arrRequestsWaiting": {"description": "Manage > Activity switch: the Seerr requests waiting for approval, with how many.", "placeholders": {"count": {"type": "int"}}},
+  "arrRequestsEmpty": "No requests waiting",
+  "@arrRequestsEmpty": {"description": "Manage > Activity > Requests: empty title."},
+  "arrRequestsEmptyHint": "Requests that need a yes or no from you show here",
+  "@arrRequestsEmptyHint": {"description": "Under the empty Requests title in Manage > Activity."}
 }

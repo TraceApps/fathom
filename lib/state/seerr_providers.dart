@@ -226,6 +226,36 @@ final seerrRecentRequestsProvider =
   return c == null ? const [] : c.requests(take: 20);
 });
 
+/// The requests waiting for a yes or no, oldest first (whoever asked first
+/// gets an answer first), for the Manage section's Activity tab.
+final seerrPendingRequestsProvider =
+    FutureProvider.autoDispose<List<SeerrRequest>>((ref) async {
+  final c = ref.watch(seerrClientProvider);
+  if (c == null) return const [];
+  final waiting =
+      await c.requests(take: 100, filter: 'pending', sortDirection: 'asc');
+  // Seerr is asked for this order; a server too old to take the direction
+  // answers newest first, so it's put right here as well.
+  DateTime at(SeerrRequest r) =>
+      DateTime.tryParse(r.createdAt ?? '') ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+  final oldestFirst = waiting.indexed.toList()
+    ..sort((a, b) {
+      final byAge = at(a.$2).compareTo(at(b.$2));
+      // Two of one moment stay as Seerr had them.
+      return byAge != 0 ? byAge : a.$1.compareTo(b.$1);
+    });
+  return [for (final (_, r) in oldestFirst) r];
+});
+
+/// Whether this account answers requests: Seerr is connected and the account
+/// may approve and decline. The last answer stands while the permissions are
+/// read again (any saved setting does that), so what hangs on it stays put.
+final seerrCanManageRequestsProvider = Provider.autoDispose<bool>((ref) =>
+    ref.watch(seerrConfiguredProvider) &&
+    seerrCan(ref.watch(seerrPermissionsProvider).value ?? 0,
+        kSeerrManageRequests));
+
 /// Live search query for the Discover screen.
 class SeerrQuery extends Notifier<String> {
   @override

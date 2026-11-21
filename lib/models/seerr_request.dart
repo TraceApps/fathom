@@ -6,6 +6,7 @@ class SeerrRequest {
   final int tmdbId;
   final int? mediaStatus; // 1 unknown..5 available
   final int? mediaId; // Jellyseerr media record id (for remove-from-arr)
+  final int? tvdbId; // a show's TVDB id, which is how Sonarr knows it
   final String? requestedBy;
   final int? requestedById; // the requester's user id, for "Request As"
   final String? requestedByAvatar; // raw avatar value, resolved at display
@@ -30,6 +31,7 @@ class SeerrRequest {
     required this.tmdbId,
     this.mediaStatus,
     this.mediaId,
+    this.tvdbId,
     this.requestedBy,
     this.requestedById,
     this.requestedByAvatar,
@@ -76,6 +78,7 @@ class SeerrRequest {
       tmdbId: (media['tmdbId'] as num?)?.toInt() ?? 0,
       mediaStatus: (media['status'] as num?)?.toInt(),
       mediaId: (media['id'] as num?)?.toInt(),
+      tvdbId: (media['tvdbId'] as num?)?.toInt(),
       requestedBy: by?['displayName'] as String? ?? by?['username'] as String?,
       requestedById: (by?['id'] as num?)?.toInt(),
       requestedByAvatar: by?['avatar'] as String?,

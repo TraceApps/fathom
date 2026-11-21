@@ -791,7 +791,11 @@ class SonarrClient extends ArrClient {
   Future<ArrSeries?> seriesByTvdb(int tvdbId) async {
     final data = await _get('series', {'tvdbId': tvdbId});
     for (final m in (data as List?) ?? const []) {
-      if (m is Map) return ArrSeries.fromJson(Map<String, dynamic>.from(m));
+      if (m is! Map) continue;
+      // By its id, not just the first: a server that didn't take the
+      // filter answers with every show it has.
+      final series = ArrSeries.fromJson(Map<String, dynamic>.from(m));
+      if (series.tvdbId == tvdbId) return series;
     }
     return null;
   }
@@ -1061,7 +1065,11 @@ class RadarrClient extends ArrClient {
   Future<ArrMovie?> movieByTmdb(int tmdbId) async {
     final data = await _get('movie', {'tmdbId': tmdbId});
     for (final m in (data as List?) ?? const []) {
-      if (m is Map) return ArrMovie.fromJson(Map<String, dynamic>.from(m));
+      if (m is! Map) continue;
+      // By its id, not just the first: a server that didn't take the
+      // filter answers with every movie it has.
+      final movie = ArrMovie.fromJson(Map<String, dynamic>.from(m));
+      if (movie.tmdbId == tmdbId) return movie;
     }
     return null;
   }

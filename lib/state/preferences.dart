@@ -17,6 +17,66 @@ Map<String, int> defaultKeyBindings() => {
       'fullscreen': LogicalKeyboardKey.keyF.keyId,
     };
 
+/// Home's rows that can be moved and turned off, in the order a new install
+/// shows them. The two from Sonarr and Radarr (what's downloading, what's
+/// coming up) are only there while one of the apps is connected.
+const kHomeRows = <String>[
+  'continueWatching',
+  'nextUp',
+  'arrDownloading',
+  'recentlyAdded',
+  'arrComingUp',
+  'myMedia',
+];
+
+/// Rows added after people had already arranged their Home. A saved order
+/// from before then doesn't name them.
+const _laterHomeRows = ['arrDownloading', 'arrComingUp'];
+
+/// The rows in the order Home shows them: the saved order, with every row it
+/// doesn't name put in. One of [_laterHomeRows] goes where it sits by
+/// default, after the nearest row before it there that the saved order has.
+/// Anything older goes to the end, where it has always gone.
+List<String> homeRowsInOrder(List<String> saved) {
+  final out = <String>[];
+  for (final id in saved) {
+    if (kHomeRows.contains(id) && !out.contains(id)) out.add(id);
+  }
+  // Nothing usable saved: the order of a new install, not the later rows
+  // ahead of Home's own.
+  if (out.isEmpty) return [...kHomeRows];
+  for (final id in _laterHomeRows) {
+    if (out.contains(id)) continue;
+    var at = 0;
+    for (var i = kHomeRows.indexOf(id) - 1; i >= 0; i--) {
+      final before = out.indexOf(kHomeRows[i]);
+      if (before >= 0) {
+        at = before + 1;
+        break;
+      }
+    }
+    out.insert(at, id);
+  }
+  for (final id in kHomeRows) {
+    if (!out.contains(id)) out.add(id);
+  }
+  return out;
+}
+
+/// [all] after the rows the Home Layout page lists were moved into the order
+/// [shown]. A row the page doesn't list (Sonarr's and Radarr's, while neither
+/// is connected) stays right after the listed row it followed, so connecting
+/// the apps again finds it where it was left.
+List<String> homeRowsMoved(List<String> all, {required List<String> shown}) {
+  final out = [...shown];
+  for (final (i, id) in all.indexed) {
+    if (out.contains(id)) continue;
+    // Everything before it in [all] is in by now.
+    out.insert(i == 0 ? 0 : out.indexOf(all[i - 1]) + 1, id);
+  }
+  return out;
+}
+
 /// Default order of the Seerr Discover rows, matching the Jellyseerr web home.
 const kDefaultSeerrRows = <String>[
   'recentlyAdded',
@@ -117,6 +177,9 @@ class Prefs {
   final bool showNextUp;
   final bool showRecentlyAdded;
   final bool showMyMedia;
+  // Sonarr's and Radarr's rows. Only there while one of the apps is connected.
+  final bool showArrDownloading;
+  final bool showArrComingUp;
   final bool showLibraryLatest; // per-library "Latest in X" rows
   final bool showGenreRows; // editorial genre rows on Home
   final List<String> homeRowOrder; // order of the home rows
@@ -357,14 +420,11 @@ class Prefs {
     this.showNextUp = true,
     this.showRecentlyAdded = true,
     this.showMyMedia = true,
+    this.showArrDownloading = true,
+    this.showArrComingUp = true,
     this.showLibraryLatest = true,
     this.showGenreRows = true,
-    this.homeRowOrder = const [
-      'continueWatching',
-      'nextUp',
-      'recentlyAdded',
-      'myMedia'
-    ],
+    this.homeRowOrder = kHomeRows,
     this.navOrder = const [],
     this.navHidden = const [],
     this.keyBindings = const {},
@@ -496,6 +556,8 @@ class Prefs {
     bool? showNextUp,
     bool? showRecentlyAdded,
     bool? showMyMedia,
+    bool? showArrDownloading,
+    bool? showArrComingUp,
     bool? showLibraryLatest,
     bool? showGenreRows,
     List<String>? homeRowOrder,
@@ -631,6 +693,8 @@ class Prefs {
         showNextUp: showNextUp ?? this.showNextUp,
         showRecentlyAdded: showRecentlyAdded ?? this.showRecentlyAdded,
         showMyMedia: showMyMedia ?? this.showMyMedia,
+        showArrDownloading: showArrDownloading ?? this.showArrDownloading,
+        showArrComingUp: showArrComingUp ?? this.showArrComingUp,
         showLibraryLatest: showLibraryLatest ?? this.showLibraryLatest,
         showGenreRows: showGenreRows ?? this.showGenreRows,
         homeRowOrder: homeRowOrder ?? this.homeRowOrder,
@@ -778,6 +842,8 @@ class Prefs {
         'showNextUp': showNextUp,
         'showRecentlyAdded': showRecentlyAdded,
         'showMyMedia': showMyMedia,
+        'showArrDownloading': showArrDownloading,
+        'showArrComingUp': showArrComingUp,
         'showLibraryLatest': showLibraryLatest,
         'showGenreRows': showGenreRows,
         'homeRowOrder': homeRowOrder,
@@ -916,6 +982,8 @@ class Prefs {
         showNextUp: j['showNextUp'] as bool? ?? true,
         showRecentlyAdded: j['showRecentlyAdded'] as bool? ?? true,
         showMyMedia: j['showMyMedia'] as bool? ?? true,
+        showArrDownloading: j['showArrDownloading'] as bool? ?? true,
+        showArrComingUp: j['showArrComingUp'] as bool? ?? true,
         showLibraryLatest: j['showLibraryLatest'] as bool? ?? true,
         showGenreRows: j['showGenreRows'] as bool? ?? true,
         homeRowOrder: (j['homeRowOrder'] as List?)?.cast<String>() ??

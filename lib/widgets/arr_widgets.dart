@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -64,6 +66,40 @@ String arrDuration(Duration d) {
   if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes % 60}m';
   if (d.inMinutes > 0) return '${d.inMinutes}m';
   return '${d.inSeconds}s';
+}
+
+/// How a download in the queue is doing, in a word, and the color that
+/// says so across the section.
+(String, Color) arrQueueStanding(
+  AppLocalizations l,
+  ColorScheme scheme,
+  ArrQueueItem item,
+) {
+  if (item.status == 'failed' || item.trackedDownloadState == 'failed') {
+    return (l.arrFailed, arrMissingColor);
+  }
+  switch (item.trackedDownloadState) {
+    case 'importBlocked':
+      return (l.arrImportBlocked, arrWarningColor);
+    case 'importPending':
+      return (l.arrWaitingToImport, arrDownloadedColor);
+    case 'importing':
+      return (l.arrImporting, arrDownloadedColor);
+    case 'failedPending':
+      return (l.arrFailed, arrMissingColor);
+  }
+  if (item.trackedDownloadStatus == 'warning' ||
+      item.trackedDownloadStatus == 'error' ||
+      item.status == 'warning') {
+    return (l.arrNeedsAttention, arrWarningColor);
+  }
+  return switch (item.status) {
+    'paused' => (l.arrPaused, scheme.outline),
+    'queued' => (l.arrQueued, arrQueuedColor),
+    'delay' => (l.arrDelayed, scheme.outline),
+    'completed' => (l.arrWaitingToImport, arrDownloadedColor),
+    _ => (l.arrDownloading, arrUnreleasedColor),
+  };
 }
 
 /// A picture of a title from Sonarr or Radarr. Their own copies need the API
@@ -276,23 +312,98 @@ class ArrSwitch<T> extends StatelessWidget {
   final T value;
   final ValueChanged<T> onChanged;
 
+  /// Shorter names for a phone too narrow for the full ones: there an option
+  /// with one shows it, and a dot for what the full name said besides (a
+  /// count). A screen reader still hears the full name.
+  final Map<T, String> short;
+
   const ArrSwitch({
     super.key,
     required this.options,
     required this.value,
     required this.onChanged,
+    this.short = const {},
   });
+
+  /// The space a segment keeps at each side of its name, and what that's cut
+  /// to where the names don't fit.
+  static const _pad = 12.0;
+  static const _tightPad = 8.0;
+
+  /// A toolbar's own button beside the switch, with the gap between the two.
+  static const _beside = 60.0;
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<T>(
-      showSelectedIcon: false,
-      segments: [
-        for (final (v, label) in options)
-          ButtonSegment(value: v, label: Text(label)),
-      ],
-      selected: {value},
-      onSelectionChanged: (s) => onChanged(s.first),
+    final theme = Theme.of(context);
+    final style =
+        theme.segmentedButtonTheme.style?.textStyle?.resolve(const {}) ??
+        theme.textTheme.labelLarge;
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    double width(String name) {
+      final p = TextPainter(
+        text: TextSpan(text: name, style: style),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final w = p.width;
+      p.dispose();
+      return w;
+    }
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Every segment is as wide as the widest, so one long name (a count
+        // after it) costs that much on each.
+        var widest = 0.0;
+        for (final (_, label) in options) {
+          widest = math.max(widest, width(label));
+        }
+        final tight =
+            options.length * (widest + _pad * 2) + _beside > c.maxWidth;
+        return SegmentedButton<T>(
+          showSelectedIcon: false,
+          style: tight
+              ? SegmentedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: _tightPad),
+                )
+              : null,
+          segments: [
+            for (final (v, label) in options)
+              ButtonSegment(
+                value: v,
+                label: switch (tight ? short[v] : null) {
+                  final brief? when brief != label => Semantics(
+                    label: label,
+                    child: ExcludeSemantics(
+                      // Above the name's last letter, clear of it and of
+                      // the switch's rounded end.
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Text(brief),
+                          PositionedDirectional(
+                            top: -3,
+                            end: -1,
+                            child: Badge(
+                              smallSize: 6,
+                              backgroundColor: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _ => Text(label),
+                },
+              ),
+          ],
+          selected: {value},
+          onSelectionChanged: (s) => onChanged(s.first),
+        );
+      },
     );
   }
 }

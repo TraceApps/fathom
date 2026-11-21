@@ -39,7 +39,8 @@ const secretPrefKeys = <String>{
 const _appearanceKeys = <String>{
   'themeMode', 'accentColor', 'amoled', 'showGreeting',
   'homeBanner', 'showContinueWatching', 'showNextUp', 'showRecentlyAdded',
-  'showMyMedia', 'showLibraryLatest', 'showGenreRows', 'homeRowOrder',
+  'showMyMedia', 'showArrDownloading', 'showArrComingUp', 'showLibraryLatest',
+  'showGenreRows', 'homeRowOrder',
   'navOrder', 'navHidden', 'cardRating', 'libraryViewMode', 'interfaceScale',
   'showRtCritics', 'showRtAudience', 'showImdbRating', 'showCommunityRating',
   'showLetterboxd', 'showMetacritic', 'showMetacriticUser', 'showTrakt',

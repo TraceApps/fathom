@@ -66,6 +66,7 @@ class _ManageSheetState extends ConsumerState<_ManageSheet> {
     ref.invalidate(seerrDetailProvider(_key));
     ref.invalidate(seerrRequestsProvider);
     ref.invalidate(seerrRecentRequestsProvider);
+    ref.invalidate(seerrPendingRequestsProvider);
     ref.invalidate(seerrTrendingProvider);
     ref.invalidate(seerrMoviesProvider);
     ref.invalidate(seerrTvProvider);
