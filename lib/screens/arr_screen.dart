@@ -1,37 +1,176 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../routing/app_shell.dart';
+import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_spinner.dart';
 import '../widgets/context_menu.dart';
 import 'arr_activity_screens.dart';
+import 'arr_calendar_tab.dart';
+import 'arr_detail_screens.dart';
 import 'arr_import_screen.dart';
+import 'arr_releases_screen.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_bulk.dart';
+import '../widgets/arr_pane.dart';
+import '../widgets/arr_skeletons.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/media_cards.dart';
 import '../widgets/motion.dart';
 import '../widgets/search_field.dart';
+import '../widgets/window_frame.dart';
 
 /// The Manage section: Sonarr and Radarr in one place. The Library they
 /// manage comes first, then what's coming up (Calendar), what's downloading
 /// and what happened (Activity), and what's still missing (Wanted).
-class ArrScreen extends ConsumerWidget {
+///
+/// On a window wide enough, a title opens in a pane beside the lists rather
+/// than on a page over them, and stays there from tab to tab.
+class ArrScreen extends ConsumerStatefulWidget {
   const ArrScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArrScreen> createState() => _ArrScreenState();
+}
+
+class _ArrScreenState extends ConsumerState<ArrScreen> {
+  /// The title in the pane. Kept while the window is too narrow to show
+  /// one, so widening it again brings the pane back.
+  ArrTitleRef? _open;
+
+  /// Whether the window is wide enough for the pane, as last laid out.
+  bool _paneFits = false;
+
+  /// The Library's search box, for the keyboard's way to it.
+  final _searchFocus = FocusNode(debugLabel: 'Manage search');
+
+  /// The section itself, which the shortcuts hang on.
+  final _keysFocus = FocusNode(debugLabel: 'Manage');
+
+  // Built once: opening or closing the pane then lays the tabs out again
+  // without building them again.
+  late final _tabs = TabBarView(
+    children: [
+      RepaintBoundary(child: _LibraryTab(searchFocus: _searchFocus)),
+      const RepaintBoundary(child: ArrCalendarTab()),
+      const RepaintBoundary(child: _ActivityTab()),
+      const RepaintBoundary(child: ArrWantedTab()),
+    ],
+  );
+
+  @override
+  void dispose() {
+    _searchFocus.dispose();
+    _keysFocus.dispose();
+    super.dispose();
+  }
+
+  void _show(ArrKind kind, int id) =>
+      setState(() => _open = (kind: kind, id: id));
+
+  void _close() => setState(() => _open = null);
+
+  /// A title opened as a page, the window too narrow for the pane: the one
+  /// kept for a wider window is no longer the last one looked at.
+  void _forget() => _open = null;
+
+  /// A title deleted (from its page, the pane, or with others picked in the
+  /// library) leaves its list when that reloads: the pane goes with it.
+  /// Only a title the list had and then lost counts. One the list never had
+  /// may just be newer than the list.
+  void _closeWhenGone<T>(
+    ArrTitleRef open,
+    ProviderListenable<AsyncValue<List<T>>> list,
+    int Function(T) idOf,
+  ) {
+    ref.listen(list, (prev, next) {
+      if (next.isLoading || next.hasError || !next.hasValue) return;
+      final had = prev?.value?.any((t) => idOf(t) == open.id) ?? false;
+      final has = next.requireValue.any((t) => idOf(t) == open.id);
+      if (had && !has && mounted && _open == open) _close();
+    });
+  }
+
+  /// F5 and Ctrl+R: every list in the section, and the title in the pane.
+  void _refresh() {
+    ref.invalidate(radarrMoviesProvider);
+    ref.invalidate(sonarrSeriesListProvider);
+    ref.invalidate(arrCalendarProvider);
+    ref.invalidate(arrQueueProvider);
+    ref.invalidate(arrQueueStatusProvider);
+    ref.invalidate(arrWantedProvider);
+    ref.invalidate(arrRecentHistoryProvider);
+    ref.invalidate(arrBlocklistProvider);
+    ref.invalidate(arrHealthProvider);
+    final open = _open;
+    if (open == null) return;
+    open.kind == ArrKind.radarr
+        ? arrMovieChanged(ref, open.id)
+        : arrSeriesChanged(ref, open.id);
+  }
+
+  /// The keyboard's part, where there is one: a desktop window.
+  Widget _withKeys(BuildContext context, Widget child) {
+    if (!isDesktopWindowFrame) return child;
+    final tabs = DefaultTabController.of(context);
+    void search() {
+      tabs.animateTo(0);
+      // The box may not be there yet, coming from another tab: the request
+      // then waits for it.
+      _searchFocus.requestFocus();
+    }
+
+    void back() {
+      // The search box gives up the keyboard first. The section takes it,
+      // so the shortcuts go on working.
+      if (_searchFocus.hasFocus) return _keysFocus.requestFocus();
+      if (_open != null && _paneFits) return _close();
+      // Nothing to close: Esc ends picking, as Back does, and never leaves
+      // the section.
+      if (ModalRoute.of(context)?.popDisposition ==
+          RoutePopDisposition.doNotPop) {
+        Navigator.maybePop(context);
+      }
+    }
+
+    const keyR = LogicalKeyboardKey.keyR;
+    const keyF = LogicalKeyboardKey.keyF;
+    const digits = [
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.digit4,
+    ];
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.f5): _refresh,
+        const SingleActivator(keyR, control: true): _refresh,
+        const SingleActivator(keyR, meta: true): _refresh,
+        const SingleActivator(keyF, control: true): search,
+        const SingleActivator(keyF, meta: true): search,
+        const SingleActivator(LogicalKeyboardKey.escape): back,
+        for (var i = 0; i < digits.length; i++) ...{
+          SingleActivator(digits[i], control: true): () => tabs.animateTo(i),
+          SingleActivator(digits[i], meta: true): () => tabs.animateTo(i),
+        },
+      },
+      child: Focus(focusNode: _keysFocus, autofocus: true, child: child),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final sonarr = ref.watch(sonarrClientProvider) != null;
     final radarr = ref.watch(radarrClientProvider) != null;
@@ -52,6 +191,16 @@ class ArrScreen extends ConsumerWidget {
         ),
       );
     }
+    final open = _open;
+    if (open != null) {
+      open.kind == ArrKind.radarr
+          ? _closeWhenGone(open, radarrMoviesProvider, (ArrMovie m) => m.id)
+          : _closeWhenGone(
+              open,
+              sonarrSeriesListProvider,
+              (ArrSeries s) => s.id,
+            );
+    }
     // Four tabs fit a phone side by side; on a wide window they'd stretch
     // across it, so they keep their own width there.
     final narrow = MediaQuery.sizeOf(context).width < 600;
@@ -61,77 +210,146 @@ class ArrScreen extends ConsumerWidget {
       child: _QueuePoll(
         countOnly: true,
         every: const Duration(seconds: 30),
-        child: Scaffold(
-          appBar: AppBar(
-            leading: mobileDrawerLeading(context),
-            title: Text(l.appNavManage),
-            actions: [
-              // Add opens on the kind of library it's pressed from; from the
-              // other tabs it searches movies and shows together.
-              Builder(
-                builder: (context) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: FilledButton.tonalIcon(
-                    style: kInlineButtonStyle,
-                    icon: const Icon(Icons.add_rounded),
-                    label: Text(l.arrAdd),
-                    onPressed: () {
-                      final onLibrary =
-                          DefaultTabController.of(context).index == 0;
-                      final kind = !onLibrary
-                          ? null
-                          : _libraryKind(ref, sonarr: sonarr, radarr: radarr);
-                      context.push(switch (kind) {
-                        ArrKind.radarr => '/arr/add/movie',
-                        ArrKind.sonarr => '/arr/add/series',
-                        null => '/arr/add',
-                      });
-                    },
-                  ),
-                ),
-              ),
-              ArrHealthButton(onTap: () => context.push('/arr/health')),
-              IconButton(
-                tooltip: l.browseSettings,
-                icon: const Icon(Icons.settings_rounded),
-                onPressed: () => context.push('/arr-settings'),
-              ),
-            ],
-            bottom: TabBar(
-              isScrollable: !narrow,
-              tabAlignment: narrow ? TabAlignment.fill : TabAlignment.start,
-              // Four tabs share a phone's width: the usual side padding
-              // would cut "Activity" short once its count shows.
-              labelPadding: narrow
-                  ? const EdgeInsets.symmetric(horizontal: 4)
-                  : null,
-              tabs: [
-                Tab(text: l.arrLibrary),
-                Tab(text: l.arrCalendar),
-                Tab(
-                  // A long count on a small phone shrinks the pair a little
-                  // instead of cutting the name short.
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Text(l.arrActivity), const _QueueCount()],
+        child: Builder(
+          builder: (context) => _withKeys(
+            context,
+            Scaffold(
+              appBar: AppBar(
+                leading: mobileDrawerLeading(context),
+                title: Text(l.appNavManage),
+                actions: [
+                  // Add opens on the kind of library it's pressed from; from
+                  // the other tabs it searches movies and shows together.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FilledButton.tonalIcon(
+                      style: kInlineButtonStyle,
+                      icon: const Icon(Icons.add_rounded),
+                      label: Text(l.arrAdd),
+                      onPressed: () {
+                        final onLibrary =
+                            DefaultTabController.of(context).index == 0;
+                        final kind = !onLibrary
+                            ? null
+                            : _libraryKind(ref, sonarr: sonarr, radarr: radarr);
+                        context.push(switch (kind) {
+                          ArrKind.radarr => '/arr/add/movie',
+                          ArrKind.sonarr => '/arr/add/series',
+                          null => '/arr/add',
+                        });
+                      },
                     ),
                   ),
+                  ArrHealthButton(onTap: () => context.push('/arr/health')),
+                  IconButton(
+                    tooltip: l.browseSettings,
+                    icon: const Icon(Icons.settings_rounded),
+                    onPressed: () => context.push('/arr-settings'),
+                  ),
+                ],
+                bottom: TabBar(
+                  isScrollable: !narrow,
+                  tabAlignment: narrow ? TabAlignment.fill : TabAlignment.start,
+                  // Four tabs share a phone's width: the usual side padding
+                  // would cut "Activity" short once its count shows.
+                  labelPadding: narrow
+                      ? const EdgeInsets.symmetric(horizontal: 4)
+                      : null,
+                  tabs: [
+                    Tab(text: l.arrLibrary),
+                    Tab(text: l.arrCalendar),
+                    Tab(
+                      // A long count on a small phone shrinks the pair a
+                      // little instead of cutting the name short.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [Text(l.arrActivity), const _QueueCount()],
+                        ),
+                      ),
+                    ),
+                    Tab(text: l.arrWanted),
+                  ],
                 ),
-                Tab(text: l.arrWanted),
-              ],
+              ),
+              body: LayoutBuilder(builder: _body),
             ),
           ),
-          body: const TabBarView(
-            children: [
-              RepaintBoundary(child: _LibraryTab()),
-              RepaintBoundary(child: _CalendarTab()),
-              RepaintBoundary(child: _ActivityTab()),
-              RepaintBoundary(child: ArrWantedTab()),
-            ],
-          ),
         ),
+      ),
+    );
+  }
+
+  /// The tabs, and beside them the pane when a title is open and the
+  /// section is wide enough for both. The tabs keep their place in the tree
+  /// either way, so nothing in them starts over as the pane comes and goes.
+  Widget _body(BuildContext context, BoxConstraints box) {
+    // A TV keeps to pages: a pane would be a second place for the remote's
+    // focus to get lost in.
+    final width = isTvDevice ? null : arrPaneWidth(box.maxWidth);
+    _paneFits = width != null;
+    final open = width == null ? null : _open;
+    return ArrPaneScope(
+      shown: open,
+      open: width == null ? null : _show,
+      onPage: _forget,
+      // Back closes the pane before it leaves the section: a tablet's Back
+      // button or gesture, where there's no Escape.
+      child: PopScope(
+        canPop: open == null,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && _paneFits && _open != null) _close();
+        },
+        child: Row(
+          children: [
+            Expanded(child: _tabs),
+            if (open != null && width != null) ...[
+              const VerticalDivider(width: 1),
+              SizedBox(
+                width: width,
+                child: _Pane(
+                  // Another title is another page: nothing of the last
+                  // one's scroll or open seasons carries over.
+                  key: ValueKey(open),
+                  title: open,
+                  width: width,
+                  onClose: _close,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A title's page, beside the lists. The page lays itself out for the
+/// pane's width, not the window's.
+class _Pane extends StatelessWidget {
+  final ArrTitleRef title;
+  final double width;
+  final VoidCallback onClose;
+
+  const _Pane({
+    super.key,
+    required this.title,
+    required this.width,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    return ArrPaneHost(
+      close: onClose,
+      openPage: () => arrOpenTitlePage(context, title.kind, title.id),
+      child: MediaQuery(
+        data: media.copyWith(size: Size(width, media.size.height)),
+        child: title.kind == ArrKind.radarr
+            ? ArrMovieScreen(id: title.id)
+            : ArrSeriesScreen(id: title.id),
       ),
     );
   }
@@ -273,7 +491,9 @@ class _QueuePollState extends ConsumerState<_QueuePoll>
 /// Movies and Shows behind one switch. The search box is shared, so a title
 /// typed once can be looked for in both.
 class _LibraryTab extends ConsumerStatefulWidget {
-  const _LibraryTab();
+  /// The search box's focus, held by the section for Ctrl+F.
+  final FocusNode searchFocus;
+  const _LibraryTab({required this.searchFocus});
 
   @override
   ConsumerState<_LibraryTab> createState() => _LibraryTabState();
@@ -310,9 +530,10 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
             onChanged: ref.read(arrLibraryKindProvider.notifier).set,
           )
         : null;
+    final focus = widget.searchFocus;
     return kind == ArrKind.radarr
-        ? _MoviesTab(search: _search, switcher: switcher)
-        : _ShowsTab(search: _search, switcher: switcher);
+        ? _MoviesTab(search: _search, searchFocus: focus, switcher: switcher)
+        : _ShowsTab(search: _search, searchFocus: focus, switcher: switcher);
   }
 }
 
@@ -342,220 +563,6 @@ class _ActivityTab extends ConsumerWidget {
       ArrActivityView.history => ArrHistoryTab(lead: lead),
       ArrActivityView.blocklist => ArrBlocklistView(lead: lead),
     };
-  }
-}
-
-// ---------------------------------------------------------------- Calendar
-
-class _CalendarTab extends ConsumerWidget {
-  const _CalendarTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final async = ref.watch(arrCalendarProvider);
-    // Show Unmonitored reloads it: keep showing the list (and the chip)
-    // meanwhile rather than blanking the tab.
-    return async.when(
-      skipLoadingOnReload: true,
-      loading: () => const Center(child: AppSpinner()),
-      error: (e, _) => ErrorView(
-        message: e.toString(),
-        onRetry: () => ref.invalidate(arrCalendarProvider),
-      ),
-      data: (merged) {
-        final days = _byDay(merged.items);
-        final unmonitored = ref.watch(arrCalendarUnmonitoredProvider);
-        return RefreshIndicator(
-          onRefresh: () => ref.refresh(arrCalendarProvider.future),
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
-              // Monitored only by default, as in the apps; unmonitored ones
-              // then show greyed with their Unmonitored chip.
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FilterChip(
-                      label: Text(l.arrShowUnmonitored),
-                      selected: unmonitored,
-                      onSelected: (v) => ref
-                          .read(arrCalendarUnmonitoredProvider.notifier)
-                          .set(v),
-                    ),
-                  ),
-                ),
-              ),
-              if (days.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: true,
-                  child: EmptyState(
-                    icon: Icons.event_available_rounded,
-                    title: l.arrCalendarEmpty,
-                  ),
-                )
-              else
-                for (final day in days.entries) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
-                      child: Text(
-                        _dayLabel(context, l, day.key),
-                        style: arrSectionStyle(Theme.of(context)),
-                      ),
-                    ),
-                  ),
-                  SliverList.builder(
-                    itemCount: day.value.length,
-                    itemBuilder: (context, i) =>
-                        _CalendarRow(entry: day.value[i]),
-                  ),
-                ],
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  static Map<DateTime, List<ArrCalendarEntry>> _byDay(
-    List<ArrCalendarEntry> items,
-  ) {
-    final out = <DateTime, List<ArrCalendarEntry>>{};
-    for (final e in items) {
-      final d = DateTime(e.date.year, e.date.month, e.date.day);
-      (out[d] ??= []).add(e);
-    }
-    return out;
-  }
-
-  static String _dayLabel(
-    BuildContext context,
-    AppLocalizations l,
-    DateTime d,
-  ) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final diff = d.difference(today).inDays;
-    if (diff == 0) return l.arrToday;
-    if (diff == 1) return l.arrTomorrow;
-    if (diff == -1) return l.arrYesterday;
-    return DateFormat.MMMEd(
-      Localizations.localeOf(context).toString(),
-    ).format(d);
-  }
-}
-
-class _CalendarRow extends ConsumerWidget {
-  final ArrCalendarEntry entry;
-  const _CalendarRow({required this.entry});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final ArrClient? client = entry.kind == ArrKind.sonarr
-        ? ref.watch(sonarrClientProvider)
-        : ref.watch(radarrClientProvider);
-    final now = DateTime.now();
-    final aired = !entry.date.isAfter(now);
-    final (String status, Color color) = entry.hasFile
-        ? (l.arrDownloaded, arrDownloadedColor)
-        : !entry.monitored
-        ? (l.arrUnmonitored, scheme.outline)
-        : aired
-        ? (l.arrMissing, arrMissingColor)
-        : entry.kind == ArrKind.sonarr
-        ? (l.arrUnaired, arrUnreleasedColor)
-        : (l.arrNotReleased, arrUnreleasedColor);
-    final subtitle = entry.kind == ArrKind.sonarr
-        ? [
-            entry.episodeCode,
-            entry.episodeTitle,
-          ].whereType<String>().where((s) => s.isNotEmpty).join(' · ')
-        : switch (entry.release) {
-            ArrRelease.cinemas => l.arrInCinemas,
-            ArrRelease.digital => l.arrDigitalRelease,
-            ArrRelease.physical => l.arrPhysicalRelease,
-            null => '',
-          };
-    return InkWell(
-      onTap: () => arrOpenTitle(
-        context,
-        entry.kind,
-        entry.kind == ArrKind.sonarr ? entry.seriesId : entry.movieId,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: 46,
-                height: 69,
-                child: ArrArt(
-                  client: client,
-                  images: entry.images,
-                  width: 185,
-                  placeholderIcon: entry.kind == ArrKind.sonarr
-                      ? Icons.live_tv_rounded
-                      : Icons.movie_rounded,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (subtitle.isNotEmpty)
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      ArrChip(label: status, color: color),
-                      if (entry.finale)
-                        ArrChip(label: l.arrFinale, color: arrQueuedColor),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (entry.kind == ArrKind.sonarr) ...[
-              const SizedBox(width: 10),
-              Text(
-                arrTime(context, entry.date),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -644,14 +651,14 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
       return polled(
         Column(
           children: [
-            toolbar,
+            ArrListColumn(child: toolbar),
             Expanded(
               child: async.hasError
                   ? ErrorView(
                       message: async.error.toString(),
                       onRetry: () => ref.invalidate(arrQueueProvider),
                     )
-                  : const Center(child: AppSpinner()),
+                  : const ArrRowsSkeleton(cards: true),
             ),
           ],
         ),
@@ -659,7 +666,7 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
     }
     final list = RefreshIndicator(
       onRefresh: () => ref.refresh(arrQueueProvider.future),
-      child: CustomScrollView(
+      child: ArrListView(
         slivers: [
           SliverToBoxAdapter(child: toolbar),
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
@@ -688,6 +695,7 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
                       if (!p.remove(k)) p.add(k);
                       _picked = p;
                     }),
+                    onSelect: () => setState(() => _picked = {k}),
                   );
                 },
               ),
@@ -700,7 +708,8 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
       PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) setState(() => _picked = null);
+          if (didPop || ArrPaneScope.takesBack(context)) return;
+          setState(() => _picked = null);
         },
         child: Column(
           children: [
@@ -738,7 +747,16 @@ class _QueueCard extends ConsumerWidget {
   /// While picking, whether this one is picked (null: not picking).
   final bool? picked;
   final VoidCallback? onPick;
-  const _QueueCard({required this.item, this.picked, this.onPick});
+
+  /// Starts picking, with this one picked: the menu's Select.
+  final VoidCallback? onSelect;
+
+  const _QueueCard({
+    required this.item,
+    this.picked,
+    this.onPick,
+    this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -765,9 +783,52 @@ class _QueueCard extends ConsumerWidget {
     ];
     final titleId = item.kind == ArrKind.sonarr ? item.seriesId : item.movieId;
     final importable = client != null && item.canManualImport;
-    return Card(
+    final held = item.status == 'delay';
+    // What the card's buttons do, by name, on a right-click or a long press.
+    void menu(Offset at) => showContextMenu(
+      context,
+      at: at,
+      title: heading,
+      actions: [
+        ...arrOpenActions(context, item.kind, titleId),
+        if (importable)
+          ContextMenuAction(
+            icon: Icons.download_done_rounded,
+            label: l.arrManualImport,
+            onTap: () => _manualImport(context, ref),
+          ),
+        if (client != null && held)
+          ContextMenuAction(
+            icon: Icons.file_download_rounded,
+            label: l.arrGrabNow,
+            onTap: () => _grab(context, ref, client),
+          ),
+        if (onSelect != null)
+          ContextMenuAction(
+            icon: Icons.check_circle_outline_rounded,
+            label: l.arrSelect,
+            onTap: onSelect!,
+          ),
+        if (client != null)
+          ContextMenuAction(
+            icon: Icons.close_rounded,
+            label: l.arrRemoveFromQueue,
+            color: scheme.error,
+            onTap: () => _remove(context, ref, client),
+          ),
+      ],
+    );
+    final shown = ArrPaneScope.shows(context, item.kind, titleId);
+    final card = Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      // Tinted while the pane beside the list shows its title.
+      color: shown
+          ? Color.alphaBlend(
+              scheme.primary.withValues(alpha: 0.14),
+              theme.cardTheme.color ?? scheme.surfaceContainer,
+            )
+          : null,
       child: InkWell(
         onTap: picked != null
             ? onPick
@@ -891,39 +952,51 @@ class _QueueCard extends ConsumerWidget {
                 ),
               ),
               // Held back by a delay profile: send it now.
-              if (client != null && picked == null && item.status == 'delay')
+              if (client != null && picked == null && held)
                 IconButton(
                   tooltip: l.arrGrabNow,
                   icon: const Icon(Icons.file_download_rounded),
-                  onPressed: () async {
-                    if (await arrRun(
-                      context,
-                      () => client.grabFromQueue(item.id),
-                      done: l.arrGrabbed,
-                    )) {
-                      ref.invalidate(arrQueueProvider);
-                    }
-                  },
+                  onPressed: () => _grab(context, ref, client),
                 ),
               if (client != null && picked == null)
                 IconButton(
                   tooltip: l.arrRemoveFromQueue,
                   icon: const Icon(Icons.close_rounded),
-                  onPressed: () async {
-                    if (await showArrQueueRemoveDialog(
-                      context,
-                      client: client,
-                      item: item,
-                    )) {
-                      ref.invalidate(arrQueueProvider);
-                    }
-                  },
+                  onPressed: () => _remove(context, ref, client),
                 ),
             ],
           ),
         ),
       ),
     );
+    // While picking, a press picks: no menu to get in its way.
+    if (picked != null) return card;
+    return GestureDetector(
+      onSecondaryTapUp: (d) => menu(d.globalPosition),
+      onLongPressStart: (d) => menu(d.globalPosition),
+      child: card,
+    );
+  }
+
+  Future<void> _grab(
+    BuildContext context,
+    WidgetRef ref,
+    ArrClient client,
+  ) async {
+    final done = AppLocalizations.of(context).arrGrabbed;
+    if (await arrRun(context, () => client.grabFromQueue(item.id), done: done)) {
+      ref.invalidate(arrQueueProvider);
+    }
+  }
+
+  Future<void> _remove(
+    BuildContext context,
+    WidgetRef ref,
+    ArrClient client,
+  ) async {
+    if (await showArrQueueRemoveDialog(context, client: client, item: item)) {
+      ref.invalidate(arrQueueProvider);
+    }
   }
 
   Future<void> _manualImport(BuildContext context, WidgetRef ref) async {
@@ -1020,7 +1093,7 @@ mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   Widget backEndsPicking(Widget child) => PopScope(
     canPop: !selection.active,
     onPopInvokedWithResult: (didPop, _) {
-      if (!didPop) selection.stop();
+      if (!didPop && !ArrPaneScope.takesBack(context)) selection.stop();
     },
     child: child,
   );
@@ -1029,6 +1102,7 @@ mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// search for it straight away.
   void posterMenu(
     Offset at, {
+    required ArrKind kind,
     required int id,
     required String title,
     required String searchLabel,
@@ -1041,15 +1115,24 @@ mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       at: at,
       title: title,
       actions: [
-        ContextMenuAction(
-          icon: Icons.check_circle_outline_rounded,
-          label: l.arrSelect,
-          onTap: () => selection.start(id),
-        ),
+        ...arrOpenActions(context, kind, id),
         ContextMenuAction(
           icon: Icons.search_rounded,
           label: searchLabel,
           onTap: () => arrRun(context, search, done: done),
+        ),
+        // A movie is one release to choose; a show's are chosen a season
+        // or an episode at a time, on its page.
+        if (kind == ArrKind.radarr)
+          ContextMenuAction(
+            icon: Icons.manage_search_rounded,
+            label: l.arrInteractiveSearch,
+            onTap: () => context.push(ArrReleaseTarget.movie(id).location),
+          ),
+        ContextMenuAction(
+          icon: Icons.check_circle_outline_rounded,
+          label: l.arrSelect,
+          onTap: () => selection.start(id),
         ),
       ],
     );
@@ -1059,11 +1142,16 @@ mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 class _MoviesTab extends ConsumerStatefulWidget {
   /// The Library tab's search box, shared with the other library.
   final TextEditingController search;
+  final FocusNode searchFocus;
 
   /// The Movies and Shows switch; null with only one of the apps connected.
   final Widget? switcher;
 
-  const _MoviesTab({required this.search, this.switcher});
+  const _MoviesTab({
+    required this.search,
+    required this.searchFocus,
+    this.switcher,
+  });
 
   @override
   ConsumerState<_MoviesTab> createState() => _MoviesTabState();
@@ -1115,6 +1203,7 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
       addRow: shown.asData?.value.isNotEmpty ?? false,
       switcher: widget.switcher,
       search: _search,
+      searchFocus: widget.searchFocus,
       hint: l.arrSearchMovies,
       onSearch: () {
         setState(() {});
@@ -1166,9 +1255,9 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
             ),
       kind: ArrKind.radarr,
       body: async.when(
-        loading: () => const SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(child: AppSpinner()),
+        loading: () => const ArrPosterGridSkeleton(
+          gridDelegate: _PosterGrid.cells,
+          padding: _PosterGrid.padding,
         ),
         error: (e, _) => SliverFillRemaining(
           hasScrollBody: true,
@@ -1212,6 +1301,7 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
               final m = list[i];
               return _ArrPosterCard(
                 key: ValueKey('rm${m.id}'),
+                shownAs: (kind: ArrKind.radarr, id: m.id),
                 client: client,
                 images: m.images,
                 title: m.title,
@@ -1223,11 +1313,12 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
                 selected: selection.active ? selection.contains(m.id) : null,
                 onTap: () => selection.active
                     ? selection.toggle(m.id)
-                    : context.push('/arr/movie/${m.id}'),
+                    : arrOpenTitle(context, ArrKind.radarr, m.id),
                 onMenu: client == null || selection.active
                     ? null
                     : (at) => posterMenu(
                         at,
+                        kind: ArrKind.radarr,
                         id: m.id,
                         title: m.title,
                         searchLabel: l.arrSearchMovie,
@@ -1246,11 +1337,16 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
 class _ShowsTab extends ConsumerStatefulWidget {
   /// The Library tab's search box, shared with the other library.
   final TextEditingController search;
+  final FocusNode searchFocus;
 
   /// The Movies and Shows switch; null with only one of the apps connected.
   final Widget? switcher;
 
-  const _ShowsTab({required this.search, this.switcher});
+  const _ShowsTab({
+    required this.search,
+    required this.searchFocus,
+    this.switcher,
+  });
 
   @override
   ConsumerState<_ShowsTab> createState() => _ShowsTabState();
@@ -1304,6 +1400,7 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
       addRow: shown.asData?.value.isNotEmpty ?? false,
       switcher: widget.switcher,
       search: _search,
+      searchFocus: widget.searchFocus,
       hint: l.arrSearchShows,
       onSearch: () {
         setState(() {});
@@ -1351,9 +1448,9 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
             ),
       kind: ArrKind.sonarr,
       body: async.when(
-        loading: () => const SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(child: AppSpinner()),
+        loading: () => const ArrPosterGridSkeleton(
+          gridDelegate: _PosterGrid.cells,
+          padding: _PosterGrid.padding,
         ),
         error: (e, _) => SliverFillRemaining(
           hasScrollBody: true,
@@ -1407,6 +1504,7 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
                   : arrContinuingColor;
               return _ArrPosterCard(
                 key: ValueKey('ss${s.id}'),
+                shownAs: (kind: ArrKind.sonarr, id: s.id),
                 client: client,
                 images: s.images,
                 title: s.title,
@@ -1416,11 +1514,12 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
                 selected: selection.active ? selection.contains(s.id) : null,
                 onTap: () => selection.active
                     ? selection.toggle(s.id)
-                    : context.push('/arr/series/${s.id}'),
+                    : arrOpenTitle(context, ArrKind.sonarr, s.id),
                 onMenu: client == null || selection.active
                     ? null
                     : (at) => posterMenu(
                         at,
+                        kind: ArrKind.sonarr,
                         id: s.id,
                         title: s.title,
                         searchLabel: l.arrSearchMonitored,
@@ -1452,6 +1551,7 @@ class _LibraryFrame extends StatelessWidget {
   /// The Movies and Shows switch; null with only one of the apps connected.
   final Widget? switcher;
   final TextEditingController search;
+  final FocusNode searchFocus;
   final String hint;
   final VoidCallback onSearch;
   final _Sort sort;
@@ -1482,6 +1582,7 @@ class _LibraryFrame extends StatelessWidget {
     required this.kind,
     required this.addRow,
     required this.search,
+    required this.searchFocus,
     required this.hint,
     required this.onSearch,
     required this.sort,
@@ -1520,6 +1621,7 @@ class _LibraryFrame extends StatelessWidget {
     };
     final searchBox = SearchField(
       controller: search,
+      focusNode: searchFocus,
       hint: hint,
       onChanged: (_) => onSearch(),
     );
@@ -1722,17 +1824,22 @@ class _PosterGrid extends StatelessWidget {
   final Widget Function(int i) builder;
   const _PosterGrid({required this.count, required this.builder});
 
+  /// Shared with the grid's skeleton, so the posters arrive where their
+  /// placeholders stood.
+  static const padding = EdgeInsets.fromLTRB(16, 12, 16, 24);
+  static const cells = SliverGridDelegateWithMaxCrossAxisExtent(
+    maxCrossAxisExtent: 168,
+    mainAxisSpacing: 18,
+    crossAxisSpacing: 14,
+    childAspectRatio: 0.52,
+  );
+
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: padding,
       sliver: SliverGrid.builder(
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 168,
-          mainAxisSpacing: 18,
-          crossAxisSpacing: 14,
-          childAspectRatio: 0.52,
-        ),
+        gridDelegate: cells,
         itemCount: count,
         itemBuilder: (context, i) => EntranceFade(index: i, child: builder(i)),
       ),
@@ -1755,8 +1862,12 @@ class _ArrPosterCard extends StatelessWidget {
   /// Long-press / right-click menu.
   final void Function(Offset at)? onMenu;
 
+  /// The title this is the poster of: it's ringed while the pane shows it.
+  final ArrTitleRef shownAs;
+
   const _ArrPosterCard({
     super.key,
+    required this.shownAs,
     required this.client,
     required this.images,
     required this.title,
@@ -1771,6 +1882,9 @@ class _ArrPosterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final shown =
+        selected == null &&
+        ArrPaneScope.shows(context, shownAs.kind, shownAs.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1789,6 +1903,20 @@ class _ArrPosterCard extends StatelessWidget {
                   overlay: bar,
                 ),
               ),
+              if (shown)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.primary,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               // The same tick as the Jellyfin library's picking, announced
               // to screen readers as picked or not.
               if (selected != null)

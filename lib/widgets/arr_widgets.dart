@@ -5,7 +5,10 @@ import 'package:intl/intl.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../theme/app_theme.dart';
+import 'arr_pane.dart';
 import 'cached_image.dart';
+import 'context_menu.dart';
 
 /// The Manage section's icon, in the navigation and on its empty state.
 const kManageIcon = Icons.video_settings_rounded;
@@ -136,19 +139,28 @@ class ArrChip extends StatelessWidget {
   final String label;
   final Color color;
   final IconData? icon;
+
+  /// Over a picture: the tint alone disappears into art of its own color,
+  /// so the label gets something dark to stand on.
+  final bool onArt;
+
   const ArrChip({
     super.key,
     required this.label,
     required this.color,
     this.icon,
+    this.onArt = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tint = color.withValues(alpha: 0.16);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
+        color: onArt
+            ? Color.alphaBlend(tint, Colors.black.withValues(alpha: 0.72))
+            : tint,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
@@ -285,45 +297,270 @@ class ArrSwitch<T> extends StatelessWidget {
   }
 }
 
+/// Something a list's toolbar offers (Select, Manual Import, Clear): a button
+/// on a wide window, a line of the More menu on a phone, where the switch
+/// beside it leaves no room for a row of buttons.
+class ArrTool {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  /// Shown with its name on a wide window, not only its icon.
+  final bool labeled;
+  final bool danger;
+  const ArrTool(
+    this.icon,
+    this.label,
+    this.onTap, {
+    this.labeled = false,
+    this.danger = false,
+  });
+}
+
 /// The row above a list: its switch on the left, what can be done with the
-/// list on the right. The buttons drop to a second line when both don't fit.
+/// list on the right. [actions] always show; [tools] are buttons with room
+/// for them and fold under More without, so a phone keeps it to one line.
 class ArrToolbar extends StatelessWidget {
   final Widget lead;
   final List<Widget> actions;
+  final List<ArrTool> tools;
 
-  const ArrToolbar({super.key, required this.lead, this.actions = const []});
+  const ArrToolbar({
+    super.key,
+    required this.lead,
+    this.actions = const [],
+    this.tools = const [],
+  });
+
+  /// Below this the tools fold under More: the width of the list the
+  /// toolbar is above, its own padding included.
+  static const foldBelow = 600.0;
+
+  static const _padding = EdgeInsets.fromLTRB(16, 12, 8, 4);
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 4,
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          lead,
-          // As tall as a button even with none, so the row doesn't jump
-          // between lists.
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Row(mainAxisSize: MainAxisSize.min, children: actions),
-          ),
-        ],
+      padding: _padding,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final fold = c.maxWidth + _padding.horizontal < foldBelow;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              lead,
+              // As tall as a button even with none, so the row doesn't jump
+              // between lists.
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!fold)
+                      for (final t in tools)
+                        t.labeled
+                            ? TextButton.icon(
+                                style: kInlineButtonStyle,
+                                onPressed: t.onTap,
+                                icon: Icon(t.icon),
+                                label: Text(t.label),
+                              )
+                            : IconButton(
+                                tooltip: t.label,
+                                icon: Icon(t.icon),
+                                onPressed: t.onTap,
+                              ),
+                    ...actions,
+                    if (fold && tools.isNotEmpty)
+                      PopupMenuButton<ArrTool>(
+                        tooltip: l.arrMore,
+                        icon: const Icon(Icons.more_vert_rounded),
+                        onSelected: (t) => t.onTap?.call(),
+                        itemBuilder: (_) => [
+                          for (final t in tools)
+                            PopupMenuItem(
+                              value: t,
+                              enabled: t.onTap != null,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    t.icon,
+                                    size: 20,
+                                    color: t.danger ? scheme.error : null,
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Flexible(child: Text(t.label)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+}
+
+/// How wide a list of rows gets on a big window: past this a row's title and
+/// its button drift too far apart to read as one line.
+const arrListMaxWidth = 960.0;
+
+/// The space each side of a list [width] wide that keeps its rows within
+/// [arrListMaxWidth].
+double arrListInset(double width, [double maxWidth = arrListMaxWidth]) =>
+    width > maxWidth ? (width - maxWidth) / 2 : 0;
+
+/// A scrolling list that keeps a readable width on a wide window: its rows
+/// stay in a centered column while the whole width still scrolls.
+class ArrListView extends StatelessWidget {
+  final List<Widget> slivers;
+  final double maxWidth;
+  final ScrollPhysics? physics;
+
+  const ArrListView({
+    super.key,
+    required this.slivers,
+    this.maxWidth = arrListMaxWidth,
+    this.physics,
+  });
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) {
+      final side = arrListInset(c.maxWidth, maxWidth);
+      return CustomScrollView(
+        physics: physics,
+        slivers: [
+          for (final s in slivers)
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: side),
+              sliver: s,
+            ),
+        ],
+      );
+    },
+  );
+}
+
+/// The same column for what sits above or in place of a list (its toolbar
+/// while it loads, an error).
+class ArrListColumn extends StatelessWidget {
+  final Widget child;
+  const ArrListColumn({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: arrListMaxWidth),
+      // The column's whole width, as a row of the list gets: a toolbar left to
+      // its own width would sit in the middle until the list arrived.
+      child: SizedBox(width: double.infinity, child: child),
+    ),
+  );
 }
 
 /// Section heading on Arr pages.
 TextStyle? arrSectionStyle(ThemeData theme) =>
     theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
 
-/// Opens Fathom's own page for a show or movie.
+/// Opens a show or movie: in the pane beside the list where the Manage
+/// section has one, otherwise on its own page.
 void arrOpenTitle(BuildContext context, ArrKind kind, int? id) {
   if (id == null) return;
-  context.push(kind == ArrKind.sonarr ? '/arr/series/$id' : '/arr/movie/$id');
+  final scope = ArrPaneScope.read(context);
+  final open = scope?.open;
+  if (open != null) return open(kind, id);
+  scope?.onPage?.call();
+  arrOpenTitlePage(context, kind, id);
+}
+
+/// Opens a show or movie on its own page.
+void arrOpenTitlePage(BuildContext context, ArrKind kind, int id) =>
+    context.push(kind == ArrKind.sonarr ? '/arr/series/$id' : '/arr/movie/$id');
+
+/// The first lines of a row's or a poster's menu: open the title, and where
+/// that opens it in the pane beside the lists, open its own page as well.
+List<ContextMenuAction> arrOpenActions(
+  BuildContext context,
+  ArrKind kind,
+  int? id,
+) {
+  if (id == null) return const [];
+  final l = AppLocalizations.of(context);
+  return [
+    ContextMenuAction(
+      icon: Icons.info_outline_rounded,
+      label: l.arrOpenTitle,
+      onTap: () => arrOpenTitle(context, kind, id),
+    ),
+    if (ArrPaneScope.read(context)?.open != null)
+      ContextMenuAction(
+        icon: Icons.open_in_full_rounded,
+        label: l.arrOpenFullPage,
+        onTap: () => arrOpenTitlePage(context, kind, id),
+      ),
+  ];
+}
+
+/// A row of one of the section's lists. Under a pointer it lights up as a
+/// rounded shape set in from the list's edges, and it stays tinted while
+/// the pane beside the list shows its title. [onMenu] opens on a right-click
+/// or a long press, where they happened.
+class ArrRowInk extends StatelessWidget {
+  final ArrKind? kind;
+  final int? titleId;
+  final VoidCallback? onTap;
+  final void Function(Offset at)? onMenu;
+  final Widget child;
+
+  const ArrRowInk({
+    super.key,
+    this.kind,
+    this.titleId,
+    this.onTap,
+    this.onMenu,
+    required this.child,
+  });
+
+  /// What the row is set in by on each side; its content keeps its place by
+  /// taking this off its own side padding.
+  static const inset = 6.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = kind != null && ArrPaneScope.shows(context, kind!, titleId);
+    Widget row = Material(
+      color: shown
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.14)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: child),
+    );
+    final menu = onMenu;
+    if (menu != null) {
+      row = GestureDetector(
+        onSecondaryTapUp: (d) => menu(d.globalPosition),
+        onLongPressStart: (d) => menu(d.globalPosition),
+        child: row,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: inset),
+      child: row,
+    );
+  }
 }
 
 /// How a history event reads: its name, icon and color, the way the apps

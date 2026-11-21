@@ -8,17 +8,19 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
-import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_delete_files.dart';
 import '../widgets/arr_file_edit.dart';
 import '../widgets/arr_monitoring.dart';
+import '../widgets/arr_pane.dart';
+import '../widgets/arr_skeletons.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/error_view.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/meta_pill.dart';
+import '../widgets/shimmer.dart';
 import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
 import 'arr_releases_screen.dart';
@@ -35,7 +37,7 @@ class ArrMovieScreen extends ConsumerWidget {
     final async = ref.watch(radarrMovieProvider(id));
     return Scaffold(
       body: async.when(
-        loading: () => const Center(child: AppSpinner()),
+        loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
           message: e.toString(),
           onRetry: () => ref.invalidate(radarrMovieProvider(id)),
@@ -74,12 +76,13 @@ class ArrMovieScreen extends ConsumerWidget {
                   status: ArrChip(
                     label: arrStateLabel(l, m.state),
                     color: arrStateColor(m.state, theme.colorScheme),
+                    onArt: true,
                   ),
                   placeholderIcon: Icons.movie_rounded,
                   actions: wide ? actions(true) : null,
                 ),
                 SliverToBoxAdapter(
-                  child: Padding(
+                  child: _Body(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +201,7 @@ class ArrSeriesScreen extends ConsumerWidget {
     final async = ref.watch(sonarrSeriesProvider(id));
     return Scaffold(
       body: async.when(
-        loading: () => const Center(child: AppSpinner()),
+        loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
           message: e.toString(),
           onRetry: () => ref.invalidate(sonarrSeriesProvider(id)),
@@ -258,16 +261,19 @@ class ArrSeriesScreen extends ConsumerWidget {
                       ArrChip(
                         label: arrStateLabel(l, state),
                         color: arrStateColor(state, theme.colorScheme),
+                        onArt: true,
                       ),
                       if (!s.monitored)
                         ArrChip(
                           label: l.arrUnmonitored,
                           color: theme.colorScheme.outline,
+                          onArt: true,
                         ),
                       if (s.monitored && s.missingEpisodes > 0)
                         ArrChip(
                           label: l.arrMissingEpisodes(s.missingEpisodes),
                           color: arrMissingColor,
+                          onArt: true,
                         ),
                     ],
                   ),
@@ -275,7 +281,7 @@ class ArrSeriesScreen extends ConsumerWidget {
                   actions: wide ? actions(true) : null,
                 ),
                 SliverToBoxAdapter(
-                  child: Padding(
+                  child: _Body(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,40 +330,45 @@ class ArrSeriesScreen extends ConsumerWidget {
                 ),
                 if (episodes.hasError)
                   SliverToBoxAdapter(
-                    child: ErrorView(
-                      message: episodes.error.toString(),
-                      onRetry: () => ref.invalidate(sonarrEpisodesProvider(id)),
+                    child: _Body(
+                      child: ErrorView(
+                        message: episodes.error.toString(),
+                        onRetry: () =>
+                            ref.invalidate(sonarrEpisodesProvider(id)),
+                      ),
                     ),
                   )
                 else if (!episodes.hasValue)
                   const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: AppSpinner()),
+                    child: _Body(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, 4),
+                      child: _BlocksSkeleton(height: 52),
                     ),
                   )
                 else
                   SliverList.builder(
                     itemCount: seasons.length,
-                    itemBuilder: (context, i) => _SeasonTile(
-                      client: client,
-                      series: s,
-                      seriesId: id,
-                      season: seasons[i],
-                      episodes:
-                          [
-                            for (final e in episodes.value!)
-                              if (e.seasonNumber == seasons[i].seasonNumber) e,
-                          ]..sort(
-                            (a, b) =>
-                                b.episodeNumber.compareTo(a.episodeNumber),
-                          ),
-                      files: files,
-                      initiallyExpanded: i == 0,
+                    itemBuilder: (context, i) => _Body(
+                      child: _SeasonTile(
+                        client: client,
+                        series: s,
+                        seriesId: id,
+                        season: seasons[i],
+                        episodes:
+                            [
+                              for (final e in episodes.value!)
+                                if (e.seasonNumber == seasons[i].seasonNumber) e,
+                            ]..sort(
+                              (a, b) =>
+                                  b.episodeNumber.compareTo(a.episodeNumber),
+                            ),
+                        files: files,
+                        initiallyExpanded: i == 0,
+                      ),
                     ),
                   ),
                 SliverToBoxAdapter(
-                  child: Padding(
+                  child: _Body(
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
                     child: _HistorySection(
                       history: history,
@@ -402,13 +413,25 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final height = (MediaQuery.sizeOf(context).width / 2.35).clamp(
-      320.0,
-      620.0,
-    );
+    final host = ArrPaneHost.of(context);
     return SliverAppBar(
-      expandedHeight: height,
+      expandedHeight: _headerHeight(context),
       pinned: true,
+      // Solid once closed: the page scrolls beneath it, and the title's name
+      // can't be read over the page's own words through a see-through bar.
+      backgroundColor: theme.colorScheme.surface,
+      automaticallyImplyLeading: host == null,
+      leading: host == null ? null : _PaneClose(host: host),
+      title: _BarTitle(title: title),
+      actions: host == null
+          ? null
+          : [
+              IconButton(
+                tooltip: AppLocalizations.of(context).arrOpenFullPage,
+                icon: const Icon(Icons.open_in_full_rounded),
+                onPressed: host.openPage,
+              ),
+            ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -426,8 +449,15 @@ class _Header extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black87],
-                  stops: [0.4, 1.0],
+                  // Dark at the top for the bar's buttons, and at the foot
+                  // for the title: bright art would swallow both.
+                  colors: [
+                    Colors.black54,
+                    Colors.transparent,
+                    Colors.transparent,
+                    Colors.black87,
+                  ],
+                  stops: [0.0, 0.28, 0.4, 1.0],
                 ),
               ),
             ),
@@ -453,6 +483,123 @@ class _Header extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A title's name in its bar, once the header that says it has scrolled
+/// away: there's nothing else left on the page to say whose page this is.
+class _BarTitle extends StatelessWidget {
+  final String title;
+  const _BarTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final bar = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    if (bar == null) return const SizedBox.shrink();
+    // Comes in as the header's picture goes out: over its last stretch, a
+    // bar's height from closed, which is where the header fades its own.
+    final open = bar.currentExtent - bar.minExtent;
+    final shown = (1 - open / kToolbarHeight).clamp(0.0, 1.0);
+    if (shown == 0) return const SizedBox.shrink();
+    return Opacity(
+      opacity: shown,
+      child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+/// How tall a title's header is, for the width it has.
+double _headerHeight(BuildContext context) =>
+    (MediaQuery.sizeOf(context).width / 2.35).clamp(320.0, 620.0);
+
+/// Closes the pane a title's page is shown in.
+class _PaneClose extends StatelessWidget {
+  final ArrPaneHost host;
+  const _PaneClose({required this.host});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: AppLocalizations.of(context).commonClose,
+    icon: const Icon(Icons.close_rounded),
+    onPressed: host.close,
+  );
+}
+
+/// Leaves a title's page once the title is gone: closes the pane it's in, or
+/// goes back.
+void _leave(BuildContext context) {
+  final host = ArrPaneHost.of(context);
+  host != null ? host.close() : context.pop();
+}
+
+/// A stretch of a title's page. On a wide window it keeps to a width that
+/// reads well, at the start, under the header's own title.
+class _Body extends StatelessWidget {
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+  const _Body({this.padding = EdgeInsets.zero, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: AlignmentDirectional.topStart,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: arrListMaxWidth),
+      child: Padding(padding: padding, child: child),
+    ),
+  );
+}
+
+/// A few blocks standing in for rows that are on their way.
+class _BlocksSkeleton extends StatelessWidget {
+  final double height;
+  const _BlocksSkeleton({required this.height});
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Column(
+      children: [
+        for (var i = 0; i < 3; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ShimmerBox(height: height),
+          ),
+      ],
+    ),
+  );
+}
+
+/// A title's page before the title has arrived.
+class _LoadingPage extends StatelessWidget {
+  const _LoadingPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final host = ArrPaneHost.of(context);
+    // Filling the page: left to itself the stack is only as big as the
+    // button, and the shapes behind it are squeezed into that.
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ArrDetailSkeleton(
+              headerHeight:
+                  _headerHeight(context) + MediaQuery.paddingOf(context).top,
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: host != null
+                  ? _PaneClose(host: host)
+                  : (Navigator.of(context).canPop()
+                        ? const BackButton()
+                        : null),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -620,7 +767,7 @@ Widget Function(bool header) _movieActions(
             context.mounted) {
           ref.invalidate(radarrMoviesProvider);
           ref.invalidate(arrCalendarProvider);
-          context.pop();
+          _leave(context);
         }
       },
     ),
@@ -752,7 +899,7 @@ Widget Function(bool header) _seriesActions(
             context.mounted) {
           ref.invalidate(sonarrSeriesListProvider);
           ref.invalidate(arrCalendarProvider);
-          context.pop();
+          _leave(context);
         }
       },
     ),
@@ -803,15 +950,22 @@ class _ErrorPage extends StatelessWidget {
   const _ErrorPage({required this.message, required this.onRetry});
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-    slivers: [
-      const SliverAppBar(pinned: true),
-      SliverFillRemaining(
-        hasScrollBody: true,
-        child: ErrorView(message: message, onRetry: onRetry),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final host = ArrPaneHost.of(context);
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          pinned: true,
+          automaticallyImplyLeading: host == null,
+          leading: host == null ? null : _PaneClose(host: host),
+        ),
+        SliverFillRemaining(
+          hasScrollBody: true,
+          child: ErrorView(message: message, onRetry: onRetry),
+        ),
+      ],
+    );
+  }
 }
 
 /// A season of a show, opening into its episodes.
@@ -1304,10 +1458,7 @@ class _HistorySection extends StatelessWidget {
         if (history.hasError)
           Text(history.error.toString(), style: TextStyle(color: scheme.error))
         else if (items == null)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Center(child: AppSpinner()),
-          )
+          const _BlocksSkeleton(height: 40)
         else if (items.isEmpty)
           Text(
             l.arrNoHistory,

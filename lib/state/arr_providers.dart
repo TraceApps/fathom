@@ -66,14 +66,65 @@ Future<ArrMerged<T>> _both<T>(
   return ArrMerged(items, errors);
 }
 
+/// A stretch of days on the Calendar: from [start], up to but not [end].
+typedef ArrDays = ({DateTime start, DateTime end});
+
 /// The calendar window: from the start of yesterday, four weeks ahead.
-({DateTime start, DateTime end}) arrCalendarWindow(DateTime now) {
-  final today = DateTime(now.year, now.month, now.day);
+ArrDays arrCalendarWindow(DateTime now) {
+  // By the calendar, not in hours: a day the clocks change isn't 24 long.
   return (
-    start: today.subtract(const Duration(days: 1)),
-    end: today.add(const Duration(days: 29)),
+    start: DateTime(now.year, now.month, now.day - 1),
+    end: DateTime(now.year, now.month, now.day + 29),
   );
 }
+
+/// The days a month's grid shows: whole weeks, from the week its first day
+/// falls in to the week its last does. [firstWeekday] is the day a week
+/// starts on where the app is used, 0 for Sunday.
+({DateTime start, int weeks}) arrMonthGrid(DateTime month, int firstWeekday) {
+  final lead = (DateTime(month.year, month.month).weekday - firstWeekday) % 7;
+  final days = DateTime(month.year, month.month + 1, 0).day;
+  return (
+    // By the calendar, not by adding hours: a day isn't 24 of them when the
+    // clocks change.
+    start: DateTime(month.year, month.month, 1 - lead),
+    weeks: ((lead + days) / 7).ceil(),
+  );
+}
+
+/// How the Calendar is laid out: the days one under another, or a month's
+/// grid.
+enum ArrCalendarView { agenda, month }
+
+/// The layout picked for the Calendar; null until one is, and the Calendar
+/// then shows the month where there's room for it. Kept for the session.
+class ArrCalendarViewChoice extends Notifier<ArrCalendarView?> {
+  @override
+  ArrCalendarView? build() => null;
+  void set(ArrCalendarView v) => state = v;
+}
+
+final arrCalendarViewProvider =
+    NotifierProvider<ArrCalendarViewChoice, ArrCalendarView?>(
+      ArrCalendarViewChoice.new,
+    );
+
+/// The month the Calendar's grid is turned to, by its first day; null for
+/// the month it is now, which then moves on with the date.
+class ArrCalendarMonth extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? month) {
+    final now = DateTime.now();
+    state = month == null || (month.year == now.year && month.month == now.month)
+        ? null
+        : DateTime(month.year, month.month);
+  }
+}
+
+final arrCalendarMonthProvider =
+    NotifierProvider<ArrCalendarMonth, DateTime?>(ArrCalendarMonth.new);
 
 /// Whether the Calendar shows unmonitored titles too (Show Unmonitored).
 class ArrCalendarUnmonitored extends Notifier<bool> {
@@ -112,9 +163,11 @@ final arrActivityViewProvider =
       ArrActivityViewChoice.new,
     );
 
-final arrCalendarProvider =
-    FutureProvider.autoDispose<ArrMerged<ArrCalendarEntry>>((ref) async {
-      final w = arrCalendarWindow(DateTime.now());
+/// What's released over a stretch of days: the agenda's four weeks, or the
+/// weeks of a month's grid. Invalidated as a whole, every stretch on show
+/// reloads.
+final arrCalendarProvider = FutureProvider.autoDispose
+    .family<ArrMerged<ArrCalendarEntry>, ArrDays>((ref, w) async {
       final unmonitored = ref.watch(arrCalendarUnmonitoredProvider);
       final merged = await _both<ArrCalendarEntry>(
         ref.watch(sonarrClientProvider),

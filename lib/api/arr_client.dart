@@ -1113,9 +1113,14 @@ class RadarrClient extends ArrClient {
     DateTime end, {
     bool unmonitored = false,
   }) async {
+    // Radarr keeps a release date as midnight UTC of its day and compares it
+    // as a moment. Asked from local midnight, a movie out on the first day
+    // would be left out anywhere west of UTC: the days are asked for as
+    // UTC's. The last day comes back as well, and is dropped below.
+    DateTime day(DateTime d) => DateTime.utc(d.year, d.month, d.day);
     final data = await _get('calendar', {
-      'start': start.toUtc().toIso8601String(),
-      'end': end.toUtc().toIso8601String(),
+      'start': day(start).toIso8601String(),
+      'end': day(end).toIso8601String(),
       'unmonitored': unmonitored,
     });
     return [

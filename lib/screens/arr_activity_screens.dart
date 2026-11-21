@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/arr_client.dart';
@@ -10,12 +11,15 @@ import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_bulk.dart';
+import '../widgets/arr_pane.dart';
+import '../widgets/arr_skeletons.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
+import 'arr_releases_screen.dart';
 
 // ------------------------------------------------------------------ Wanted
 
@@ -147,32 +151,36 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
           _picked = null;
         }),
       ),
-      actions: [
+      // On a phone these go under More: beside the switch there's room for
+      // two buttons, not five.
+      tools: [
         // Search All only on the monitored list: Radarr's search-all
         // always covers monitored movies (MissingMoviesSearch takes no
         // monitored setting), so on the unmonitored list it would search
         // the wrong ones. Picked titles can still be searched.
         if (merged != null && merged.total > 0 && _monitored)
-          TextButton.icon(
-            style: kInlineButtonStyle,
-            onPressed: () => _searchAll(merged),
-            icon: const Icon(Icons.manage_search_rounded),
-            label: Text(l.arrSearchAll),
+          ArrTool(
+            Icons.manage_search_rounded,
+            l.arrSearchAll,
+            () => _searchAll(merged),
+            labeled: true,
           ),
         // Files on the server that never came through the queue, as
         // on the apps' Wanted page.
         if (_picked == null)
-          IconButton(
-            tooltip: l.arrManualImport,
-            icon: const Icon(Icons.drive_folder_upload_rounded),
-            onPressed: () => arrOpenFolderImport(context),
+          ArrTool(
+            Icons.drive_folder_upload_rounded,
+            l.arrManualImport,
+            () => arrOpenFolderImport(context),
           ),
         if (merged != null && merged.items.isNotEmpty && _picked == null)
-          IconButton(
-            tooltip: l.arrSelect,
-            icon: const Icon(Icons.checklist_rounded),
-            onPressed: () => setState(() => _picked = {}),
+          ArrTool(
+            Icons.checklist_rounded,
+            l.arrSelect,
+            () => setState(() => _picked = {}),
           ),
+      ],
+      actions: [
         PopupMenuButton<bool>(
           tooltip: l.arrShowing,
           icon: Icon(
@@ -204,14 +212,14 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     if (merged == null) {
       return Column(
         children: [
-          bar,
+          ArrListColumn(child: bar),
           Expanded(
             child: async.hasError
                 ? ErrorView(
                     message: async.error.toString(),
                     onRetry: () => ref.invalidate(arrWantedProvider),
                   )
-                : const Center(child: AppSpinner()),
+                : const ArrRowsSkeleton(),
           ),
         ],
       );
@@ -221,7 +229,7 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     final picked = _picked?.where(live.contains).toSet();
     final view = RefreshIndicator(
       onRefresh: () => ref.refresh(arrWantedProvider(_arg).future),
-      child: CustomScrollView(
+      child: ArrListView(
         slivers: [
           SliverToBoxAdapter(child: bar),
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
@@ -263,6 +271,7 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
                     if (!p.remove(k)) p.add(k);
                     _picked = p;
                   }),
+                  onSelect: () => setState(() => _picked = {k}),
                 );
               },
             ),
@@ -283,7 +292,8 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _picked = null);
+        if (didPop || ArrPaneScope.takesBack(context)) return;
+        setState(() => _picked = null);
       },
       child: Column(
         children: [
@@ -321,11 +331,16 @@ class _WantedRow extends ConsumerWidget {
   /// While picking, whether this one is picked (null: not picking).
   final bool? picked;
   final VoidCallback? onPick;
+
+  /// Starts picking, with this one picked: the menu's Select.
+  final VoidCallback? onSelect;
+
   const _WantedRow({
     required this.item,
     required this.cutoff,
     this.picked,
     this.onPick,
+    this.onSelect,
   });
 
   Future<void> _search(BuildContext context, WidgetRef ref) {
@@ -355,17 +370,52 @@ class _WantedRow extends ConsumerWidget {
           ].whereType<String>().where((s) => s.isNotEmpty).join(' · ')
         : item.year?.toString() ?? '';
     final date = item.date;
+    final sonarr = item.kind == ArrKind.sonarr;
+    final titleId = sonarr ? item.seriesId : item.movieId;
+    final searchLabel = sonarr ? l.arrSearchEpisode : l.arrSearchMovie;
+    // Where the releases for this one are chosen by hand.
+    final releases = sonarr
+        ? (item.seriesId == null || item.episodeId == null
+              ? null
+              : ArrReleaseTarget.episode(item.seriesId!, item.episodeId!))
+        : (item.movieId == null ? null : ArrReleaseTarget.movie(item.movieId!));
     return _ArtRow(
       kind: item.kind,
+      titleId: titleId,
       images: item.images,
       title: item.title,
       subtitle: sub,
       onTap: picked != null
           ? onPick!
-          : () => arrOpenTitle(
+          : () => arrOpenTitle(context, item.kind, titleId),
+      // While picking, a press picks: no menu to get in its way.
+      menu: picked != null
+          ? null
+          : (at) => showContextMenu(
               context,
-              item.kind,
-              item.kind == ArrKind.sonarr ? item.seriesId : item.movieId,
+              at: at,
+              title: item.title,
+              actions: [
+                ...arrOpenActions(context, item.kind, titleId),
+                if (item.available)
+                  ContextMenuAction(
+                    icon: Icons.search_rounded,
+                    label: searchLabel,
+                    onTap: () => _search(context, ref),
+                  ),
+                if (releases != null)
+                  ContextMenuAction(
+                    icon: Icons.manage_search_rounded,
+                    label: l.arrInteractiveSearch,
+                    onTap: () => context.push(releases.location),
+                  ),
+                if (onSelect != null)
+                  ContextMenuAction(
+                    icon: Icons.check_circle_outline_rounded,
+                    label: l.arrSelect,
+                    onTap: onSelect!,
+                  ),
+              ],
             ),
       leading: picked == null
           ? null
@@ -390,9 +440,7 @@ class _WantedRow extends ConsumerWidget {
       trailing: picked != null
           ? null
           : IconButton(
-              tooltip: item.kind == ArrKind.sonarr
-                  ? l.arrSearchEpisode
-                  : l.arrSearchMovie,
+              tooltip: searchLabel,
               onPressed: item.available ? () => _search(context, ref) : null,
               icon: const Icon(Icons.search_rounded),
             ),
@@ -431,52 +479,57 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
     final l = AppLocalizations.of(context);
     final async = ref.watch(arrRecentHistoryProvider((_limit, _only)));
     final merged = async.asData?.value ?? async.unwrapPrevious().asData?.value;
-    // Which events: the apps' History filter, shown as what's picked.
-    final filter = ArrToolbar(
-      lead: widget.lead,
-      actions: [
-        if (_only != ArrHistoryFilter.all)
-          InputChip(
-            label: Text(_label(l, _only)),
-            onDeleted: () => setState(() {
-              _only = ArrHistoryFilter.all;
+    // Which events: the apps' History filter, shown as what's picked. On a
+    // phone the switch leaves no room to name it: the filter's icon fills
+    // in instead, and its menu has the tick.
+    final filter = LayoutBuilder(
+      builder: (context, box) => ArrToolbar(
+        lead: widget.lead,
+        actions: [
+          if (_only != ArrHistoryFilter.all &&
+              box.maxWidth >= ArrToolbar.foldBelow)
+            InputChip(
+              label: Text(_label(l, _only)),
+              onDeleted: () => setState(() {
+                _only = ArrHistoryFilter.all;
+                _limit = arrPageSize;
+              }),
+            ),
+          PopupMenuButton<ArrHistoryFilter>(
+            tooltip: l.arrFilter,
+            icon: Icon(
+              _only == ArrHistoryFilter.all
+                  ? Icons.filter_list_rounded
+                  : Icons.filter_alt_rounded,
+            ),
+            initialValue: _only,
+            onSelected: (f) => setState(() {
+              _only = f;
               _limit = arrPageSize;
             }),
+            itemBuilder: (_) => [
+              for (final f in ArrHistoryFilter.values)
+                CheckedPopupMenuItem(
+                  value: f,
+                  checked: f == _only,
+                  child: Text(_label(l, f)),
+                ),
+            ],
           ),
-        PopupMenuButton<ArrHistoryFilter>(
-          tooltip: l.arrFilter,
-          icon: Icon(
-            _only == ArrHistoryFilter.all
-                ? Icons.filter_list_rounded
-                : Icons.filter_alt_rounded,
-          ),
-          initialValue: _only,
-          onSelected: (f) => setState(() {
-            _only = f;
-            _limit = arrPageSize;
-          }),
-          itemBuilder: (_) => [
-            for (final f in ArrHistoryFilter.values)
-              CheckedPopupMenuItem(
-                value: f,
-                checked: f == _only,
-                child: Text(_label(l, f)),
-              ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
     if (merged == null) {
       return Column(
         children: [
-          filter,
+          ArrListColumn(child: filter),
           Expanded(
             child: async.hasError
                 ? ErrorView(
                     message: async.error.toString(),
                     onRetry: () => ref.invalidate(arrRecentHistoryProvider),
                   )
-                : const Center(child: AppSpinner()),
+                : const ArrRowsSkeleton(),
           ),
         ],
       );
@@ -484,7 +537,7 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
     return RefreshIndicator(
       onRefresh: () =>
           ref.refresh(arrRecentHistoryProvider((_limit, _only)).future),
-      child: CustomScrollView(
+      child: ArrListView(
         slivers: [
           SliverToBoxAdapter(child: filter),
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
@@ -558,8 +611,27 @@ class _HistoryEventRow extends ConsumerWidget {
       item.episodeTitle,
     ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
     final date = item.date;
+    final titleId = kind == ArrKind.sonarr ? item.seriesId : item.movieId;
+    // The row's menu, from its button or a right-click or long press.
+    void menu(Offset at) => showContextMenu(
+      context,
+      at: at,
+      title: item.title,
+      actions: [
+        ...arrOpenActions(context, kind, titleId),
+        if (item.canMarkFailed)
+          ContextMenuAction(
+            icon: Icons.report_rounded,
+            label: l.arrMarkFailed,
+            color: scheme.error,
+            onTap: () => _markFailed(context, ref),
+          ),
+      ],
+    );
     return _ArtRow(
       kind: kind,
+      titleId: titleId,
+      menu: titleId == null && !item.canMarkFailed ? null : menu,
       images: item.images,
       title: item.title ?? item.sourceTitle ?? '',
       subtitle: sub,
@@ -571,11 +643,7 @@ class _HistoryEventRow extends ConsumerWidget {
           ?item.detail,
         ].join(' · '),
       ].where((s) => s.isNotEmpty).join('\n'),
-      onTap: () => arrOpenTitle(
-        context,
-        kind,
-        kind == ArrKind.sonarr ? item.seriesId : item.movieId,
-      ),
+      onTap: () => arrOpenTitle(context, kind, titleId),
       chips: [
         ArrChip(label: label, color: color, icon: icon),
         if (item.quality != null)
@@ -588,20 +656,10 @@ class _HistoryEventRow extends ConsumerWidget {
                 icon: const Icon(Icons.more_vert_rounded),
                 onPressed: () {
                   final box = anchor.findRenderObject() as RenderBox?;
-                  showContextMenu(
-                    context,
-                    at: box == null
+                  menu(
+                    box == null
                         ? Offset.zero
                         : box.localToGlobal(box.size.bottomCenter(Offset.zero)),
-                    title: item.title,
-                    actions: [
-                      ContextMenuAction(
-                        icon: Icons.report_rounded,
-                        label: l.arrMarkFailed,
-                        color: scheme.error,
-                        onTap: () => _markFailed(context, ref),
-                      ),
-                    ],
                   );
                 },
               ),
@@ -796,11 +854,20 @@ class _ArtRow extends ConsumerWidget {
   final Widget? trailing;
   final VoidCallback onTap;
 
+  /// The show or movie the row is about, where the app knows it: the row
+  /// is tinted while the pane beside the list shows it.
+  final int? titleId;
+
+  /// Opens the row's menu, on a right-click or a long press.
+  final void Function(Offset at)? menu;
+
   /// Before the picture: a tick box while picking.
   final Widget? leading;
 
   const _ArtRow({
     required this.kind,
+    this.titleId,
+    this.menu,
     required this.images,
     required this.title,
     required this.subtitle,
@@ -821,10 +888,14 @@ class _ArtRow extends ConsumerWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    return InkWell(
+    return ArrRowInk(
+      kind: kind,
+      titleId: titleId,
       onTap: onTap,
+      onMenu: menu,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 6, 4, 6),
+        // With the row's own inset: 16 from the list's edge to the picture.
+        padding: const EdgeInsets.fromLTRB(10, 6, 0, 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -884,7 +955,7 @@ class _ArtRow extends ConsumerWidget {
                 ],
               ),
             ),
-            if (trailing != null) trailing! else const SizedBox(width: 12),
+            if (trailing != null) trailing! else const SizedBox(width: 10),
           ],
         ),
       ),
@@ -1005,17 +1076,19 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
     final picked = _picked?.where(live.contains).toSet();
     final toolbar = ArrToolbar(
       lead: widget.lead,
-      actions: [
+      // Under More on a phone: the switch takes the row.
+      tools: [
         if (items.isNotEmpty && picked == null) ...[
-          IconButton(
-            tooltip: l.arrSelect,
-            icon: const Icon(Icons.checklist_rounded),
-            onPressed: () => setState(() => _picked = {}),
+          ArrTool(
+            Icons.checklist_rounded,
+            l.arrSelect,
+            () => setState(() => _picked = {}),
           ),
-          IconButton(
-            tooltip: l.arrClearBlocklist,
-            icon: const Icon(Icons.delete_sweep_rounded),
-            onPressed: _busy ? null : _clear,
+          ArrTool(
+            Icons.delete_sweep_rounded,
+            l.arrClearBlocklist,
+            _busy ? null : _clear,
+            danger: true,
           ),
         ],
       ],
@@ -1024,21 +1097,21 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
     if (merged == null) {
       body = Column(
         children: [
-          toolbar,
+          ArrListColumn(child: toolbar),
           Expanded(
             child: async.hasError
                 ? ErrorView(
                     message: async.error.toString(),
                     onRetry: () => ref.invalidate(arrBlocklistProvider),
                   )
-                : const Center(child: AppSpinner()),
+                : const ArrRowsSkeleton(),
           ),
         ],
       );
     } else {
       body = RefreshIndicator(
         onRefresh: () => ref.refresh(arrBlocklistProvider(_limit).future),
-        child: CustomScrollView(
+        child: ArrListView(
           slivers: [
             SliverToBoxAdapter(child: toolbar),
             SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
@@ -1064,10 +1137,15 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
                     if (!s.remove(k)) s.add(k);
                     _picked = s;
                   });
+                  final titleId = b.kind == ArrKind.sonarr
+                      ? b.seriesId
+                      : b.movieId;
+                  final title = b.title ?? b.sourceTitle;
                   return _ArtRow(
                     kind: b.kind,
+                    titleId: titleId,
                     images: b.images,
-                    title: b.title ?? b.sourceTitle,
+                    title: title,
                     subtitle: b.sourceTitle,
                     detail: b.message,
                     leading: p == null
@@ -1075,10 +1153,29 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
                         : Checkbox(value: p, onChanged: (_) => pick()),
                     onTap: p != null
                         ? pick
-                        : () => arrOpenTitle(
+                        : () => arrOpenTitle(context, b.kind, titleId),
+                    // While picking, a press picks: no menu in its way.
+                    menu: p != null
+                        ? null
+                        : (at) => showContextMenu(
                             context,
-                            b.kind,
-                            b.kind == ArrKind.sonarr ? b.seriesId : b.movieId,
+                            at: at,
+                            title: title,
+                            actions: [
+                              ...arrOpenActions(context, b.kind, titleId),
+                              ContextMenuAction(
+                                icon: Icons.check_circle_outline_rounded,
+                                label: l.arrSelect,
+                                onTap: () => setState(() => _picked = {k}),
+                              ),
+                              if (!_busy)
+                                ContextMenuAction(
+                                  icon: Icons.close_rounded,
+                                  label: l.arrRemoveFromBlocklist,
+                                  color: theme.colorScheme.error,
+                                  onTap: () => _remove([b]),
+                                ),
+                            ],
                           ),
                     chips: [
                       if (b.quality != null)
@@ -1125,7 +1222,8 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _picked = null);
+        if (didPop || ArrPaneScope.takesBack(context)) return;
+        setState(() => _picked = null);
       },
       child: Column(
         children: [

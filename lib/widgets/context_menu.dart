@@ -37,16 +37,24 @@ bool get _mouseDriven => !isTvDevice && !Platform.isAndroid && !Platform.isIOS;
 /// given, heads the sheet with the item's name, so opening it from a dense
 /// grid still says what it's acting on; the dropdown skips it, it's already
 /// anchored right on the item. Ignored on the dropdown either way.
+/// [subtitle] goes under it: what a pointer would read in the item's
+/// tooltip, which a finger never sees.
 Future<void> showContextMenu(
   BuildContext context, {
   required Offset at,
   required List<ContextMenuAction> actions,
   String? title,
+  String? subtitle,
 }) async {
   if (actions.isEmpty) return;
   final chosen = _mouseDriven
       ? await _showDropdown(context, at: at, actions: actions)
-      : await _showSheet(context, actions: actions, title: title);
+      : await _showSheet(
+          context,
+          actions: actions,
+          title: title,
+          subtitle: subtitle,
+        );
   chosen?.call();
 }
 
@@ -98,6 +106,7 @@ Future<VoidCallback?> _showSheet(
   BuildContext context, {
   required List<ContextMenuAction> actions,
   String? title,
+  String? subtitle,
 }) {
   return showModalBottomSheet<VoidCallback>(
     context: context,
@@ -113,10 +122,27 @@ Future<VoidCallback?> _showSheet(
             if (title != null) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-                child: Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(ctx).textTheme.titleMedium),
+                child: Column(
+                  children: [
+                    Text(title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(ctx).textTheme.titleMedium),
+                    if (subtitle != null && subtitle.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const Divider(height: 1),
             ],

@@ -644,7 +644,11 @@ class ArrCalendarEntry {
   final bool finale;
   final int? seriesId;
   final int? movieId;
+  final int? episodeId;
   final List<ArrImage> images;
+
+  /// The show or movie this is a release of, by its id in its app.
+  int? get titleId => kind == ArrKind.sonarr ? seriesId : movieId;
 
   const ArrCalendarEntry({
     required this.kind,
@@ -658,6 +662,7 @@ class ArrCalendarEntry {
     this.finale = false,
     this.seriesId,
     this.movieId,
+    this.episodeId,
     this.images = const [],
   });
 
@@ -675,6 +680,7 @@ class ArrCalendarEntry {
       monitored: ep.monitored,
       finale: ep.finaleType != null,
       seriesId: ep.seriesId,
+      episodeId: ep.id,
       images: ep.series?.images ?? const [],
     );
   }
