@@ -8,6 +8,8 @@ import '../state/preferences.dart';
 import '../state/radio.dart';
 import '../state/seerr_providers.dart';
 import '../state/youtube_providers.dart';
+import '../widgets/arr_widgets.dart';
+import '../widgets/seerr_icon.dart';
 
 /// A sidebar/bottom-bar navigation destination. [fixed] items (Home) can't be
 /// hidden, so the nav can never be emptied.
@@ -60,12 +62,14 @@ List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
     if (seerrOn)
       (
         route: '/discover',
+        // Drawn as the Seerr logo wherever the navigation shows it (see
+        // navDestIcon); this is only the fallback.
         icon: Icons.travel_explore_rounded,
-        label: 'Seerr',
+        label: l.browseDiscover,
         fixed: false
       ),
     if (arrOn)
-      (route: '/arr', icon: Icons.dns_rounded, label: 'Arr', fixed: false),
+      (route: '/arr', icon: kManageIcon, label: l.appNavManage, fixed: false),
     if (youtubeOn)
       (
         route: '/youtube',
@@ -82,6 +86,13 @@ List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
       ),
   ];
 }
+
+/// A destination's icon as the navigation draws it: its own, except Discover,
+/// which keeps the Seerr logo.
+Widget navDestIcon(NavDest d, {required Color color, double size = 23}) =>
+    d.route == '/discover'
+    ? SeerrIcon(color: color, size: size)
+    : Icon(d.icon, color: color, size: size);
 
 /// Applies the user's saved order ([Prefs.navOrder]) and hidden set
 /// ([Prefs.navHidden]) to [all]. Fixed destinations (Home) are never hidden.

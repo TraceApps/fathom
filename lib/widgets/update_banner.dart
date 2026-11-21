@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/tv_mode.dart';
 import '../state/preferences.dart';
 import '../state/updates.dart';
+import '../theme/app_theme.dart';
 
 /// A floating, dismissible card near the top of the app when a newer release is
 /// available, mirroring the TraceApps update banner: an accent-tinted rounded
@@ -88,8 +89,10 @@ class UpdateBanner extends ConsumerWidget {
               foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               minimumSize: const Size(0, 36),
-              textStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              textStyle: const TextStyle(
+                  fontFamily: kAppFontFamily,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600),
             ),
             onPressed: () {
               context.push('/updates');

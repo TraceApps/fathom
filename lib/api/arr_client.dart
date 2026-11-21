@@ -349,6 +349,23 @@ abstract class ArrClient {
     ];
   }
 
+  /// How many downloads the queue holds and whether one needs a look: the
+  /// small answer behind the apps' own Activity count, so the count needn't
+  /// download the whole queue.
+  Future<({int count, bool problem})> queueStatus() async {
+    final data = await _get('queue/status');
+    final m = data is Map ? data : const {};
+    return (
+      count: (m['totalCount'] as num?)?.toInt() ?? 0,
+      problem: [
+        'errors',
+        'warnings',
+        'unknownErrors',
+        'unknownWarnings',
+      ].any((k) => m[k] == true),
+    );
+  }
+
   /// What's airing or being released between [start] and [end].
   /// What's coming up; with [unmonitored], unmonitored titles too.
   Future<List<ArrCalendarEntry>> calendar(

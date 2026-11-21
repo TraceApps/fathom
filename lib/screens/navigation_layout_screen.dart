@@ -67,7 +67,12 @@ class NavigationLayoutScreen extends ConsumerWidget {
                           color: dragGripColor(context)),
                       title: Row(
                         children: [
-                          Icon(d.icon, size: 20),
+                          navDestIcon(
+                            d,
+                            color: IconTheme.of(context).color ??
+                                Theme.of(context).colorScheme.onSurface,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(child: Text(d.label)),
                         ],

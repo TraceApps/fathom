@@ -85,6 +85,33 @@ class ArrCalendarUnmonitored extends Notifier<bool> {
 final arrCalendarUnmonitoredProvider =
     NotifierProvider<ArrCalendarUnmonitored, bool>(ArrCalendarUnmonitored.new);
 
+/// Which library the Manage section's Library tab shows: Radarr's movies or
+/// Sonarr's shows. Kept for the session, so coming back lands where you were.
+class ArrLibraryKind extends Notifier<ArrKind> {
+  @override
+  ArrKind build() => ArrKind.radarr;
+  void set(ArrKind v) => state = v;
+}
+
+final arrLibraryKindProvider = NotifierProvider<ArrLibraryKind, ArrKind>(
+  ArrLibraryKind.new,
+);
+
+/// The lists under the Activity tab, as under the apps' own Activity.
+/// Forgotten on leaving the tab, so its count always opens the queue.
+enum ArrActivityView { queue, history, blocklist }
+
+class ArrActivityViewChoice extends Notifier<ArrActivityView> {
+  @override
+  ArrActivityView build() => ArrActivityView.queue;
+  void set(ArrActivityView v) => state = v;
+}
+
+final arrActivityViewProvider =
+    NotifierProvider.autoDispose<ArrActivityViewChoice, ArrActivityView>(
+      ArrActivityViewChoice.new,
+    );
+
 final arrCalendarProvider =
     FutureProvider.autoDispose<ArrMerged<ArrCalendarEntry>>((ref) async {
       final w = arrCalendarWindow(DateTime.now());
@@ -531,6 +558,59 @@ final arrMatchProvider = FutureProvider.autoDispose
         return null;
       }
     });
+
+/// What the Activity tab's count shows.
+class ArrQueueStatus {
+  /// Downloads in both queues.
+  final int count;
+
+  /// One of them needs a look.
+  final bool problem;
+
+  /// An app didn't answer, so its downloads aren't counted.
+  final bool unreachable;
+  const ArrQueueStatus({
+    required this.count,
+    required this.problem,
+    required this.unreachable,
+  });
+}
+
+/// The queue's count, from the apps' small status answer. It asks again
+/// whenever the full queue has just reloaded, so the two never disagree for
+/// long.
+final arrQueueStatusProvider = FutureProvider.autoDispose<ArrQueueStatus>((
+  ref,
+) async {
+  // Weak: watching for a reload mustn't be what makes the full queue load.
+  ref.listen(arrQueueProvider, weak: true, (_, next) {
+    if (next.hasValue && !next.isLoading) ref.invalidateSelf();
+  });
+  var count = 0;
+  var problem = false;
+  var unreachable = false;
+  await Future.wait([
+    for (final c in <ArrClient?>[
+      ref.watch(sonarrClientProvider),
+      ref.watch(radarrClientProvider),
+    ])
+      if (c != null)
+        c
+            .queueStatus()
+            .then((s) {
+              count += s.count;
+              problem = problem || s.problem;
+            })
+            .catchError((Object _) {
+              unreachable = true;
+            }),
+  ]);
+  return ArrQueueStatus(
+    count: count,
+    problem: problem,
+    unreachable: unreachable,
+  );
+});
 
 /// After a search, grab or failure: the lists that show them reload.
 void arrListsChanged(WidgetRef ref) {

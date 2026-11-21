@@ -33,23 +33,34 @@ Future<bool> arrRun(
 }
 
 /// One action on a detail page, drawn as a round header button on wide
-/// windows and as a labelled pill under the header on narrow ones.
+/// windows. A narrow window has room for less: see [ArrActionBar].
 class ArrAction {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool primary;
+
+  /// Stays a button on a narrow window, where the other main actions move
+  /// behind More. For a switch whose icon shows its state (Monitored).
+  final bool pinned;
   final bool destructive;
   const ArrAction({
     required this.icon,
     required this.label,
     required this.onTap,
     this.primary = false,
+    this.pinned = false,
     this.destructive = false,
   });
 }
 
 /// The actions of a title: the main ones as buttons, the rest behind More.
+///
+/// Over the backdrop of a wide window every main action is a round button
+/// that names itself on hover. A narrow window is usually a phone, where
+/// nothing names an icon, so only the primary action stays, with its label
+/// showing, beside the [ArrAction.pinned] switches; the other main actions
+/// lead the More menu.
 class ArrActionBar extends StatelessWidget {
   final List<ArrAction> main;
   final List<ArrAction> more;
@@ -64,7 +75,11 @@ class ArrActionBar extends StatelessWidget {
     required this.title,
   });
 
-  void _openMore(BuildContext context, BuildContext anchor) {
+  void _openMore(
+    BuildContext context,
+    BuildContext anchor,
+    List<ArrAction> more,
+  ) {
     final box = anchor.findRenderObject() as RenderBox?;
     final at = box == null
         ? Offset.zero
@@ -88,8 +103,19 @@ class ArrActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final buttons = <Widget>[
+    final shown = header
+        ? main
+        : [
+            for (final a in main)
+              if (a.primary || a.pinned) a,
+          ];
+    final more = [
       for (final a in main)
+        if (!shown.contains(a)) a,
+      ...this.more,
+    ];
+    final buttons = <Widget>[
+      for (final a in shown)
         header
             ? HeaderActionButton(
                 icon: a.icon,
@@ -101,6 +127,7 @@ class ArrActionBar extends StatelessWidget {
                 icon: a.icon,
                 label: a.label,
                 primary: a.primary,
+                showLabel: a.primary,
                 onTap: a.onTap,
               ),
       if (more.isNotEmpty)
@@ -109,12 +136,12 @@ class ArrActionBar extends StatelessWidget {
               ? HeaderActionButton(
                   icon: Icons.more_horiz_rounded,
                   tooltip: l.arrMore,
-                  onTap: () => _openMore(context, anchor),
+                  onTap: () => _openMore(context, anchor, more),
                 )
               : HoverPillButton(
                   icon: Icons.more_horiz_rounded,
                   label: l.arrMore,
-                  onTap: () => _openMore(context, anchor),
+                  onTap: () => _openMore(context, anchor, more),
                 ),
         ),
     ];

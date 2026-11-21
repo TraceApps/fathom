@@ -25,6 +25,10 @@ class HoverPillButton extends StatefulWidget {
   /// actions like Approve (green) / Decline (red). Overrides [primary]/[tinted].
   final Color? color;
 
+  /// Keeps the label showing at rest. For the one main action of a page on a
+  /// narrow window, where a touch has no hover to name an icon.
+  final bool showLabel;
+
   /// Replaces the [icon] glyph (e.g. a small progress spinner for a download in
   /// flight). Still gets the tap-pop scale and the expand-on-hover/press label.
   final Widget? iconWidget;
@@ -43,6 +47,7 @@ class HoverPillButton extends StatefulWidget {
     this.tinted = false,
     this.primary = false,
     this.color,
+    this.showLabel = false,
     this.iconWidget,
     this.autofocus = false,
     this.focusNode,
@@ -109,7 +114,8 @@ class _HoverPillButtonState extends State<HoverPillButton>
     final showFocus = _focused && isTvDevice;
     // Desktop reveals the label on hover; touch reveals it while pressed. A
     // remote focus always reveals it, so the focused action names itself.
-    final expanded = (_isTouch ? _pressed : _hover) || showFocus;
+    final expanded =
+        widget.showLabel || (_isTouch ? _pressed : _hover) || showFocus;
     final icon = ScaleTransition(
       scale: _tapScale,
       child: widget.iconWidget ?? Icon(widget.icon, size: 20, color: fg),

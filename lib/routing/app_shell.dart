@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../api/jellyfin_client.dart';
@@ -23,6 +22,7 @@ import '../widgets/window_frame.dart';
 import '../widgets/tv_focus.dart';
 import '../widgets/tv_keyboard.dart';
 import 'nav_destinations.dart';
+import '../widgets/seerr_icon.dart';
 import '../widgets/glass.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/download_pill.dart';
@@ -362,7 +362,7 @@ class NavSidebar extends ConsumerWidget {
                 : null,
             icon: d.route == '/discover' ? null : d.icon,
             iconBuilder: d.route == '/discover'
-                ? (color) => _SeerrIcon(color: color)
+                ? (color) => SeerrIcon(color: color)
                 : null,
             onTap: () => context.go(d.route),
           ),
@@ -1567,23 +1567,6 @@ class _ProfileMenu extends ConsumerWidget {
               ),
             )
           : const Center(child: UserAvatar(radius: 16)),
-    );
-  }
-}
-
-/// The Seerr nav icon: the flattened Seerr swirl, tinted to [color] so it
-/// tracks the theme/accent exactly like the other line icons.
-class _SeerrIcon extends StatelessWidget {
-  final Color color;
-  const _SeerrIcon({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/seerr.svg',
-      width: 23,
-      height: 23,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
 }

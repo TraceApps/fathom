@@ -555,9 +555,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/arr/collections',
               pageBuilder: (_, _) => _fadePage(const ArrCollectionsScreen())),
           GoRoute(
-              path: '/arr/blocklist',
-              pageBuilder: (_, _) => _fadePage(const ArrBlocklistScreen())),
-          GoRoute(
               path: '/arr/health',
               pageBuilder: (_, _) => _fadePage(const ArrHealthScreen())),
           GoRoute(

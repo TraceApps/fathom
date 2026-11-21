@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/seerr_result.dart';
+import '../theme/app_theme.dart';
 import 'cached_image.dart';
 import 'media_cards.dart';
 import 'seerr_request_dialog.dart';
@@ -287,7 +288,10 @@ class _SeerrHoverRequestButtonState
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(34),
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+              fontFamily: kAppFontFamily,
+              fontSize: 12,
+              fontWeight: FontWeight.w700),
         ),
         icon: _busy
             ? AppSpinner.inline()

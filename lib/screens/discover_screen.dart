@@ -14,6 +14,7 @@ import '../models/seerr_request.dart';
 import '../models/seerr_result.dart';
 import '../state/preferences.dart';
 import '../state/seerr_providers.dart';
+import '../theme/app_theme.dart';
 import '../widgets/reorder.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/app_snack.dart';
@@ -47,7 +48,7 @@ class DiscoverScreen extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(
             leading: mobileDrawerLeading(context),
-            title: const Text('Seerr')),
+            title: Text(l.browseDiscover)),
         body: EmptyState(
           icon: Icons.travel_explore_rounded,
           title: l.browseConnectSeerr,
@@ -64,7 +65,7 @@ class DiscoverScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           leading: mobileDrawerLeading(context),
-          title: const Text('Seerr'),
+          title: Text(l.browseDiscover),
           actions: [
             // Only meaningful on the Discover tab, so it appears there alone.
             Builder(builder: (context) {
@@ -88,7 +89,7 @@ class DiscoverScreen extends ConsumerWidget {
           ],
           bottom: TabBar(
             tabs: [
-              Tab(text: l.browseDiscover),
+              Tab(text: l.seerrTabBrowse),
               Tab(text: l.commonSearch),
               Tab(text: l.browseRequests),
             ],
@@ -2098,7 +2099,10 @@ class _RequestButton extends StatelessWidget {
           minimumSize: const Size.fromHeight(38),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           alignment: Alignment.center,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontFamily: kAppFontFamily,
+              fontSize: 13,
+              fontWeight: FontWeight.w600),
         ),
         icon: Icon(icon, size: 17),
         label: Text(label, maxLines: 1, softWrap: false),

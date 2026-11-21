@@ -36,6 +36,7 @@ import '../widgets/shimmer.dart';
 import 'album_screen.dart';
 import 'collection_view.dart';
 import '../widgets/app_snack.dart';
+import '../widgets/arr_widgets.dart' show kManageIcon;
 import '../widgets/app_spinner.dart';
 import '../widgets/ui_common.dart';
 import '../api/jellyfin_client.dart';
@@ -1313,7 +1314,7 @@ class _ItemMenu extends ConsumerWidget {
           PopupMenuItem(
             value: 'arr-manage',
             child: ListTile(
-              leading: const Icon(Icons.dns_rounded),
+              leading: const Icon(kManageIcon),
               title: Text(l.arrManageIn(app!)),
               contentPadding: EdgeInsets.zero,
             ),

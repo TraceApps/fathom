@@ -147,8 +147,10 @@ class AppTheme {
           color: scheme.inverseSurface,
           borderRadius: BorderRadius.circular(8),
         ),
-        textStyle:
-            TextStyle(color: scheme.onInverseSurface, fontSize: 12.5),
+        textStyle: TextStyle(
+            fontFamily: kAppFontFamily,
+            color: scheme.onInverseSurface,
+            fontSize: 12.5),
         waitDuration: const Duration(milliseconds: 500),
       ),
       dividerTheme: DividerThemeData(
@@ -188,8 +190,13 @@ class AppTheme {
           minimumSize: const Size.fromHeight(52),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          // The family is named here because a button's own text style
+          // replaces the theme's, and without it labels fall back to the
+          // system font.
+          textStyle: const TextStyle(
+              fontFamily: kAppFontFamily,
+              fontSize: 16,
+              fontWeight: FontWeight.w700),
         ).copyWith(
           // TV ONLY: D-pad focus adds a bold ring (fill unchanged). Off TV this
           // resolves to null, so desktop/mobile buttons are unchanged.
@@ -204,8 +211,13 @@ class AppTheme {
           minimumSize: const Size.fromHeight(52),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          // The family is named here because a button's own text style
+          // replaces the theme's, and without it labels fall back to the
+          // system font.
+          textStyle: const TextStyle(
+              fontFamily: kAppFontFamily,
+              fontSize: 16,
+              fontWeight: FontWeight.w700),
         ).copyWith(
           // TV ONLY: focused outlined buttons fill + thick ring. Off TV, the
           // focused branch is skipped so the default outline is used (unchanged).
@@ -268,7 +280,9 @@ class AppTheme {
         indicatorColor: scheme.primary.withValues(alpha: 0.16),
         selectedIconTheme: IconThemeData(color: scheme.primary),
         selectedLabelTextStyle: TextStyle(
-            color: scheme.primary, fontWeight: FontWeight.w700),
+            fontFamily: kAppFontFamily,
+            color: scheme.primary,
+            fontWeight: FontWeight.w700),
         unselectedIconTheme:
             IconThemeData(color: scheme.onSurfaceVariant),
       ),

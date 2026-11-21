@@ -134,91 +134,72 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     }
     final merged =
         fresh ?? (_lastFor == (_list, _monitored) ? _last : null);
-    final bar = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          SegmentedButton<ArrWantedList>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(
-                value: ArrWantedList.missing,
-                label: Text(l.arrMissing),
-              ),
-              ButtonSegment(
-                value: ArrWantedList.cutoffUnmet,
-                label: Text(l.arrCutoffUnmet),
-              ),
-            ],
-            selected: {_list},
-            onSelectionChanged: (s) => setState(() {
-              _list = s.first;
-              _limit = arrPageSize;
-              _picked = null;
-            }),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Search All only on the monitored list: Radarr's search-all
-              // always covers monitored movies (MissingMoviesSearch takes no
-              // monitored setting), so on the unmonitored list it would search
-              // the wrong ones. Picked titles can still be searched.
-              if (merged != null && merged.total > 0 && _monitored)
-                TextButton.icon(
-                  style: kInlineButtonStyle,
-                  onPressed: () => _searchAll(merged),
-                  icon: const Icon(Icons.manage_search_rounded),
-                  label: Text(l.arrSearchAll),
-                ),
-              // Files on the server that never came through the queue, as
-              // on the apps' Wanted page.
-              if (_picked == null)
-                IconButton(
-                  tooltip: l.arrManualImport,
-                  icon: const Icon(Icons.drive_folder_upload_rounded),
-                  onPressed: () => arrOpenFolderImport(context),
-                ),
-              if (merged != null && merged.items.isNotEmpty && _picked == null)
-                IconButton(
-                  tooltip: l.arrSelect,
-                  icon: const Icon(Icons.checklist_rounded),
-                  onPressed: () => setState(() => _picked = {}),
-                ),
-              PopupMenuButton<bool>(
-                tooltip: l.arrShowing,
-                icon: Icon(
-                  _monitored
-                      ? Icons.filter_list_rounded
-                      : Icons.filter_alt_rounded,
-                ),
-                initialValue: _monitored,
-                onSelected: (v) => setState(() {
-                  _monitored = v;
-                  _limit = arrPageSize;
-                  _picked = null;
-                }),
-                itemBuilder: (_) => [
-                  CheckedPopupMenuItem(
-                    value: true,
-                    checked: _monitored,
-                    child: Text(l.arrFilterMonitored),
-                  ),
-                  CheckedPopupMenuItem(
-                    value: false,
-                    checked: !_monitored,
-                    child: Text(l.arrUnmonitored),
-                  ),
-                ],
-              ),
-            ],
-          ),
+    final bar = ArrToolbar(
+      lead: ArrSwitch<ArrWantedList>(
+        options: [
+          (ArrWantedList.missing, l.arrMissing),
+          (ArrWantedList.cutoffUnmet, l.arrCutoffUnmet),
         ],
+        value: _list,
+        onChanged: (v) => setState(() {
+          _list = v;
+          _limit = arrPageSize;
+          _picked = null;
+        }),
       ),
+      actions: [
+        // Search All only on the monitored list: Radarr's search-all
+        // always covers monitored movies (MissingMoviesSearch takes no
+        // monitored setting), so on the unmonitored list it would search
+        // the wrong ones. Picked titles can still be searched.
+        if (merged != null && merged.total > 0 && _monitored)
+          TextButton.icon(
+            style: kInlineButtonStyle,
+            onPressed: () => _searchAll(merged),
+            icon: const Icon(Icons.manage_search_rounded),
+            label: Text(l.arrSearchAll),
+          ),
+        // Files on the server that never came through the queue, as
+        // on the apps' Wanted page.
+        if (_picked == null)
+          IconButton(
+            tooltip: l.arrManualImport,
+            icon: const Icon(Icons.drive_folder_upload_rounded),
+            onPressed: () => arrOpenFolderImport(context),
+          ),
+        if (merged != null && merged.items.isNotEmpty && _picked == null)
+          IconButton(
+            tooltip: l.arrSelect,
+            icon: const Icon(Icons.checklist_rounded),
+            onPressed: () => setState(() => _picked = {}),
+          ),
+        PopupMenuButton<bool>(
+          tooltip: l.arrShowing,
+          icon: Icon(
+            _monitored
+                ? Icons.filter_list_rounded
+                : Icons.filter_alt_rounded,
+          ),
+          initialValue: _monitored,
+          onSelected: (v) => setState(() {
+            _monitored = v;
+            _limit = arrPageSize;
+            _picked = null;
+          }),
+          itemBuilder: (_) => [
+            CheckedPopupMenuItem(
+              value: true,
+              checked: _monitored,
+              child: Text(l.arrFilterMonitored),
+            ),
+            CheckedPopupMenuItem(
+              value: false,
+              checked: !_monitored,
+              child: Text(l.arrUnmonitored),
+            ),
+          ],
+        ),
+      ],
     );
     if (merged == null) {
       return Column(
@@ -423,7 +404,9 @@ class _WantedRow extends ConsumerWidget {
 
 /// What both apps have done lately: grabs, imports, failures, deletions.
 class ArrHistoryTab extends ConsumerStatefulWidget {
-  const ArrHistoryTab({super.key});
+  /// The Activity switch, at the left of the row above the list.
+  final Widget lead;
+  const ArrHistoryTab({super.key, required this.lead});
 
   @override
   ConsumerState<ArrHistoryTab> createState() => _ArrHistoryTabState();
@@ -449,42 +432,39 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
     final async = ref.watch(arrRecentHistoryProvider((_limit, _only)));
     final merged = async.asData?.value ?? async.unwrapPrevious().asData?.value;
     // Which events: the apps' History filter, shown as what's picked.
-    final filter = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-      child: Row(
-        children: [
-          if (_only != ArrHistoryFilter.all)
-            InputChip(
-              label: Text(_label(l, _only)),
-              onDeleted: () => setState(() {
-                _only = ArrHistoryFilter.all;
-                _limit = arrPageSize;
-              }),
-            ),
-          const Spacer(),
-          PopupMenuButton<ArrHistoryFilter>(
-            tooltip: l.arrFilter,
-            icon: Icon(
-              _only == ArrHistoryFilter.all
-                  ? Icons.filter_list_rounded
-                  : Icons.filter_alt_rounded,
-            ),
-            initialValue: _only,
-            onSelected: (f) => setState(() {
-              _only = f;
+    final filter = ArrToolbar(
+      lead: widget.lead,
+      actions: [
+        if (_only != ArrHistoryFilter.all)
+          InputChip(
+            label: Text(_label(l, _only)),
+            onDeleted: () => setState(() {
+              _only = ArrHistoryFilter.all;
               _limit = arrPageSize;
             }),
-            itemBuilder: (_) => [
-              for (final f in ArrHistoryFilter.values)
-                CheckedPopupMenuItem(
-                  value: f,
-                  checked: f == _only,
-                  child: Text(_label(l, f)),
-                ),
-            ],
           ),
-        ],
-      ),
+        PopupMenuButton<ArrHistoryFilter>(
+          tooltip: l.arrFilter,
+          icon: Icon(
+            _only == ArrHistoryFilter.all
+                ? Icons.filter_list_rounded
+                : Icons.filter_alt_rounded,
+          ),
+          initialValue: _only,
+          onSelected: (f) => setState(() {
+            _only = f;
+            _limit = arrPageSize;
+          }),
+          itemBuilder: (_) => [
+            for (final f in ArrHistoryFilter.values)
+              CheckedPopupMenuItem(
+                value: f,
+                checked: f == _only,
+                child: Text(_label(l, f)),
+              ),
+          ],
+        ),
+      ],
     );
     if (merged == null) {
       return Column(
@@ -506,8 +486,8 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
           ref.refresh(arrRecentHistoryProvider((_limit, _only)).future),
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
           SliverToBoxAdapter(child: filter),
+          SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
           if (merged.items.isEmpty)
             SliverFillRemaining(
               hasScrollBody: true,
@@ -775,7 +755,7 @@ class _HealthLine extends StatelessWidget {
   }
 }
 
-/// The Health button in the Arr section's toolbar, with the number of
+/// The Health button in the Manage section's toolbar, with the number of
 /// warnings and errors on it.
 class ArrHealthButton extends ConsumerWidget {
   final VoidCallback onTap;
@@ -939,15 +919,17 @@ class _LoadMore extends StatelessWidget {
 
 /// Releases Sonarr and Radarr won't grab again, newest first: remove one so
 /// it can be grabbed, pick several, or clear the lot. The apps' Activity >
-/// Blocklist.
-class ArrBlocklistScreen extends ConsumerStatefulWidget {
-  const ArrBlocklistScreen({super.key});
+/// Blocklist, and one of the lists under the Activity tab here.
+class ArrBlocklistView extends ConsumerStatefulWidget {
+  /// The Activity switch, at the left of the row above the list.
+  final Widget lead;
+  const ArrBlocklistView({super.key, required this.lead});
 
   @override
-  ConsumerState<ArrBlocklistScreen> createState() => _ArrBlocklistScreenState();
+  ConsumerState<ArrBlocklistView> createState() => _ArrBlocklistViewState();
 }
 
-class _ArrBlocklistScreenState extends ConsumerState<ArrBlocklistScreen> {
+class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
   int _limit = arrPageSize;
   ArrMerged<ArrBlocklistItem>? _last; // kept while Load More fetches
   Set<String>? _picked;
@@ -1021,19 +1003,44 @@ class _ArrBlocklistScreenState extends ConsumerState<ArrBlocklistScreen> {
     final items = merged?.items ?? const <ArrBlocklistItem>[];
     final live = {for (final b in items) _key(b)};
     final picked = _picked?.where(live.contains).toSet();
+    final toolbar = ArrToolbar(
+      lead: widget.lead,
+      actions: [
+        if (items.isNotEmpty && picked == null) ...[
+          IconButton(
+            tooltip: l.arrSelect,
+            icon: const Icon(Icons.checklist_rounded),
+            onPressed: () => setState(() => _picked = {}),
+          ),
+          IconButton(
+            tooltip: l.arrClearBlocklist,
+            icon: const Icon(Icons.delete_sweep_rounded),
+            onPressed: _busy ? null : _clear,
+          ),
+        ],
+      ],
+    );
     Widget body;
     if (merged == null) {
-      body = async.hasError
-          ? ErrorView(
-              message: async.error.toString(),
-              onRetry: () => ref.invalidate(arrBlocklistProvider),
-            )
-          : const Center(child: AppSpinner());
+      body = Column(
+        children: [
+          toolbar,
+          Expanded(
+            child: async.hasError
+                ? ErrorView(
+                    message: async.error.toString(),
+                    onRetry: () => ref.invalidate(arrBlocklistProvider),
+                  )
+                : const Center(child: AppSpinner()),
+          ),
+        ],
+      );
     } else {
       body = RefreshIndicator(
         onRefresh: () => ref.refresh(arrBlocklistProvider(_limit).future),
         child: CustomScrollView(
           slivers: [
+            SliverToBoxAdapter(child: toolbar),
             SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
             if (items.isEmpty)
               SliverFillRemaining(
@@ -1113,53 +1120,34 @@ class _ArrBlocklistScreenState extends ConsumerState<ArrBlocklistScreen> {
         ),
       );
     }
+    if (picked == null) return body;
+    // Back ends picking first, rather than leaving the section.
     return PopScope(
-      canPop: picked == null,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) setState(() => _picked = null);
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l.arrBlocklist),
-          actions: [
-            if (items.isNotEmpty && picked == null) ...[
-              IconButton(
-                tooltip: l.arrSelect,
-                icon: const Icon(Icons.checklist_rounded),
-                onPressed: () => setState(() => _picked = {}),
-              ),
-              IconButton(
-                tooltip: l.arrClearBlocklist,
-                icon: const Icon(Icons.delete_sweep_rounded),
-                onPressed: _busy ? null : _clear,
+      child: Column(
+        children: [
+          ArrPickBar(
+            count: picked.length,
+            busy: _busy,
+            onCancel: () => setState(() => _picked = null),
+            onSelectAll: () => setState(() => _picked = live),
+            actions: [
+              ArrPickAction(
+                Icons.remove_done_rounded,
+                l.arrRemoveFromBlocklist,
+                () => _remove([
+                  for (final b in items)
+                    if (picked.contains(_key(b))) b,
+                ]),
+                danger: true,
               ),
             ],
-          ],
-        ),
-        body: picked == null
-            ? body
-            : Column(
-                children: [
-                  ArrPickBar(
-                    count: picked.length,
-                    busy: _busy,
-                    onCancel: () => setState(() => _picked = null),
-                    onSelectAll: () => setState(() => _picked = live),
-                    actions: [
-                      ArrPickAction(
-                        Icons.remove_done_rounded,
-                        l.arrRemoveFromBlocklist,
-                        () => _remove([
-                          for (final b in items)
-                            if (picked.contains(_key(b))) b,
-                        ]),
-                        danger: true,
-                      ),
-                    ],
-                  ),
-                  Expanded(child: body),
-                ],
-              ),
+          ),
+          Expanded(child: body),
+        ],
       ),
     );
   }

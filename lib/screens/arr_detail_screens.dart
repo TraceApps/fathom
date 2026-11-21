@@ -532,6 +532,7 @@ Widget Function(bool header) _movieActions(
           ? Icons.bookmark_rounded
           : Icons.bookmark_border_rounded,
       label: m.monitored ? l.arrUnmonitor : l.arrMonitor,
+      pinned: true,
       onTap: () async {
         if (await arrRun(
           context,
@@ -657,6 +658,7 @@ Widget Function(bool header) _seriesActions(
           ? Icons.bookmark_rounded
           : Icons.bookmark_border_rounded,
       label: l.arrMonitoring,
+      pinned: true,
       onTap: () async {
         if (await showArrMonitoringDialog(
           context,

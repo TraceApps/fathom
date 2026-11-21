@@ -7,6 +7,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import 'cached_image.dart';
 
+/// The Manage section's icon, in the navigation and on its empty state.
+const kManageIcon = Icons.video_settings_rounded;
+
 // The colors Sonarr and Radarr use on their poster bars and chips.
 const arrDownloadedColor = Color(0xFF27C24C);
 const arrMissingColor = Color(0xFFF05050);
@@ -247,6 +250,66 @@ class ArrErrorBanner extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The switch between the lists of one tab: Movies and Shows in the Library,
+/// Queue, History and Blocklist under Activity, Missing and Cutoff Unmet under
+/// Wanted.
+class ArrSwitch<T> extends StatelessWidget {
+  final List<(T, String)> options;
+  final T value;
+  final ValueChanged<T> onChanged;
+
+  const ArrSwitch({
+    super.key,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<T>(
+      showSelectedIcon: false,
+      segments: [
+        for (final (v, label) in options)
+          ButtonSegment(value: v, label: Text(label)),
+      ],
+      selected: {value},
+      onSelectionChanged: (s) => onChanged(s.first),
+    );
+  }
+}
+
+/// The row above a list: its switch on the left, what can be done with the
+/// list on the right. The buttons drop to a second line when both don't fit.
+class ArrToolbar extends StatelessWidget {
+  final Widget lead;
+  final List<Widget> actions;
+
+  const ArrToolbar({super.key, required this.lead, this.actions = const []});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 4,
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          lead,
+          // As tall as a button even with none, so the row doesn't jump
+          // between lists.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+          ),
         ],
       ),
     );

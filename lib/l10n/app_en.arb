@@ -2974,7 +2974,11 @@
   },
   "browseDiscover": "Discover",
   "@browseDiscover": {
-    "description": "Seerr Discover tab label."
+    "description": "Navigation label and screen title of the Seerr section, where new movies and shows are found and requested."
+  },
+  "seerrTabBrowse": "Browse",
+  "@seerrTabBrowse": {
+    "description": "First tab of the Discover (Seerr) section: rows of trending, popular and upcoming titles."
   },
   "browseRequests": "Requests",
   "@browseRequests": {
@@ -4567,6 +4571,10 @@
   "appNavMore": "More",
   "@appNavMore": {
     "description": "Bottom navigation label opening a sheet of overflow destinations on phones."
+  },
+  "appNavManage": "Manage",
+  "@appNavManage": {
+    "description": "Navigation label and screen title of the section that manages Sonarr and Radarr (library, calendar, downloads)."
   },
   "appNavRadio": "Radio",
   "@appNavRadio": {
@@ -7381,17 +7389,21 @@
   "arrNotConnected": "Not connected",
   "@arrNotConnected": {"description": "Status of an app with no connection set up."},
   "arrConnectTitle": "Connect Sonarr or Radarr",
-  "@arrConnectTitle": {"description": "Empty-state title of the Arr screen when nothing is connected."},
+  "@arrConnectTitle": {"description": "Empty-state title of the Manage section when neither Sonarr nor Radarr is connected."},
   "arrConnectMessage": "See what's coming up and downloading, and browse your shows and movies, right here.",
-  "@arrConnectMessage": {"description": "Empty-state message of the Arr screen when nothing is connected."},
+  "@arrConnectMessage": {"description": "Empty-state message of the Manage section when neither Sonarr nor Radarr is connected."},
+  "arrLibrary": "Library",
+  "@arrLibrary": {"description": "Tab of the Manage section listing the movies and shows Radarr and Sonarr manage."},
+  "arrActivity": "Activity",
+  "@arrActivity": {"description": "Tab of the Manage section holding the download queue, the history and the blocklist, as in Sonarr and Radarr."},
   "arrCalendar": "Calendar",
   "@arrCalendar": {"description": "Tab of upcoming episodes and movie releases."},
   "arrQueue": "Queue",
-  "@arrQueue": {"description": "Tab of current downloads."},
+  "@arrQueue": {"description": "List of current downloads, under the Activity tab."},
   "arrMovies": "Movies",
-  "@arrMovies": {"description": "Tab of Radarr's movies."},
+  "@arrMovies": {"description": "Radarr's movies, one side of the Library tab's switch."},
   "arrShows": "Shows",
-  "@arrShows": {"description": "Tab of Sonarr's shows."},
+  "@arrShows": {"description": "Sonarr's shows, one side of the Library tab's switch."},
   "arrToday": "Today",
   "@arrToday": {"description": "Calendar day heading."},
   "arrTomorrow": "Tomorrow",
@@ -7735,7 +7747,7 @@
   "arrNoRootFolder": "Add a root folder in {app} first, under Settings, Media Management.",
   "@arrNoRootFolder": {"description": "Add dialog when the app has no root folder.", "placeholders": {"app": {"type": "String"}}},
   "arrWanted": "Wanted",
-  "@arrWanted": {"description": "Arr tab: missing and cutoff-unmet titles."},
+  "@arrWanted": {"description": "Tab of the Manage section: missing and cutoff-unmet titles."},
   "arrCutoffUnmet": "Cutoff Unmet",
   "@arrCutoffUnmet": {"description": "Wanted list and chip: has a file below the quality profile cutoff."},
   "arrSearchAll": "Search All",

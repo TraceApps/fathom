@@ -24,9 +24,9 @@ import '../widgets/media_cards.dart';
 import '../widgets/motion.dart';
 import '../widgets/search_field.dart';
 
-/// Sonarr and Radarr in one place: what's coming up, what's downloading, and
-/// the movies and shows each one manages. Tabs only appear for what's
-/// connected.
+/// The Manage section: Sonarr and Radarr in one place. The Library they
+/// manage comes first, then what's coming up (Calendar), what's downloading
+/// and what happened (Activity), and what's still missing (Wanted).
 class ArrScreen extends ConsumerWidget {
   const ArrScreen({super.key});
 
@@ -39,10 +39,10 @@ class ArrScreen extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(
           leading: mobileDrawerLeading(context),
-          title: const Text('Arr'),
+          title: Text(l.appNavManage),
         ),
         body: EmptyState(
-          icon: Icons.dns_rounded,
+          icon: kManageIcon,
           title: l.arrConnectTitle,
           message: l.arrConnectMessage,
           action: FilledButton(
@@ -52,64 +52,296 @@ class ArrScreen extends ConsumerWidget {
         ),
       );
     }
-    // Each tab with the kind of title Add should look for from it.
-    final tabs = <(String, Widget, ArrKind?)>[
-      (l.arrCalendar, const _CalendarTab(), null),
-      (l.arrQueue, const _QueueTab(), null),
-      (l.arrWanted, const ArrWantedTab(), null),
-      (l.arrHistory, const ArrHistoryTab(), null),
-      if (radarr) (l.arrMovies, const _MoviesTab(), ArrKind.radarr),
-      if (sonarr) (l.arrShows, const _ShowsTab(), ArrKind.sonarr),
-    ];
+    // Four tabs fit a phone side by side; on a wide window they'd stretch
+    // across it, so they keep their own width there.
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return DefaultTabController(
-      // A different set of tabs is a different controller.
-      key: ValueKey('arr-tabs-$sonarr-$radarr'),
-      length: tabs.length,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: mobileDrawerLeading(context),
-          title: const Text('Arr'),
-          actions: [
-            // Add opens on the kind of the tab it's pressed from; elsewhere
-            // it searches movies and shows together.
-            Builder(
-              builder: (context) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: FilledButton.tonalIcon(
-                  style: kInlineButtonStyle,
-                  icon: const Icon(Icons.add_rounded),
-                  label: Text(l.arrAdd),
-                  onPressed: () {
-                    final i = DefaultTabController.of(context).index;
-                    final kind = tabs[i].$3;
-                    context.push(switch (kind) {
-                      ArrKind.radarr => '/arr/add/movie',
-                      ArrKind.sonarr => '/arr/add/series',
-                      null => '/arr/add',
-                    });
-                  },
+      length: 4,
+      // The Activity tab's count stays current while the section is open.
+      child: _QueuePoll(
+        countOnly: true,
+        every: const Duration(seconds: 30),
+        child: Scaffold(
+          appBar: AppBar(
+            leading: mobileDrawerLeading(context),
+            title: Text(l.appNavManage),
+            actions: [
+              // Add opens on the kind of library it's pressed from; from the
+              // other tabs it searches movies and shows together.
+              Builder(
+                builder: (context) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FilledButton.tonalIcon(
+                    style: kInlineButtonStyle,
+                    icon: const Icon(Icons.add_rounded),
+                    label: Text(l.arrAdd),
+                    onPressed: () {
+                      final onLibrary =
+                          DefaultTabController.of(context).index == 0;
+                      final kind = !onLibrary
+                          ? null
+                          : _libraryKind(ref, sonarr: sonarr, radarr: radarr);
+                      context.push(switch (kind) {
+                        ArrKind.radarr => '/arr/add/movie',
+                        ArrKind.sonarr => '/arr/add/series',
+                        null => '/arr/add',
+                      });
+                    },
+                  ),
                 ),
               ),
+              ArrHealthButton(onTap: () => context.push('/arr/health')),
+              IconButton(
+                tooltip: l.browseSettings,
+                icon: const Icon(Icons.settings_rounded),
+                onPressed: () => context.push('/arr-settings'),
+              ),
+            ],
+            bottom: TabBar(
+              isScrollable: !narrow,
+              tabAlignment: narrow ? TabAlignment.fill : TabAlignment.start,
+              // Four tabs share a phone's width: the usual side padding
+              // would cut "Activity" short once its count shows.
+              labelPadding: narrow
+                  ? const EdgeInsets.symmetric(horizontal: 4)
+                  : null,
+              tabs: [
+                Tab(text: l.arrLibrary),
+                Tab(text: l.arrCalendar),
+                Tab(
+                  // A long count on a small phone shrinks the pair a little
+                  // instead of cutting the name short.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [Text(l.arrActivity), const _QueueCount()],
+                    ),
+                  ),
+                ),
+                Tab(text: l.arrWanted),
+              ],
             ),
-            ArrHealthButton(onTap: () => context.push('/arr/health')),
-            IconButton(
-              tooltip: l.browseSettings,
-              icon: const Icon(Icons.settings_rounded),
-              onPressed: () => context.push('/arr-settings'),
-            ),
-          ],
-          // Six tabs don't fit a phone side by side; they scroll there.
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [for (final t in tabs) Tab(text: t.$1)],
           ),
-        ),
-        body: TabBarView(
-          children: [for (final t in tabs) RepaintBoundary(child: t.$2)],
+          body: const TabBarView(
+            children: [
+              RepaintBoundary(child: _LibraryTab()),
+              RepaintBoundary(child: _CalendarTab()),
+              RepaintBoundary(child: _ActivityTab()),
+              RepaintBoundary(child: ArrWantedTab()),
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+/// The library on show: the one picked when both apps are connected,
+/// otherwise the one that is.
+ArrKind _libraryKind(WidgetRef ref, {required bool sonarr, required bool radarr}) =>
+    sonarr && radarr
+    ? ref.read(arrLibraryKindProvider)
+    : radarr
+    ? ArrKind.radarr
+    : ArrKind.sonarr;
+
+/// How many downloads are in the queue, beside the Activity tab's name, as
+/// on the apps' own Activity entry. Orange when one needs a look, or when an
+/// app didn't answer (a "!" then stands in if nothing else is counted).
+class _QueueCount extends ConsumerWidget {
+  const _QueueCount();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The last answer stays up while the next one is on its way.
+    final status = ref.watch(arrQueueStatusProvider).value;
+    if (status == null || (status.count == 0 && !status.unreachable)) {
+      return const SizedBox.shrink();
+    }
+    final scheme = Theme.of(context).colorScheme;
+    final problem = status.problem || status.unreachable;
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      constraints: const BoxConstraints(minWidth: 20),
+      decoration: BoxDecoration(
+        color: problem ? arrWarningColor : scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status.count == 0 ? '!' : '${status.count}',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: kAppFontFamily,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: problem ? Colors.black : scheme.onSecondaryContainer,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
+/// Asks for the queue again every [every] while the window is showing: the
+/// whole queue, or with [countOnly] just the Activity tab's count.
+///
+/// Under a page opened over this one (a title, the settings) nothing is
+/// asked for: a page that isn't showing stops listening, so the reload waits
+/// and runs once, on the way back.
+class _QueuePoll extends ConsumerStatefulWidget {
+  final Duration every;
+  final bool countOnly;
+  final Widget child;
+  const _QueuePoll({
+    required this.every,
+    this.countOnly = false,
+    required this.child,
+  });
+
+  @override
+  ConsumerState<_QueuePoll> createState() => _QueuePollState();
+}
+
+class _QueuePollState extends ConsumerState<_QueuePoll>
+    with WidgetsBindingObserver {
+  Timer? _timer;
+
+  /// An answer is still on its way.
+  bool _waiting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _start();
+  }
+
+  void _reload() => widget.countOnly
+      ? ref.invalidate(arrQueueStatusProvider)
+      : ref.invalidate(arrQueueProvider);
+
+  void _start() {
+    _timer?.cancel();
+    _timer = Timer.periodic(widget.every, (_) {
+      // Asking again before a slow server has answered would throw its
+      // answer away, and so never show one.
+      if (mounted && !_waiting) _reload();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // Back from out of sight: catch up at once.
+        if (_timer == null) {
+          _start();
+          _reload();
+        }
+      case AppLifecycleState.inactive:
+        // Still showing (a desktop window that isn't the active one, a
+        // split screen): keep going.
+        break;
+      case AppLifecycleState.hidden ||
+          AppLifecycleState.paused ||
+          AppLifecycleState.detached:
+        _timer?.cancel();
+        _timer = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _waiting = widget.countOnly
+        ? ref.watch(arrQueueStatusProvider.select((a) => a.isLoading))
+        : ref.watch(arrQueueProvider.select((a) => a.isLoading));
+    return widget.child;
+  }
+}
+
+// ---------------------------------------------------------------- Library
+
+/// Movies and Shows behind one switch. The search box is shared, so a title
+/// typed once can be looked for in both.
+class _LibraryTab extends ConsumerStatefulWidget {
+  const _LibraryTab();
+
+  @override
+  ConsumerState<_LibraryTab> createState() => _LibraryTabState();
+}
+
+class _LibraryTabState extends ConsumerState<_LibraryTab> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final sonarr = ref.watch(sonarrClientProvider) != null;
+    final radarr = ref.watch(radarrClientProvider) != null;
+    final both = sonarr && radarr;
+    final kind = both
+        ? ref.watch(arrLibraryKindProvider)
+        : radarr
+        ? ArrKind.radarr
+        : ArrKind.sonarr;
+    // With one app connected there's nothing to switch between.
+    final switcher = both
+        ? ArrSwitch<ArrKind>(
+            options: [
+              (ArrKind.radarr, l.arrMovies),
+              (ArrKind.sonarr, l.arrShows),
+            ],
+            value: kind,
+            onChanged: ref.read(arrLibraryKindProvider.notifier).set,
+          )
+        : null;
+    return kind == ArrKind.radarr
+        ? _MoviesTab(search: _search, switcher: switcher)
+        : _ShowsTab(search: _search, switcher: switcher);
+  }
+}
+
+// ---------------------------------------------------------------- Activity
+
+/// The queue, the history and the blocklist behind one switch, as under the
+/// apps' own Activity. Only the list on show is built, so the queue stops
+/// refreshing while another is up.
+class _ActivityTab extends ConsumerWidget {
+  const _ActivityTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final view = ref.watch(arrActivityViewProvider);
+    final lead = ArrSwitch<ArrActivityView>(
+      options: [
+        (ArrActivityView.queue, l.arrQueue),
+        (ArrActivityView.history, l.arrHistory),
+        (ArrActivityView.blocklist, l.arrBlocklist),
+      ],
+      value: view,
+      onChanged: ref.read(arrActivityViewProvider.notifier).set,
+    );
+    return switch (view) {
+      ArrActivityView.queue => _QueueTab(lead: lead),
+      ArrActivityView.history => ArrHistoryTab(lead: lead),
+      ArrActivityView.blocklist => ArrBlocklistView(lead: lead),
+    };
   }
 }
 
@@ -330,16 +562,15 @@ class _CalendarRow extends ConsumerWidget {
 // ---------------------------------------------------------------- Queue
 
 class _QueueTab extends ConsumerStatefulWidget {
-  const _QueueTab();
+  /// The Activity switch, at the left of the row above the list.
+  final Widget lead;
+  const _QueueTab({required this.lead});
 
   @override
   ConsumerState<_QueueTab> createState() => _QueueTabState();
 }
 
-class _QueueTabState extends ConsumerState<_QueueTab>
-    with WidgetsBindingObserver {
-  Timer? _timer;
-
+class _QueueTabState extends ConsumerState<_QueueTab> {
   // Picking several downloads, by app and id ("sonarr:12"). Null: not picking.
   Set<String>? _picked;
   bool _busy = false;
@@ -381,90 +612,57 @@ class _QueueTabState extends ConsumerState<_QueueTab>
     ref.invalidate(arrQueueProvider);
   }
 
-  // Refreshes every few seconds while the tab is on screen and the app is in
-  // front; the tab view disposes it when another tab shows.
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _start();
-  }
-
-  void _start() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted) ref.invalidate(arrQueueProvider);
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _start();
-      ref.invalidate(arrQueueProvider);
-    } else {
-      _timer?.cancel();
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(arrQueueProvider);
     // A refresh keeps showing the last list instead of flashing a spinner.
     final merged = async.asData?.value ?? async.unwrapPrevious().asData?.value;
-    if (merged == null) {
-      if (async.hasError) {
-        return ErrorView(
-          message: async.error.toString(),
-          onRetry: () => ref.invalidate(arrQueueProvider),
-        );
-      }
-      return const Center(child: AppSpinner());
-    }
-    final items = merged.items;
+    final items = merged?.items ?? const <ArrQueueItem>[];
     // Finished downloads leave the queue; they leave the picks too.
     final live = {for (final i in items) _key(i)};
     final picked = _picked?.where(live.contains).toSet();
     final heldPicked = items.any(
       (i) => (picked?.contains(_key(i)) ?? false) && i.status == 'delay',
     );
+    final toolbar = ArrToolbar(
+      lead: widget.lead,
+      actions: [
+        if (items.isNotEmpty && picked == null)
+          IconButton(
+            tooltip: l.arrSelect,
+            icon: const Icon(Icons.checklist_rounded),
+            onPressed: () => setState(() => _picked = {}),
+          ),
+      ],
+    );
+    // Every few seconds while the queue is the list on show; switching to
+    // another list or tab ends it.
+    Widget polled(Widget child) =>
+        _QueuePoll(every: const Duration(seconds: 5), child: child);
+    if (merged == null) {
+      return polled(
+        Column(
+          children: [
+            toolbar,
+            Expanded(
+              child: async.hasError
+                  ? ErrorView(
+                      message: async.error.toString(),
+                      onRetry: () => ref.invalidate(arrQueueProvider),
+                    )
+                  : const Center(child: AppSpinner()),
+            ),
+          ],
+        ),
+      );
+    }
     final list = RefreshIndicator(
       onRefresh: () => ref.refresh(arrQueueProvider.future),
       child: CustomScrollView(
         slivers: [
+          SliverToBoxAdapter(child: toolbar),
           SliverToBoxAdapter(child: ArrErrorBanner(errors: merged.errors)),
-          // The Blocklist lives with the queue, as under the apps' Activity.
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-              child: Row(
-                children: [
-                  const Spacer(),
-                  if (items.isNotEmpty && picked == null)
-                    TextButton.icon(
-                      style: kInlineButtonStyle,
-                      onPressed: () => setState(() => _picked = {}),
-                      icon: const Icon(Icons.checklist_rounded),
-                      label: Text(l.arrSelect),
-                    ),
-                  TextButton.icon(
-                    style: kInlineButtonStyle,
-                    onPressed: () => context.push('/arr/blocklist'),
-                    icon: const Icon(Icons.block_rounded),
-                    label: Text(l.arrBlocklist),
-                  ),
-                ],
-              ),
-            ),
-          ),
           if (merged.items.isEmpty)
             SliverFillRemaining(
               hasScrollBody: true,
@@ -497,36 +695,38 @@ class _QueueTabState extends ConsumerState<_QueueTab>
         ],
       ),
     );
-    if (picked == null) return list;
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _picked = null);
-      },
-      child: Column(
-        children: [
-          ArrPickBar(
-            count: picked.length,
-            busy: _busy,
-            onCancel: () => setState(() => _picked = null),
-            onSelectAll: () => setState(() => _picked = live),
-            actions: [
-              if (heldPicked)
+    if (picked == null) return polled(list);
+    return polled(
+      PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) setState(() => _picked = null);
+        },
+        child: Column(
+          children: [
+            ArrPickBar(
+              count: picked.length,
+              busy: _busy,
+              onCancel: () => setState(() => _picked = null),
+              onSelectAll: () => setState(() => _picked = live),
+              actions: [
+                if (heldPicked)
+                  ArrPickAction(
+                    Icons.file_download_rounded,
+                    l.arrGrabNow,
+                    () => _grabPicked(items),
+                  ),
                 ArrPickAction(
-                  Icons.file_download_rounded,
-                  l.arrGrabNow,
-                  () => _grabPicked(items),
+                  Icons.delete_rounded,
+                  l.arrRemove,
+                  () => _removePicked(items),
+                  danger: true,
                 ),
-              ArrPickAction(
-                Icons.delete_rounded,
-                l.arrRemove,
-                () => _removePicked(items),
-                danger: true,
-              ),
-            ],
-          ),
-          Expanded(child: list),
-        ],
+              ],
+            ),
+            Expanded(child: list),
+          ],
+        ),
       ),
     );
   }
@@ -816,7 +1016,7 @@ mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   }
 
   /// Back ends picking first, as it would in the apps' select mode, rather
-  /// than leaving the Arr section.
+  /// than leaving the Manage section.
   Widget backEndsPicking(Widget child) => PopScope(
     canPop: !selection.active,
     onPopInvokedWithResult: (didPop, _) {
@@ -857,7 +1057,13 @@ mixin _Picking<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 }
 
 class _MoviesTab extends ConsumerStatefulWidget {
-  const _MoviesTab();
+  /// The Library tab's search box, shared with the other library.
+  final TextEditingController search;
+
+  /// The Movies and Shows switch; null with only one of the apps connected.
+  final Widget? switcher;
+
+  const _MoviesTab({required this.search, this.switcher});
 
   @override
   ConsumerState<_MoviesTab> createState() => _MoviesTabState();
@@ -865,15 +1071,9 @@ class _MoviesTab extends ConsumerStatefulWidget {
 
 class _MoviesTabState extends ConsumerState<_MoviesTab>
     with _Picking<_MoviesTab> {
-  final _search = TextEditingController();
+  TextEditingController get _search => widget.search;
   _Sort _sort = _Sort.title;
   _Filter _filter = _Filter.all;
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
 
   List<ArrMovie> _apply(List<ArrMovie> all) {
     final q = _search.text.trim().toLowerCase();
@@ -913,6 +1113,7 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
     ]);
     return backEndsPicking(_LibraryFrame(
       addRow: shown.asData?.value.isNotEmpty ?? false,
+      switcher: widget.switcher,
       search: _search,
       hint: l.arrSearchMovies,
       onSearch: () {
@@ -934,22 +1135,19 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
         reshown();
       },
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
-      // Radarr's Collections: film series, and monitoring them.
-      extra: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            tooltip: l.arrCollections,
-            icon: const Icon(Icons.collections_bookmark_rounded),
-            onPressed: () => context.push('/arr/collections'),
-          ),
-          IconButton(
-            tooltip: l.arrLibraryImport,
-            icon: const Icon(Icons.library_add_rounded),
-            onPressed: () => context.push('/arr/library-import?app=radarr'),
-          ),
-        ],
-      ),
+      tools: [
+        // Radarr's Collections: film series, and monitoring them.
+        _LibraryTool(
+          Icons.collections_bookmark_rounded,
+          l.arrCollections,
+          () => context.push('/arr/collections'),
+        ),
+        _LibraryTool(
+          Icons.library_add_rounded,
+          l.arrLibraryImport,
+          () => context.push('/arr/library-import?app=radarr'),
+        ),
+      ],
       onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
       bar: client == null || !selection.active
           ? null
@@ -1046,7 +1244,13 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
 }
 
 class _ShowsTab extends ConsumerStatefulWidget {
-  const _ShowsTab();
+  /// The Library tab's search box, shared with the other library.
+  final TextEditingController search;
+
+  /// The Movies and Shows switch; null with only one of the apps connected.
+  final Widget? switcher;
+
+  const _ShowsTab({required this.search, this.switcher});
 
   @override
   ConsumerState<_ShowsTab> createState() => _ShowsTabState();
@@ -1054,15 +1258,9 @@ class _ShowsTab extends ConsumerStatefulWidget {
 
 class _ShowsTabState extends ConsumerState<_ShowsTab>
     with _Picking<_ShowsTab> {
-  final _search = TextEditingController();
+  TextEditingController get _search => widget.search;
   _Sort _sort = _Sort.title;
   _Filter _filter = _Filter.all;
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
 
   List<ArrSeries> _apply(List<ArrSeries> all) {
     final q = _search.text.trim().toLowerCase();
@@ -1104,6 +1302,7 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
     ]);
     return backEndsPicking(_LibraryFrame(
       addRow: shown.asData?.value.isNotEmpty ?? false,
+      switcher: widget.switcher,
       search: _search,
       hint: l.arrSearchShows,
       onSearch: () {
@@ -1126,12 +1325,14 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
         reshown();
       },
       onRefresh: () => ref.refresh(sonarrSeriesListProvider.future),
-      // Sonarr's Library Import: shows already on disk, all at once.
-      extra: IconButton(
-        tooltip: l.arrLibraryImport,
-        icon: const Icon(Icons.library_add_rounded),
-        onPressed: () => context.push('/arr/library-import?app=sonarr'),
-      ),
+      tools: [
+        // Sonarr's Library Import: shows already on disk, all at once.
+        _LibraryTool(
+          Icons.library_add_rounded,
+          l.arrLibraryImport,
+          () => context.push('/arr/library-import?app=sonarr'),
+        ),
+      ],
       onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
       bar: client == null || !selection.active
           ? null
@@ -1235,8 +1436,21 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
   }
 }
 
-/// The search box with Sort and Filter menus, above a scrolling grid.
+/// Something more a library offers beside Sort and Filter (Collections,
+/// Import Library): a button on a wide window, a line of the More menu on a
+/// phone.
+class _LibraryTool {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _LibraryTool(this.icon, this.label, this.onTap);
+}
+
+/// The Movies and Shows switch, the search box and the Sort and Filter
+/// menus, above a scrolling grid.
 class _LibraryFrame extends StatelessWidget {
+  /// The Movies and Shows switch; null with only one of the apps connected.
+  final Widget? switcher;
   final TextEditingController search;
   final String hint;
   final VoidCallback onSearch;
@@ -1255,8 +1469,8 @@ class _LibraryFrame extends StatelessWidget {
   /// The bar for the picked titles, above the grid while picking.
   final Widget? bar;
 
-  /// One more button beside Sort and Filter (Movies: Collections).
-  final Widget? extra;
+  /// What else this library offers (Movies: Collections, Import Library).
+  final List<_LibraryTool> tools;
 
   /// The app new titles are added to, for the "Add" row under a search.
   final ArrKind kind;
@@ -1277,13 +1491,17 @@ class _LibraryFrame extends StatelessWidget {
     required this.onFilter,
     required this.onRefresh,
     required this.body,
+    this.switcher,
     this.onSelect,
     this.bar,
-    this.extra,
+    this.tools = const [],
   });
 
-  @override
-  Widget build(BuildContext context) {
+  /// The row above the grid. A window wide enough takes everything on one
+  /// line, each tool as its own button. A phone gets the switch and the menus
+  /// on one line and the search box, full width, on the next; what doesn't
+  /// fit there (the tools, Select) goes under More.
+  Widget _toolbar(BuildContext context, double width) {
     final l = AppLocalizations.of(context);
     String sortLabel(_Sort s) => switch (s) {
       _Sort.title => l.arrSortTitle,
@@ -1300,6 +1518,135 @@ class _LibraryFrame extends StatelessWidget {
       _Filter.continuing => l.arrContinuing,
       _Filter.ended => l.arrEnded,
     };
+    final searchBox = SearchField(
+      controller: search,
+      hint: hint,
+      onChanged: (_) => onSearch(),
+    );
+    final filterMenu = PopupMenuButton<_Filter>(
+      tooltip: l.arrFilter,
+      icon: Icon(
+        filter == _Filter.all
+            ? Icons.filter_list_rounded
+            : Icons.filter_alt_rounded,
+      ),
+      initialValue: filter,
+      onSelected: onFilter,
+      itemBuilder: (_) => [
+        for (final f in filters)
+          CheckedPopupMenuItem(
+            value: f,
+            checked: f == filter,
+            child: Text(filterLabel(f)),
+          ),
+      ],
+    );
+    final sortMenu = PopupMenuButton<_Sort>(
+      tooltip: l.arrSort,
+      icon: const Icon(Icons.sort_rounded),
+      initialValue: sort,
+      onSelected: onSort,
+      itemBuilder: (_) => [
+        for (final s in _Sort.values)
+          CheckedPopupMenuItem(
+            value: s,
+            checked: s == sort,
+            child: Text(sortLabel(s)),
+          ),
+      ],
+    );
+    if (width >= 720) {
+      return Row(
+        children: [
+          if (switcher != null) ...[switcher!, const SizedBox(width: 12)],
+          // The box stops growing: a search field across a whole desktop
+          // window reads as a banner, not a field.
+          Expanded(
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: searchBox,
+              ),
+            ),
+          ),
+          filterMenu,
+          sortMenu,
+          for (final t in tools)
+            IconButton(
+              tooltip: t.label,
+              icon: Icon(t.icon),
+              onPressed: t.onTap,
+            ),
+          if (onSelect != null)
+            IconButton(
+              tooltip: l.arrSelect,
+              icon: const Icon(Icons.checklist_rounded),
+              onPressed: onSelect,
+            ),
+        ],
+      );
+    }
+    final more = [
+      ...tools,
+      if (onSelect != null)
+        _LibraryTool(Icons.checklist_rounded, l.arrSelect, onSelect!),
+    ];
+    final moreMenu = more.isEmpty
+        ? null
+        : PopupMenuButton<_LibraryTool>(
+            tooltip: l.arrMore,
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (t) => t.onTap(),
+            itemBuilder: (_) => [
+              for (final t in more)
+                PopupMenuItem(
+                  value: t,
+                  child: Row(
+                    children: [
+                      Icon(t.icon, size: 20),
+                      const SizedBox(width: 14),
+                      Flexible(child: Text(t.label)),
+                    ],
+                  ),
+                ),
+            ],
+          );
+    if (switcher == null) {
+      return Row(
+        children: [
+          Expanded(child: searchBox),
+          filterMenu,
+          sortMenu,
+          ?moreMenu,
+        ],
+      );
+    }
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: switcher!,
+              ),
+            ),
+            filterMenu,
+            sortMenu,
+            ?moreMenu,
+          ],
+        ),
+        const SizedBox(height: 8),
+        // The row's own right edge is 8 in, for the icon buttons; the box
+        // lines up with the grid instead.
+        Padding(padding: const EdgeInsets.only(right: 8), child: searchBox),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final frame = RefreshIndicator(
       onRefresh: onRefresh,
       child: CustomScrollView(
@@ -1307,55 +1654,8 @@ class _LibraryFrame extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SearchField(
-                      controller: search,
-                      hint: hint,
-                      onChanged: (_) => onSearch(),
-                    ),
-                  ),
-                  PopupMenuButton<_Filter>(
-                    tooltip: l.arrFilter,
-                    icon: Icon(
-                      filter == _Filter.all
-                          ? Icons.filter_list_rounded
-                          : Icons.filter_alt_rounded,
-                    ),
-                    initialValue: filter,
-                    onSelected: onFilter,
-                    itemBuilder: (_) => [
-                      for (final f in filters)
-                        CheckedPopupMenuItem(
-                          value: f,
-                          checked: f == filter,
-                          child: Text(filterLabel(f)),
-                        ),
-                    ],
-                  ),
-                  PopupMenuButton<_Sort>(
-                    tooltip: l.arrSort,
-                    icon: const Icon(Icons.sort_rounded),
-                    initialValue: sort,
-                    onSelected: onSort,
-                    itemBuilder: (_) => [
-                      for (final s in _Sort.values)
-                        CheckedPopupMenuItem(
-                          value: s,
-                          checked: s == sort,
-                          child: Text(sortLabel(s)),
-                        ),
-                    ],
-                  ),
-                  ?extra,
-                  if (onSelect != null)
-                    IconButton(
-                      tooltip: l.arrSelect,
-                      icon: const Icon(Icons.checklist_rounded),
-                      onPressed: onSelect,
-                    ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, c) => _toolbar(context, c.maxWidth),
               ),
             ),
           ),
