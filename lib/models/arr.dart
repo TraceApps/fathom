@@ -500,6 +500,24 @@ class ArrEpisode {
   bool aired(DateTime now) => airDate != null && !airDate!.isAfter(now);
 }
 
+/// How a download in the queue is doing.
+enum ArrQueueState {
+  failed,
+  importBlocked,
+  needsAttention,
+  waitingToImport,
+  importing,
+  paused,
+  queued,
+  delayed,
+  downloading;
+
+  /// Stuck until someone steps in: said in its color wherever it's shown, and
+  /// first in the queue.
+  bool get needsHelp =>
+      this == failed || this == importBlocked || this == needsAttention;
+}
+
 /// Something downloading (or stuck) in an app's queue.
 class ArrQueueItem {
   final ArrKind kind;
@@ -620,15 +638,37 @@ class ArrQueueItem {
   /// How much is downloaded, 0 to 1.
   double get progress => size <= 0 ? 0 : ((size - sizeleft) / size).clamp(0, 1);
 
-  /// Needs a look: the app reports a warning or error, or the download failed.
-  bool get hasProblem =>
-      trackedDownloadStatus == 'warning' ||
-      trackedDownloadStatus == 'error' ||
-      status == 'failed' ||
-      status == 'warning' ||
-      trackedDownloadState == 'importBlocked' ||
-      trackedDownloadState == 'failedPending' ||
-      (errorMessage?.isNotEmpty ?? false);
+  /// How it's doing, by the apps' own reading of the same three fields: an
+  /// error or a failure first, then a warning, and only then how far it got.
+  ArrQueueState get state {
+    if (status == 'failed' ||
+        trackedDownloadState == 'failed' ||
+        trackedDownloadState == 'failedPending' ||
+        trackedDownloadStatus == 'error') {
+      return ArrQueueState.failed;
+    }
+    if (trackedDownloadState == 'importBlocked') {
+      return ArrQueueState.importBlocked;
+    }
+    // A warning outranks where it stands: a finished download that waits to
+    // be imported with a warning is waiting on a person, not on the app.
+    if (trackedDownloadStatus == 'warning' ||
+        status == 'warning' ||
+        status == 'downloadClientUnavailable') {
+      return ArrQueueState.needsAttention;
+    }
+    if (trackedDownloadState == 'importing') return ArrQueueState.importing;
+    if (trackedDownloadState == 'importPending') {
+      return ArrQueueState.waitingToImport;
+    }
+    return switch (status) {
+      'paused' => ArrQueueState.paused,
+      'queued' => ArrQueueState.queued,
+      'delay' => ArrQueueState.delayed,
+      'completed' => ArrQueueState.waitingToImport,
+      _ => ArrQueueState.downloading,
+    };
+  }
 }
 
 /// One thing on the calendar: an episode airing, or a movie release.

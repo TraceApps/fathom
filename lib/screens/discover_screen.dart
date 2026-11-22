@@ -448,7 +448,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   Widget _actions() {
     final l = AppLocalizations.of(context);
     final r = widget.request;
-    final perms = ref.watch(seerrPermissionsProvider).asData?.value ?? 0;
+    final perms = ref.watch(seerrPermissionsProvider).value ?? 0;
     if (!seerrCan(perms, kSeerrManageRequests)) return const SizedBox.shrink();
     final pills = <Widget>[];
     if (r.isPending) {
@@ -1694,19 +1694,27 @@ class SeerrRequestTile extends ConsumerWidget {
 
   Future<void> _act(BuildContext context, WidgetRef ref, String action) async {
     final l = AppLocalizations.of(context);
+    // The lists are told through the app's own scope, not the row's: an
+    // answer takes the row off its list, and it may be gone (scrolled away,
+    // or answered from a sheet) before Seerr has replied.
+    final scope = ProviderScope.containerOf(context, listen: false);
+    void changed() {
+      scope.invalidate(seerrRequestsProvider);
+      scope.invalidate(seerrRecentRequestsProvider);
+      scope.invalidate(seerrPendingRequestsProvider);
+    }
+
     if (action == 'edit') {
       final ok = await showSeerrEditRequestDialog(context, request);
       if (ok) {
-        ref.invalidate(seerrRequestsProvider);
-        ref.invalidate(seerrRecentRequestsProvider);
-        ref.invalidate(seerrPendingRequestsProvider);
+        changed();
         if (context.mounted) {
           showSnack(context, l.browseRequestUpdated, kind: SnackKind.success);
         }
       }
       return;
     }
-    final client = ref.read(seerrClientProvider);
+    final client = scope.read(seerrClientProvider);
     if (client == null) return;
     if (action == 'delete' &&
         !await _confirm(context, l.browseDeleteRequest, l.browseDeleteRequest)) {
@@ -1721,12 +1729,11 @@ class SeerrRequestTile extends ConsumerWidget {
       }
     }
     if (!context.mounted) return;
-    final title = ref
+    final title = scope
             .read(seerrDetailProvider(
                 (mediaType: request.mediaType, tmdbId: request.tmdbId)))
-            .asData
-            ?.value
-            .title ??
+            .value
+            ?.title ??
         (request.mediaType == 'tv' ? l.browseThisSeries : l.browseThisMovie);
     final arr = request.mediaType == 'tv' ? 'Sonarr' : 'Radarr';
     try {
@@ -1744,9 +1751,7 @@ class SeerrRequestTile extends ConsumerWidget {
             await client.deleteMediaFile(request.mediaId!, is4k: request.is4k);
           }
       }
-      ref.invalidate(seerrRequestsProvider);
-      ref.invalidate(seerrRecentRequestsProvider);
-      ref.invalidate(seerrPendingRequestsProvider);
+      changed();
       final done = switch (action) {
         'approve' => l.browseApprovedTitle(title),
         'decline' => l.browseDeclinedTitle(title),
@@ -1767,16 +1772,16 @@ class SeerrRequestTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final r = request;
+    // `value` throughout: what was last known stands while it's read again
+    // (any saved setting does that), so the row and its buttons don't blink.
     final detail =
         ref.watch(seerrDetailProvider((mediaType: r.mediaType, tmdbId: r.tmdbId)))
-            .asData
-            ?.value;
-    final perms = ref.watch(seerrPermissionsProvider).asData?.value ?? 0;
+            .value;
+    final perms = ref.watch(seerrPermissionsProvider).value ?? 0;
     final canManage = seerrCan(perms, kSeerrManageRequests);
     final isAdmin = perms & kSeerrAdmin != 0;
     final profileNames =
-        ref.watch(seerrProfileNamesProvider(r.mediaType)).asData?.value ??
-            const {};
+        ref.watch(seerrProfileNamesProvider(r.mediaType)).value ?? const {};
 
     final title = detail?.title ??
         (r.mediaType == 'tv'
@@ -1810,6 +1815,120 @@ class SeerrRequestTile extends ConsumerWidget {
             backdropPath: detail.backdropPath,
             status: r.mediaStatus,
           ));
+    }
+
+    Widget fields() => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _fieldRow(theme, l, l.browseStatus,
+                pill: _pill(statusLabel, statusColor)),
+            if (r.requestedBy != null)
+              _fieldRow(theme, l, l.browseRequested,
+                  ago: _seerrAgo(l, r.createdAt),
+                  name: r.requestedBy!,
+                  avatar: _avatarUrl(ref, r.requestedByAvatar)),
+            if (r.modifiedBy != null)
+              _fieldRow(theme, l, l.browseModified,
+                  ago: _seerrAgo(l, r.updatedAt),
+                  name: r.modifiedBy!,
+                  avatar: _avatarUrl(ref, r.modifiedByAvatar)),
+            if (profileName != null)
+              _fieldRow(theme, l, l.browseProfile, value: profileName),
+            if (r.mediaType == 'tv' && r.seasons.isNotEmpty)
+              _fieldRow(theme, l, l.browseSeasons, value: r.seasons.join(', ')),
+          ],
+        );
+
+    final decide = r.isPending && canManage;
+    final retry = r.isFailed && canManage;
+    final canDelete = canManage || r.isPending;
+    final canRemove = isAdmin && r.mediaId != null && (r.mediaStatus ?? 0) >= 3;
+    final removeFrom =
+        l.browseRemoveFromService(r.mediaType == 'tv' ? 'Sonarr' : 'Radarr');
+
+    // A TV keeps the row it had, every action a button to move to.
+    if (!isTvDevice) {
+      // Everything the row does, by name: under its menu button, and on a
+      // right-click or a long press.
+      final menu = <ContextMenuAction>[
+        if (decide) ...[
+          ContextMenuAction(
+              icon: Icons.check_circle_outline_rounded,
+              label: l.browseApprove,
+              onTap: () => _act(context, ref, 'approve')),
+          ContextMenuAction(
+              icon: Icons.cancel_outlined,
+              label: l.browseDecline,
+              onTap: () => _act(context, ref, 'decline')),
+          ContextMenuAction(
+              icon: Icons.tune_rounded,
+              label: l.browseEditRequest,
+              onTap: () => _act(context, ref, 'edit')),
+        ],
+        if (retry)
+          ContextMenuAction(
+              icon: Icons.refresh_rounded,
+              label: l.commonRetry,
+              onTap: () => _act(context, ref, 'retry')),
+        if (arrId != null)
+          ContextMenuAction(icon: kManageIcon, label: manageIn, onTap: openArr),
+        if (canDelete)
+          ContextMenuAction(
+              icon: Icons.delete_outline_rounded,
+              label: l.browseDeleteRequest,
+              color: scheme.error,
+              onTap: () => _act(context, ref, 'delete')),
+        if (canRemove)
+          ContextMenuAction(
+              icon: Icons.delete_sweep_outlined,
+              label: removeFrom,
+              color: scheme.error,
+              onTap: () => _act(context, ref, 'remove')),
+      ];
+      // In the open, only what the row is waiting for: its answer. Without
+      // one to give, the way to the download in Sonarr or Radarr.
+      final answers = <Widget>[
+        if (decide) ...[
+          _AnswerButton(
+              icon: Icons.check_rounded,
+              label: l.browseApprove,
+              background: _approveColor,
+              foreground: _onApproveColor,
+              onTap: () => _act(context, ref, 'approve')),
+          _AnswerButton(
+              icon: Icons.close_rounded,
+              label: l.browseDecline,
+              background: scheme.errorContainer,
+              foreground: scheme.onErrorContainer,
+              onTap: () => _act(context, ref, 'decline')),
+        ] else if (retry)
+          _AnswerButton(
+              icon: Icons.refresh_rounded,
+              label: l.commonRetry,
+              background: scheme.primary,
+              foreground: scheme.onPrimary,
+              onTap: () => _act(context, ref, 'retry')),
+      ];
+      final manage = answers.isEmpty && arrId != null
+          ? _AnswerButton(
+              icon: kManageIcon,
+              label: manageIn,
+              background: scheme.secondaryContainer,
+              foreground: scheme.onSecondaryContainer,
+              onTap: openArr)
+          : null;
+      return _RequestTileCard(
+        title: title,
+        year: detail?.year,
+        posterUrl: detail?.posterUrl,
+        backdropUrl: detail?.backdropUrl,
+        onOpen: detail == null ? null : openDetail,
+        menu: menu,
+        answers: answers,
+        manage: manage,
+        fields: fields,
+      );
     }
 
     final actions = <Widget>[
@@ -1853,29 +1972,6 @@ class SeerrRequestTile extends ConsumerWidget {
             color: scheme.error,
             onTap: () => _act(context, ref, 'remove')),
     ];
-
-    Widget fields() => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _fieldRow(theme, l, l.browseStatus,
-                pill: _pill(statusLabel, statusColor)),
-            if (r.requestedBy != null)
-              _fieldRow(theme, l, l.browseRequested,
-                  ago: _seerrAgo(l, r.createdAt),
-                  name: r.requestedBy!,
-                  avatar: _avatarUrl(ref, r.requestedByAvatar)),
-            if (r.modifiedBy != null)
-              _fieldRow(theme, l, l.browseModified,
-                  ago: _seerrAgo(l, r.updatedAt),
-                  name: r.modifiedBy!,
-                  avatar: _avatarUrl(ref, r.modifiedByAvatar)),
-            if (profileName != null)
-              _fieldRow(theme, l, l.browseProfile, value: profileName),
-            if (r.mediaType == 'tv' && r.seasons.isNotEmpty)
-              _fieldRow(theme, l, l.browseSeasons, value: r.seasons.join(', ')),
-          ],
-        );
 
     return LayoutBuilder(builder: (context, c) {
       final wide = c.maxWidth >= 860;
@@ -2040,31 +2136,305 @@ class SeerrRequestTile extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(width: 78, child: Text(label, style: labelStyle)),
-          ?pill,
+          // The names line up whatever they hold, and one too long for
+          // its place (larger text, a longer language) is drawn smaller
+          // before it's broken in two.
+          SizedBox(
+            width: 78,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(label, maxLines: 1, style: labelStyle),
+            ),
+          ),
+          // The status is read whole: on the narrowest phone it's drawn
+          // smaller before it's cut short or runs off the card.
+          if (pill != null)
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: pill,
+              ),
+            ),
           if (value != null)
             Flexible(
                 child: Text(value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall)),
-          if (name != null) ...[
-            if (ago != null && ago.isNotEmpty)
-              Text('${l.browseAgoBy(ago)} ',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-            SeerrAvatar(name: name, avatarUrl: avatar, radius: 8),
-            const SizedBox(width: 5),
+          // One line, so it gives way at its end however narrow the row
+          // or long the words: when, the face, then the name.
+          if (name != null)
             Flexible(
-              child: Text(name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w600)),
+              child: Text.rich(
+                TextSpan(children: [
+                  if (ago != null && ago.isNotEmpty)
+                    TextSpan(
+                        text: '${l.browseAgoBy(ago)} ',
+                        style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant)),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 5),
+                      child:
+                          SeerrAvatar(name: name, avatarUrl: avatar, radius: 8),
+                    ),
+                  ),
+                  TextSpan(
+                      text: name,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall,
+              ),
             ),
-          ],
         ],
       ),
+    );
+  }
+}
+
+/// Approve's green, and what's written on it.
+const _approveColor = Color(0xFF22C55E);
+const _onApproveColor = Color(0xFF052E16);
+
+/// A request as a card, away from a TV: the poster, what was asked and by
+/// whom, and the answer it waits for in the open. Everything else it does
+/// is under its menu. Pressing it opens the title.
+class _RequestTileCard extends StatelessWidget {
+  final String title;
+  final String? year;
+  final String? posterUrl;
+  final String? backdropUrl;
+  final VoidCallback? onOpen;
+  final List<ContextMenuAction> menu;
+
+  /// Approve and Decline, or Retry. Empty with no answer to give.
+  final List<Widget> answers;
+
+  /// Shown in their place where there's room, with no answer to give.
+  final Widget? manage;
+  final Widget Function() fields;
+
+  const _RequestTileCard({
+    required this.title,
+    required this.year,
+    required this.posterUrl,
+    required this.backdropUrl,
+    required this.onOpen,
+    required this.menu,
+    required this.answers,
+    required this.manage,
+    required this.fields,
+  });
+
+  /// Narrower than this (a phone), the answers go under the row.
+  static const compactBelow = 560.0;
+
+  /// From this width the fields have a column of their own.
+  static const wideFrom = 860.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final color = theme.cardTheme.color ?? scheme.surfaceContainer;
+    void openMenu(Offset at) =>
+        showContextMenu(context, at: at, title: title, actions: menu);
+    return LayoutBuilder(builder: (context, c) {
+      final compact = c.maxWidth < compactBelow;
+      final wide = c.maxWidth >= wideFrom;
+      final beside = [...answers, if (!compact) ?manage];
+      final heading = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (year != null)
+            Text(year!,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant)),
+          Text(title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          if (!wide) ...[
+            const SizedBox(height: 8),
+            fields(),
+          ],
+        ],
+      );
+      final body = Padding(
+        // The menu button brings its own space at the far end.
+        padding: EdgeInsetsDirectional.fromSTEB(
+            14, 14, menu.isEmpty ? 14 : 4, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: compact
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.center,
+              children: [
+                _RequestPoster(
+                    url: posterUrl, width: wide ? 72 : (compact ? 56 : 64)),
+                const SizedBox(width: 14),
+                Expanded(child: heading),
+                if (wide) ...[
+                  const SizedBox(width: 12),
+                  SizedBox(width: 250, child: fields()),
+                ],
+                if (!compact && beside.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  // As wide as the widest of them, one under the other.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 132),
+                    child: IntrinsicWidth(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final (i, b) in beside.indexed) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            b,
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                if (menu.isNotEmpty)
+                  Builder(builder: (button) {
+                    return IconButton(
+                      tooltip: AppLocalizations.of(context).commonMoreOptions,
+                      icon: const Icon(Icons.more_vert_rounded),
+                      onPressed: () {
+                        final box = button.findRenderObject() as RenderBox?;
+                        openMenu(box == null
+                            ? Offset.zero
+                            : box.localToGlobal(box.size.center(Offset.zero)));
+                      },
+                    );
+                  }),
+              ],
+            ),
+            // On a phone the answers are a row of their own, each as wide
+            // as the other and easy to hit.
+            if (compact && answers.isNotEmpty)
+              Padding(
+                padding: EdgeInsetsDirectional.only(
+                    top: 12, end: menu.isEmpty ? 0 : 10),
+                child: Row(
+                  children: [
+                    for (final (i, b) in answers.indexed) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      Expanded(child: b),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+      final card = Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        color: color,
+        child: ArrCardWash(
+          color: color,
+          picture: backdropUrl == null
+              ? null
+              : (width) => CachedImage(
+                  url: backdropUrl!,
+                  cacheWidth: width,
+                  alignment: const Alignment(0, -0.4),
+                  placeholder: const SizedBox.shrink(),
+                  errorBuilder: (_) => const SizedBox.shrink(),
+                ),
+          // Its own ink, over the picture.
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(onTap: onOpen, child: body),
+          ),
+        ),
+      );
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        child: menu.isEmpty
+            ? card
+            : GestureDetector(
+                onSecondaryTapUp: (d) => openMenu(d.globalPosition),
+                onLongPressStart: (d) => openMenu(d.globalPosition),
+                child: card,
+              ),
+      );
+    });
+  }
+}
+
+/// The poster in a request's card.
+class _RequestPoster extends StatelessWidget {
+  final String? url;
+  final double width;
+  const _RequestPoster({required this.url, required this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final none = Container(
+      color: scheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(Icons.movie_rounded, color: scheme.onSurfaceVariant),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: width,
+        height: width * 1.5,
+        child: url == null
+            ? none
+            : CachedImage(
+                url: url!, cacheWidth: width, errorBuilder: (_) => none),
+      ),
+    );
+  }
+}
+
+/// An answer to a request, in the open on its card.
+class _AnswerButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color background;
+  final Color foreground;
+  final VoidCallback onTap;
+  const _AnswerButton({
+    required this.icon,
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        backgroundColor: background,
+        foregroundColor: foreground,
+        minimumSize: const Size(0, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        textStyle: const TextStyle(
+            fontFamily: kAppFontFamily,
+            fontSize: 13,
+            fontWeight: FontWeight.w600),
+      ),
+      icon: Icon(icon, size: 18),
+      label: Text(label,
+          maxLines: 1, softWrap: false, overflow: TextOverflow.fade),
     );
   }
 }

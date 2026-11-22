@@ -97,10 +97,10 @@ void main() {
       expect(q.episodeCode, 'S01E03');
       expect(q.progress, 0.75);
       expect(q.messages, ['Not enough free space']);
-      expect(q.hasProblem, isFalse);
+      expect(q.state.needsHelp, isFalse);
       expect(
           ArrQueueItem.fromJson(ArrKind.sonarr,
-              {'id': 1, 'title': 't', 'trackedDownloadState': 'importBlocked'}).hasProblem,
+              {'id': 1, 'title': 't', 'trackedDownloadState': 'importBlocked'}).state.needsHelp,
           isTrue);
     });
   });

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -890,6 +892,30 @@ class _ArtRow extends ConsumerWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    final detailed = detail != null && detail!.isNotEmpty;
+    return LayoutBuilder(
+      builder: (context, box) => _row(
+        context,
+        client,
+        muted,
+        // A row that says more is taller: on a list with the room, its
+        // picture grows to match.
+        big: detailed && box.maxWidth >= roomyFrom,
+      ),
+    );
+  }
+
+  /// From this width a row with more to say has a bigger picture.
+  static const double roomyFrom = 560;
+
+  Widget _row(
+    BuildContext context,
+    ArrClient? client,
+    TextStyle? muted, {
+    required bool big,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return ArrRowInk(
       kind: kind,
       titleId: titleId,
@@ -909,8 +935,8 @@ class _ArtRow extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: SizedBox(
-                width: 46,
-                height: 69,
+                width: big ? 56 : 46,
+                height: big ? 84 : 69,
                 child: ArrArt(
                   client: client,
                   images: images,
@@ -993,17 +1019,38 @@ class _LoadMore extends StatelessWidget {
 /// Activity's Requests: what people asked for in Seerr that waits for a yes
 /// or no, with the same rows and buttons as Discover's own Requests tab.
 /// Approving one hands it to Sonarr or Radarr, and it's in the queue next.
-class ArrRequestsView extends ConsumerWidget {
+class ArrRequestsView extends ConsumerStatefulWidget {
   /// The Activity switch, at the left of the row above the list.
   final Widget lead;
   const ArrRequestsView({super.key, required this.lead});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArrRequestsView> createState() => _ArrRequestsViewState();
+}
+
+class _ArrRequestsViewState extends ConsumerState<ArrRequestsView> {
+  SeerrPendingLimit? _limit;
+
+  @override
+  void dispose() {
+    // What Load More brought goes with the list: the section's count asks
+    // for one page from here on. Once the tree is done coming down, as no
+    // provider may change before.
+    final limit = _limit;
+    if (limit != null) scheduleMicrotask(limit.reset);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final lead = widget.lead;
+    final limit = ref.watch(seerrPendingLimitProvider.notifier);
+    _limit = limit;
     final async = ref.watch(seerrPendingRequestsProvider);
     // An answer given reloads the list; the rows stay meanwhile.
-    final list = async.value;
+    final list = async.value?.requests;
+    final more = (async.value?.total ?? 0) > (list?.length ?? 0);
     final toolbar = ArrToolbar(lead: lead);
     if (list == null) {
       return Column(
@@ -1034,7 +1081,7 @@ class ArrRequestsView extends ConsumerWidget {
                 message: l.arrRequestsEmptyHint,
               ),
             )
-          else
+          else ...[
             SliverList.builder(
               itemCount: list.length,
               itemBuilder: (context, i) => SeerrRequestTile(
@@ -1042,6 +1089,17 @@ class ArrRequestsView extends ConsumerWidget {
                 request: list[i],
               ),
             ),
+            // More wait than were asked for: the count says so, and this
+            // brings the next of them.
+            if (more)
+              SliverToBoxAdapter(
+                child: _LoadMore(
+                  loading: async.isLoading,
+                  onTap: limit.more,
+                ),
+              ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
     );

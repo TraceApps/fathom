@@ -9,6 +9,7 @@ import '../models/arr.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
+import '../state/session_controller.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_delete_files.dart';
 import '../widgets/arr_file_edit.dart';
@@ -26,6 +27,24 @@ import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
 import 'arr_releases_screen.dart';
 
+/// A refresh of a movie's page, by a pull or a key: Radarr is asked for it
+/// again.
+void _askMovieAgain(WidgetRef ref, int id) {
+  ref.invalidate(radarrMovieHistoryProvider(id));
+  ref.invalidate(radarrMovieProvider(id));
+  // And whether it can be watched: the library may have it now.
+  ref.invalidate(arrLibraryItemProvider);
+}
+
+/// The same of a show's page.
+void _askSeriesAgain(WidgetRef ref, int id) {
+  ref.invalidate(sonarrEpisodesProvider(id));
+  ref.invalidate(sonarrEpisodeFilesProvider(id));
+  ref.invalidate(sonarrSeriesHistoryProvider(id));
+  ref.invalidate(sonarrSeriesProvider(id));
+  ref.invalidate(arrLibraryItemProvider);
+}
+
 /// A movie in Radarr: where it stands, its file and its history.
 class ArrMovieScreen extends ConsumerWidget {
   final int id;
@@ -36,7 +55,7 @@ class ArrMovieScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final client = ref.watch(radarrClientProvider);
     final async = ref.watch(radarrMovieProvider(id));
-    return Scaffold(
+    final page = Scaffold(
       body: async.when(
         loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
@@ -62,10 +81,7 @@ class ArrMovieScreen extends ConsumerWidget {
           ].join(' · ');
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(radarrMovieHistoryProvider(id));
-              ref.invalidate(radarrMovieProvider(id));
-              // And whether it can be watched: the library may have it now.
-              ref.invalidate(arrLibraryItemProvider);
+              _askMovieAgain(ref, id);
               await ref.read(radarrMovieProvider(id).future);
             },
             child: CustomScrollView(
@@ -189,6 +205,13 @@ class ArrMovieScreen extends ConsumerWidget {
         },
       ),
     );
+    return ArrRefreshKeys(
+      // Beside a list, the section's own keys ask again.
+      onRefresh: ArrPaneHost.of(context) != null
+          ? null
+          : () => _askMovieAgain(ref, id),
+      child: page,
+    );
   }
 }
 
@@ -202,7 +225,7 @@ class ArrSeriesScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final client = ref.watch(sonarrClientProvider);
     final async = ref.watch(sonarrSeriesProvider(id));
-    return Scaffold(
+    final page = Scaffold(
       body: async.when(
         loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
@@ -244,11 +267,7 @@ class ArrSeriesScreen extends ConsumerWidget {
           ];
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(sonarrEpisodesProvider(id));
-              ref.invalidate(sonarrEpisodeFilesProvider(id));
-              ref.invalidate(sonarrSeriesHistoryProvider(id));
-              ref.invalidate(sonarrSeriesProvider(id));
-              ref.invalidate(arrLibraryItemProvider);
+              _askSeriesAgain(ref, id);
               await ref.read(sonarrSeriesProvider(id).future);
             },
             child: CustomScrollView(
@@ -389,6 +408,13 @@ class ArrSeriesScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+    return ArrRefreshKeys(
+      // Beside a list, the section's own keys ask again.
+      onRefresh: ArrPaneHost.of(context) != null
+          ? null
+          : () => _askSeriesAgain(ref, id),
+      child: page,
     );
   }
 }
@@ -655,8 +681,25 @@ Future<void> _editMovieFile(
 /// Watch, for a title the Jellyfin library has: it opens the title there,
 /// to play it. The main action then, ahead of searching for a release.
 ArrAction? _watchAction(BuildContext context, WidgetRef ref, ArrLibraryKey k) {
-  final itemId = ref.watch(arrLibraryItemProvider(k)).value;
-  if (itemId == null) return null;
+  final asked = ref.watch(arrLibraryItemProvider(k));
+  final itemId = asked.value;
+  if (itemId == null) {
+    // A title on disk is most likely in the library: its button holds its
+    // place while the library is first asked, so the others don't move
+    // over when the answer comes.
+    final likely =
+        k.onDisk &&
+        asked.isLoading &&
+        !asked.hasValue &&
+        ref.watch(sessionControllerProvider).value != null;
+    if (!likely) return null;
+    return ArrAction(
+      icon: Icons.play_arrow_rounded,
+      label: AppLocalizations.of(context).detailWatch,
+      primary: true,
+      onTap: null,
+    );
+  }
   return ArrAction(
     icon: Icons.play_arrow_rounded,
     label: AppLocalizations.of(context).detailWatch,

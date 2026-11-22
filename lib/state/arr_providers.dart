@@ -241,9 +241,11 @@ final arrQueueProvider = FutureProvider.autoDispose<ArrMerged<ArrQueueItem>>((
   return merged;
 });
 
-/// The queue's order: problems first, then the closest to finishing.
+/// The queue's order: what's stuck first (the same ones a card says so of,
+/// in its color), then the closest to finishing.
 int arrQueueOrder(ArrQueueItem a, ArrQueueItem b) {
-  if (a.hasProblem != b.hasProblem) return a.hasProblem ? -1 : 1;
+  final stuck = a.state.needsHelp;
+  if (stuck != b.state.needsHelp) return stuck ? -1 : 1;
   return b.progress.compareTo(a.progress);
 }
 
@@ -894,8 +896,17 @@ const arrLibraryLookAgain = [
 /// the server can't be asked, where the button simply doesn't show.
 final arrLibraryItemProvider = StreamProvider.autoDispose
     .family<String?, ArrLibraryKey>((ref, k) async* {
-      final session = ref.watch(sessionControllerProvider).asData?.value;
+      final signedIn = ref.watch(sessionControllerProvider);
+      final session = signedIn.value;
       if (session == null) {
+        // Who's signed in isn't known yet: no answer until it is, when this
+        // is asked afresh.
+        if (signedIn.isLoading) {
+          final known = Completer<void>();
+          ref.onDispose(known.complete);
+          await known.future;
+          return;
+        }
         yield null;
         return;
       }

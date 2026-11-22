@@ -94,6 +94,7 @@ class _DownloadCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final client = _clientOf(ref, title.kind);
+    final state = title.lead.state;
     final (standing, color) = arrQueueStanding(l, scheme, title.lead);
     final left = title.finishes?.difference(arrHomeNow());
     // What of the title is coming, then how it's doing: how far along while
@@ -104,7 +105,7 @@ class _DownloadCard extends ConsumerWidget {
           ?title.lead.episodeCode
         else
           l.detailEpisodeCount(title.items.length),
-      if (standing != l.arrDownloading)
+      if (state != ArrQueueState.downloading)
         standing
       else ...[
         '${(title.progress * 100).round()}%',
@@ -112,7 +113,7 @@ class _DownloadCard extends ConsumerWidget {
       ],
     ].join(' · ');
     // A problem is said in its color; anything else stays quiet.
-    final loud = color == arrWarningColor || color == arrMissingColor;
+    final loud = state.needsHelp;
     // The wide picture, or the poster cut to the card where there's none.
     final wide = client?.imageUrl(title.images, 'fanart') != null;
     return _HomeCard(

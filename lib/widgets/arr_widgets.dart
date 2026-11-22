@@ -1,16 +1,19 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../services/tv_mode.dart';
 import '../theme/app_theme.dart';
 import 'arr_pane.dart';
 import 'cached_image.dart';
 import 'context_menu.dart';
+import 'window_frame.dart';
 
 /// The Manage section's icon, in the navigation and on its empty state.
 const kManageIcon = Icons.video_settings_rounded;
@@ -74,33 +77,17 @@ String arrDuration(Duration d) {
   AppLocalizations l,
   ColorScheme scheme,
   ArrQueueItem item,
-) {
-  if (item.status == 'failed' || item.trackedDownloadState == 'failed') {
-    return (l.arrFailed, arrMissingColor);
-  }
-  switch (item.trackedDownloadState) {
-    case 'importBlocked':
-      return (l.arrImportBlocked, arrWarningColor);
-    case 'importPending':
-      return (l.arrWaitingToImport, arrDownloadedColor);
-    case 'importing':
-      return (l.arrImporting, arrDownloadedColor);
-    case 'failedPending':
-      return (l.arrFailed, arrMissingColor);
-  }
-  if (item.trackedDownloadStatus == 'warning' ||
-      item.trackedDownloadStatus == 'error' ||
-      item.status == 'warning') {
-    return (l.arrNeedsAttention, arrWarningColor);
-  }
-  return switch (item.status) {
-    'paused' => (l.arrPaused, scheme.outline),
-    'queued' => (l.arrQueued, arrQueuedColor),
-    'delay' => (l.arrDelayed, scheme.outline),
-    'completed' => (l.arrWaitingToImport, arrDownloadedColor),
-    _ => (l.arrDownloading, arrUnreleasedColor),
-  };
-}
+) => switch (item.state) {
+  ArrQueueState.failed => (l.arrFailed, arrMissingColor),
+  ArrQueueState.importBlocked => (l.arrImportBlocked, arrWarningColor),
+  ArrQueueState.needsAttention => (l.arrNeedsAttention, arrWarningColor),
+  ArrQueueState.waitingToImport => (l.arrWaitingToImport, arrDownloadedColor),
+  ArrQueueState.importing => (l.arrImporting, arrDownloadedColor),
+  ArrQueueState.paused => (l.arrPaused, scheme.outline),
+  ArrQueueState.queued => (l.arrQueued, arrQueuedColor),
+  ArrQueueState.delayed => (l.arrDelayed, scheme.outline),
+  ArrQueueState.downloading => (l.arrDownloading, arrUnreleasedColor),
+};
 
 /// A picture of a title from Sonarr or Radarr. Their own copies need the API
 /// key; pictures from TMDB or TheTVDB don't, but get it harmlessly anyway.
@@ -112,6 +99,15 @@ class ArrArt extends StatelessWidget {
   final IconData placeholderIcon;
   final Alignment alignment;
 
+  /// How wide it's drawn, where that's far less than the picture itself (a
+  /// wide picture behind a card): it's kept in memory at that size, not at
+  /// the size it comes in. A poster is kept at [width] without it.
+  final double? decodeWidth;
+
+  /// Nothing at all where there's no picture, or while it loads: for a
+  /// picture behind something, that a gray box would only spoil.
+  final bool bare;
+
   const ArrArt({
     super.key,
     required this.client,
@@ -120,25 +116,110 @@ class ArrArt extends StatelessWidget {
     this.width = 342,
     this.placeholderIcon = Icons.movie_rounded,
     this.alignment = Alignment.center,
+    this.decodeWidth,
+    this.bare = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final url = client?.imageUrl(images, type, width: width);
     final scheme = Theme.of(context).colorScheme;
-    final ph = Container(
-      color: scheme.surfaceContainerHighest,
-      alignment: Alignment.center,
-      child: Icon(placeholderIcon, color: scheme.onSurfaceVariant),
-    );
+    final ph = bare
+        ? const SizedBox.shrink()
+        : Container(
+            color: scheme.surfaceContainerHighest,
+            alignment: Alignment.center,
+            child: Icon(placeholderIcon, color: scheme.onSurfaceVariant),
+          );
     if (url == null) return ph;
     final local = !url.startsWith('http') || url.startsWith(client!.baseUrl);
     return CachedImage(
       url: url,
       alignment: alignment,
-      cacheWidth: type == 'poster' ? width.toDouble() : null,
+      cacheWidth: decodeWidth ?? (type == 'poster' ? width.toDouble() : null),
       headers: local ? client!.imageHeaders : null,
+      placeholder: bare ? ph : null,
       errorBuilder: (_) => ph,
+    );
+  }
+}
+
+/// A card with its title's wide picture behind what it says. The picture
+/// sits at the card's far end, washed with the card's own color: plain
+/// where the words start, showing through more toward the edge, and never
+/// so much that they're hard to read. Without a picture, the card alone.
+class ArrCardWash extends StatelessWidget {
+  /// The picture, filling the space it's given, told how wide to keep it in
+  /// memory (see [decodeWidth]). Null: there's none.
+  final Widget Function(double decodeWidth)? picture;
+
+  /// The card's own color.
+  final Color color;
+
+  /// Less of the picture: for a narrow card, whose words run across it.
+  final bool quiet;
+  final Widget child;
+
+  const ArrCardWash({
+    super.key,
+    required this.picture,
+    required this.color,
+    this.quiet = false,
+    required this.child,
+  });
+
+  /// How much of the card's width the picture takes, from its far end.
+  static const double share = 0.6;
+
+  /// How wide a picture is kept in memory to fill [space]: as wide as it's
+  /// drawn there, which is a fraction of what a wide picture comes in at
+  /// (TheTVDB's are 1920 across, and a list has one on every card). In
+  /// steps, so a window being dragged doesn't read it again at every width.
+  static double decodeWidth(Size space) {
+    const step = 160.0;
+    // Wide pictures are 16:9, and cover the space: a tall one is filled by
+    // the picture's height, with its sides cut off.
+    final drawn = math.max(space.width, space.height * 16 / 9);
+    return math.max(1, (drawn / step).ceil()) * step;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final picture = this.picture;
+    if (picture == null) return child;
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ExcludeSemantics(
+            child: FractionallySizedBox(
+              alignment: AlignmentDirectional.centerEnd,
+              widthFactor: share,
+              child: LayoutBuilder(
+                builder: (context, box) => picture(decodeWidth(box.biggest)),
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                // Plain past the picture's near edge, so it has no edge.
+                stops: const [0, 1 - share + 0.04, 0.72, 1],
+                colors: [
+                  color,
+                  color,
+                  color.withValues(alpha: quiet ? 0.93 : 0.86),
+                  color.withValues(alpha: quiet ? 0.82 : 0.66),
+                ],
+              ),
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }
@@ -326,11 +407,15 @@ class ArrSwitch<T> extends StatelessWidget {
   });
 
   /// The space a segment keeps at each side of its name, and what that's cut
-  /// to where the names don't fit.
+  /// to where the names don't fit: first with the short names, then, on the
+  /// narrowest phones, with those set a little smaller as well.
   static const _pad = 12.0;
   static const _tightPad = 8.0;
+  static const _snugPad = 5.0;
+  static const _snugScale = 0.9;
 
   /// A toolbar's own button beside the switch, with the gap between the two.
+  /// A toolbar with more buttons than one says so: see [_ArrBeside].
   static const _beside = 60.0;
 
   @override
@@ -341,6 +426,10 @@ class ArrSwitch<T> extends StatelessWidget {
         theme.textTheme.labelLarge;
     final scaler = MediaQuery.textScalerOf(context);
     final direction = Directionality.of(context);
+    final beside = math.max(
+      _beside,
+      context.dependOnInheritedWidgetOfExactType<_ArrBeside>()?.width ?? 0,
+    );
     double width(String name) {
       final p = TextPainter(
         text: TextSpan(text: name, style: style),
@@ -362,10 +451,35 @@ class ArrSwitch<T> extends StatelessWidget {
           widest = math.max(widest, width(label));
         }
         final tight =
-            options.length * (widest + _pad * 2) + _beside > c.maxWidth;
+            options.length * (widest + _pad * 2) + beside > c.maxWidth;
+        var widestShort = 0.0;
+        if (tight) {
+          for (final (v, label) in options) {
+            widestShort = math.max(widestShort, width(short[v] ?? label));
+          }
+        }
+        final snug =
+            tight &&
+            options.length * (widestShort + _tightPad * 2) + beside >
+                c.maxWidth;
+        // One line always: a name that still doesn't fit fades at its end
+        // rather than breaking in two.
+        Widget name(String text) => Text(
+          text,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+        );
         return SegmentedButton<T>(
           showSelectedIcon: false,
-          style: tight
+          style: snug
+              ? SegmentedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: _snugPad),
+                  textStyle: style?.copyWith(
+                    fontSize: (style.fontSize ?? 14) * _snugScale,
+                  ),
+                )
+              : tight
               ? SegmentedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: _tightPad),
                 )
@@ -383,7 +497,7 @@ class ArrSwitch<T> extends StatelessWidget {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Text(brief),
+                          name(brief),
                           PositionedDirectional(
                             top: -3,
                             end: -1,
@@ -396,7 +510,7 @@ class ArrSwitch<T> extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _ => Text(label),
+                  _ => name(label),
                 },
               ),
           ],
@@ -406,6 +520,16 @@ class ArrSwitch<T> extends StatelessWidget {
       },
     );
   }
+}
+
+/// What a phone's toolbar keeps beside its switch: the width of its buttons
+/// and the gap before them, for the switch to make room.
+class _ArrBeside extends InheritedWidget {
+  final double width;
+  const _ArrBeside({required this.width, required super.child});
+
+  @override
+  bool updateShouldNotify(_ArrBeside old) => old.width != width;
 }
 
 /// Something a list's toolbar offers (Select, Manual Import, Clear): a button
@@ -426,6 +550,36 @@ class ArrTool {
     this.labeled = false,
     this.danger = false,
   });
+}
+
+/// The keyboard's refresh for a page that stands alone, on a desktop
+/// window: F5, and Ctrl or Cmd with R. Nothing at all without [onRefresh],
+/// anywhere else, and in TV mode (which a desktop can be put in).
+class ArrRefreshKeys extends StatelessWidget {
+  final VoidCallback? onRefresh;
+  final Widget child;
+  const ArrRefreshKeys({
+    super.key,
+    required this.onRefresh,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final refresh = onRefresh;
+    if (refresh == null || !isDesktopWindowFrame || isTvDevice) return child;
+    const keyR = LogicalKeyboardKey.keyR;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.f5): refresh,
+        const SingleActivator(keyR, control: true): refresh,
+        const SingleActivator(keyR, meta: true): refresh,
+      },
+      // Where the keys are heard from until something on the page has the
+      // keyboard. Never a stop for Tab: nothing would show it's there.
+      child: Focus(autofocus: true, skipTraversal: true, child: child),
+    );
+  }
 }
 
 /// The row above a list: its switch on the left, what can be done with the
@@ -458,6 +612,11 @@ class ArrToolbar extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, c) {
           final fold = c.maxWidth + _padding.horizontal < foldBelow;
+          // Folded, every button is an icon of a known size.
+          final buttons = actions.length + (tools.isEmpty ? 0 : 1);
+          final lead = fold
+              ? _ArrBeside(width: buttons * 48.0 + 12, child: this.lead)
+              : this.lead;
           return Wrap(
             spacing: 12,
             runSpacing: 4,

@@ -13,6 +13,7 @@ import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/providers.dart';
 import 'package:fathom/state/session_controller.dart';
 import 'package:fathom/theme/app_theme.dart';
+import 'package:fathom/widgets/arr_actions.dart';
 import 'package:fathom/widgets/detail_header.dart';
 import 'package:fathom/widgets/hover_pill_button.dart';
 import 'package:fathom/widgets/media_cards.dart';
@@ -38,6 +39,9 @@ class _Library implements HttpClientAdapter {
   /// A server from before `/Items` took a user: only the old address works.
   final bool old;
   bool down = false;
+
+  /// How long it takes over each answer.
+  Duration takes = Duration.zero;
   final List<_Ask> asked = [];
   _Library(this.items, {this.old = false});
 
@@ -49,6 +53,7 @@ class _Library implements HttpClientAdapter {
   ) async {
     final q = o.uri.queryParameters;
     asked.add((path: o.uri.path, query: q));
+    if (takes > Duration.zero) await Future<void>.delayed(takes);
     ResponseBody reply(Object? data, [int code = 200]) =>
         ResponseBody.fromString(
           jsonEncode(data),
@@ -140,6 +145,11 @@ class _Signed extends SessionController {
   Future<Session?> build() async => session;
 }
 
+/// What Radarr and Sonarr were asked since the page was opened: `movie/5`.
+final List<String> _appAsked = [];
+
+int _askedFor(String what) => _appAsked.where((p) => p == what).length;
+
 /// An app that has one movie and one show, as their pages ask for them.
 class _App implements HttpClientAdapter {
   final Map<String, dynamic> title;
@@ -152,6 +162,7 @@ class _App implements HttpClientAdapter {
     Future<void>? cancel,
   ) async {
     final path = o.uri.path.replaceFirst(RegExp(r'^.*/api/v3/'), '');
+    _appAsked.add(path);
     final Object reply = switch (path) {
       'movie/5' || 'series/7' => title,
       // The library's list, for the section itself.
@@ -233,6 +244,7 @@ Future<void> _open(
   t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
+  _appAsked.clear();
   _router = GoRouter(
     initialLocation: page,
     routes: [
@@ -332,6 +344,27 @@ Future<void> _pullToRefresh(WidgetTester t) async {
   await done;
 }
 
+/// Waits, a second at a time, until [done] or [most] seconds have gone.
+Future<void> _until(
+  WidgetTester t,
+  bool Function() done, {
+  int most = 60,
+}) async {
+  for (var i = 0; i < most && !done(); i++) {
+    await t.pump(const Duration(seconds: 1));
+  }
+  await _move(t);
+}
+
+/// Lets a slow library's last answer come, so the test ends with nothing
+/// still on its way.
+Future<void> _lastAnswer(WidgetTester t, _Library lib) async {
+  final most = lib.takes;
+  lib.takes = Duration.zero;
+  await t.pump(most + const Duration(seconds: 1));
+  await _move(t);
+}
+
 /// A narrow page's buttons, left to right: (name, the main one).
 List<(String, bool)> _pills(WidgetTester t) => [
   for (final b in t.widgetList<HoverPillButton>(find.byType(HoverPillButton)))
@@ -401,7 +434,7 @@ void main() {
       expect(lib.asked.single.query['IncludeItemTypes'], 'Series');
     });
 
-    test('under another name, by the years around its own', () async {
+    test('under another name, by its year, then those beside it', () async {
       final lib = _Library(_titles());
       // Radarr calls it The Godfather; the library has it in German.
       Future<String?> find({required bool byYear, int? year = 1972}) => _find(
@@ -411,15 +444,23 @@ void main() {
         year: year,
         byYear: byYear,
       );
+      List<String?> years() => [for (final a in lib.asked) a.query['Years']];
       expect(await find(byYear: true), 'jf-pate');
-      expect(lib.asked, hasLength(2));
-      expect(lib.asked.last.query['Years'], '1971,1972,1973');
+      // Its own year has it: the years beside it aren't asked for.
+      expect(years(), [null, '1972']);
       expect(lib.asked.last.query['SearchTerm'], isNull);
       expect(lib.asked.last.query['Limit'], '2000');
 
-      // A year out, as the apps and the library sometimes disagree.
+      // A year out, as the apps and the library sometimes disagree: the
+      // years beside its own are asked next, without its own again.
+      lib.asked.clear();
       expect(await find(byYear: true, year: 1973), 'jf-pate');
+      expect(years(), [null, '1973', '1972,1974']);
+      expect(lib.asked.last.query['SearchTerm'], isNull);
+      expect(lib.asked.last.query['Limit'], '2000');
+      lib.asked.clear();
       expect(await find(byYear: true, year: 1975), isNull);
+      expect(years(), [null, '1975', '1974,1976']);
 
       // Not asked for unless it's worth it: the title isn't on disk.
       lib.asked.clear();
@@ -746,16 +787,294 @@ void main() {
       expect(find.byTooltip('Watch'), findsNothing);
       expect(find.text('Watch'), findsNothing);
       expect(_looks(lib), 1);
+      final lists = _askedFor('movie');
+      final pages = _askedFor('movie/5');
 
       lib.items.addAll(_titles());
       await t.sendKeyEvent(LogicalKeyboardKey.f5);
       await _move(t);
       expect(_looks(lib), 2);
+      // The section's own keys: its lists are asked again with the movie,
+      // and the movie once, not twice.
+      expect(_askedFor('movie'), lists + 1);
+      expect(_askedFor('movie/5'), pages + 1);
       expect(
         find.byTooltip('Watch').evaluate().length +
             find.text('Watch').evaluate().length,
         greaterThan(0),
       );
+
+      // The same with the keyboard on one of the movie's own buttons.
+      var inPane = false;
+      for (var i = 0; i < 80 && !inPane; i++) {
+        await t.sendKeyEvent(LogicalKeyboardKey.tab);
+        await t.pump();
+        inPane =
+            FocusManager.instance.primaryFocus?.context
+                ?.findAncestorWidgetOfExactType<ArrMovieScreen>() !=
+            null;
+      }
+      expect(inPane, isTrue);
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await _move(t);
+      expect(_looks(lib), 3);
+      expect(_askedFor('movie'), lists + 2);
+      expect(_askedFor('movie/5'), pages + 2);
+    });
+
+    // Tab goes round the page's own controls. The keys listen from a node
+    // as wide as the page, which must never be a stop on the way: nothing
+    // would show where the keyboard is.
+    Future<void> tabsRound(WidgetTester t) async {
+      final page = t.view.physicalSize / t.view.devicePixelRatio;
+      final stops = <FocusNode>[];
+      for (var i = 0; i < 300; i++) {
+        await t.sendKeyEvent(LogicalKeyboardKey.tab);
+        await t.pump();
+        final at = FocusManager.instance.primaryFocus!;
+        expect(
+          at.size.width >= page.width * 0.9 &&
+              at.size.height >= page.height * 0.9,
+          isFalse,
+          reason: 'Tab ${i + 1} stopped on $at',
+        );
+        // All the way round.
+        if (stops.isNotEmpty && at == stops.first) break;
+        stops.add(at);
+      }
+      expect(stops.length, inInclusiveRange(3, 299));
+    }
+
+    testWidgets('Tab never stops on the movie\'s whole page', (t) async {
+      final lib = _Library(_titles());
+      await _open(t, '/arr/movie/5', library: lib, movie: _movie());
+      await tabsRound(t);
+      // And the keys still work from wherever it stopped.
+      final asked = _askedFor('movie/5');
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await _move(t);
+      expect(_askedFor('movie/5'), asked + 1);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('nor on the whole section', (t) async {
+      final lib = _Library(_titles());
+      await _open(t, '/arr', library: lib, movie: _movie());
+      await tabsRound(t);
+      final asked = _askedFor('movie');
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await _move(t);
+      expect(_askedFor('movie'), asked + 1);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('F5 and Ctrl+R on the movie\'s own page ask again', (t) async {
+      final lib = _Library([]);
+      await _open(
+        t,
+        '/arr/movie/5',
+        library: lib,
+        movie: _movie(hasFile: false),
+      );
+      expect(_header(t).first, ('Search Movie', true));
+      expect(_looks(lib), 1);
+      final first = _askedFor('movie/5');
+
+      lib.items.addAll(_titles());
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await _move(t);
+      expect(_askedFor('movie/5'), first + 1);
+      expect(_looks(lib), 2);
+      expect(_header(t).first, ('Watch', true));
+
+      lib.items.clear();
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.keyR);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await _move(t);
+      expect(_askedFor('movie/5'), first + 2);
+      expect(_looks(lib), 3);
+      expect(_header(t).first, ('Search Movie', true));
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('holds its place while the library is first asked', (t) async {
+      final lib = _Library(_titles())..takes = const Duration(seconds: 5);
+      await _open(t, '/arr/movie/5', library: lib, movie: _movie());
+      // Asked, and no answer yet.
+      expect(_looks(lib), 1);
+      expect(_header(t).first, ('Watch', true));
+      expect(_header(t)[1], ('Search Movie', false));
+      expect(_header(t).where((b) => b.$2), hasLength(1));
+      expect(
+        t.widget<HeaderActionButton>(_headerButton('Watch')).onTap,
+        isNull,
+      );
+      final watch = t.getRect(_headerButton('Watch'));
+      final search = t.getRect(_headerButton('Search Movie'));
+      // Nothing to open yet.
+      await t.tap(_headerButton('Watch'), warnIfMissed: false);
+      await _move(t);
+      expect(find.byType(ArrMovieScreen), findsOneWidget);
+      expect(find.textContaining('library:'), findsNothing);
+
+      await t.pump(const Duration(seconds: 5));
+      await _move(t);
+      // The answer moves nothing.
+      expect(_header(t).first, ('Watch', true));
+      expect(t.getRect(_headerButton('Watch')), watch);
+      expect(t.getRect(_headerButton('Search Movie')), search);
+      await t.tap(_headerButton('Watch'));
+      await _move(t);
+      expect(find.text('library: jf-inception Inception'), findsOneWidget);
+    });
+
+    testWidgets('gives the place up when the library hasn\'t got it, for good', (
+      t,
+    ) async {
+      final lib = _Library([])..takes = const Duration(seconds: 5);
+      await _open(t, '/arr/movie/5', library: lib, movie: _movie());
+      expect(_header(t).first, ('Watch', true));
+      expect(_header(t)[1], ('Search Movie', false));
+
+      bool held() => _header(t).any((b) => b.$1 == 'Watch');
+      await _until(t, () => !held());
+      expect(held(), isFalse);
+      expect(_header(t).first, ('Search Movie', true));
+
+      // The later looks are quiet: no button comes and goes with each.
+      final asked = lib.asked.length;
+      await _until(t, () => lib.asked.length > asked);
+      expect(lib.asked.length, greaterThan(asked));
+      expect(held(), isFalse);
+      expect(_header(t).first, ('Search Movie', true));
+      await t.pump(const Duration(seconds: 2));
+      expect(held(), isFalse);
+      await _lastAnswer(t, lib);
+      expect(held(), isFalse);
+
+      // Nor does asking again by hand bring it back while the answer's
+      // on its way.
+      lib.takes = const Duration(seconds: 5);
+      final looks = _looks(lib);
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await t.pump(const Duration(seconds: 1));
+      expect(_looks(lib), looks + 1);
+      expect(held(), isFalse);
+      expect(_header(t).first, ('Search Movie', true));
+      await _lastAnswer(t, lib);
+    });
+
+    testWidgets('holds none for a movie with no file', (t) async {
+      final lib = _Library(_titles())..takes = const Duration(seconds: 5);
+      await _open(
+        t,
+        '/arr/movie/5',
+        library: lib,
+        movie: _movie(hasFile: false),
+      );
+      expect(_looks(lib), 1);
+      expect(_header(t).first, ('Search Movie', true));
+      expect(_header(t).map((b) => b.$1), isNot(contains('Watch')));
+      // The library has it all the same: Watch comes with the answer.
+      await t.pump(const Duration(seconds: 5));
+      await _move(t);
+      expect(_header(t).first, ('Watch', true));
+    });
+
+    testWidgets('holds none signed out', (t) async {
+      final out = _Library(_titles())..takes = const Duration(seconds: 5);
+      await _open(
+        t,
+        '/arr/movie/5',
+        library: out,
+        movie: _movie(),
+        session: null,
+      );
+      expect(_header(t).first, ('Search Movie', true));
+      expect(_header(t).map((b) => b.$1), isNot(contains('Watch')));
+      expect(out.asked, isEmpty);
+    });
+
+    testWidgets('on a phone the held button is dimmed, and not under More', (
+      t,
+    ) async {
+      final lib = _Library(_titles())..takes = const Duration(seconds: 5);
+      await _open(
+        t,
+        '/arr/movie/5',
+        library: lib,
+        movie: _movie(),
+        size: _phone,
+      );
+      expect(_pills(t).first, ('Watch', true));
+      final pill = find.widgetWithText(HoverPillButton, 'Watch');
+      expect(t.widget<HoverPillButton>(pill).onTap, isNull);
+      expect(
+        t
+            .widget<Opacity>(
+              find.descendant(of: pill, matching: find.byType(Opacity)).first,
+            )
+            .opacity,
+        lessThan(1),
+      );
+      await t.tap(find.byTooltip('More'));
+      await _move(t);
+      expect(find.text('Search Movie'), findsOneWidget);
+      expect(find.text('Watch'), findsOneWidget);
+      await t.tapAt(const Offset(5, 5));
+      await _move(t);
+
+      await t.pump(const Duration(seconds: 5));
+      await _move(t);
+      expect(t.widget<HoverPillButton>(pill).onTap, isNotNull);
+      await t.tap(find.text('Watch'));
+      await _move(t);
+      expect(find.text('library: jf-inception Inception'), findsOneWidget);
+    });
+
+    testWidgets('an action that can\'t be taken yet is never under More', (
+      t,
+    ) async {
+      t.view.physicalSize = _phone;
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final taken = <String>[];
+      ArrAction action(String name, {bool can = true, bool primary = false}) =>
+          ArrAction(
+            icon: Icons.circle,
+            label: name,
+            primary: primary,
+            onTap: can ? () => taken.add(name) : null,
+          );
+      await t.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark(const Color(0xFF8AB4F8)),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ArrActionBar(
+              header: false,
+              title: 'Inception',
+              main: [
+                action('Go', primary: true),
+                action('Later', can: false),
+                action('Search'),
+              ],
+              more: [action('Not Yet', can: false), action('Rename')],
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.byTooltip('More'));
+      await _move(t);
+      expect(find.text('Search'), findsOneWidget);
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Later'), findsNothing);
+      expect(find.text('Not Yet'), findsNothing);
+      await t.tap(find.text('Rename'));
+      await _move(t);
+      expect(taken, ['Rename']);
     });
 
     testWidgets('on a phone it\'s the button that\'s named', (t) async {
@@ -838,6 +1157,54 @@ void main() {
       lib.items.clear();
       await _pullToRefresh(t);
       expect(_header(t).first, ('Search Monitored', true));
+    });
+
+    testWidgets('holds its place while the library is first asked', (t) async {
+      final lib = _Library(_titles())..takes = const Duration(seconds: 5);
+      await _open(t, '/arr/series/7', library: lib, series: _series());
+      expect(_header(t).first, ('Watch', true));
+      expect(_header(t)[1], ('Search Monitored', false));
+      expect(
+        t.widget<HeaderActionButton>(_headerButton('Watch')).onTap,
+        isNull,
+      );
+      await t.pump(const Duration(seconds: 5));
+      await _move(t);
+      expect(
+        t.widget<HeaderActionButton>(_headerButton('Watch')).onTap,
+        isNotNull,
+      );
+
+    });
+
+    testWidgets('holds none for a show with no episodes on disk', (t) async {
+      final none = _Library(_titles())..takes = const Duration(seconds: 5);
+      await _open(t, '/arr/series/7', library: none, series: _series(files: 0));
+      expect(_header(t).first, ('Search Monitored', true));
+      expect(_header(t).map((b) => b.$1), isNot(contains('Watch')));
+      await _lastAnswer(t, none);
+      expect(_header(t).first, ('Watch', true));
+    });
+
+    testWidgets('F5 on the show\'s own page asks again', (t) async {
+      final lib = _Library([]);
+      await _open(
+        t,
+        '/arr/series/7',
+        library: lib,
+        series: _series(files: 0),
+      );
+      expect(_header(t).first, ('Search Monitored', true));
+      expect(_looks(lib), 1);
+      final first = _askedFor('series/7');
+
+      lib.items.addAll(_titles());
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await _move(t);
+      expect(_askedFor('series/7'), first + 1);
+      expect(_looks(lib), 2);
+      expect(_header(t).first, ('Watch', true));
+      expect(t.takeException(), isNull);
     });
   });
 }

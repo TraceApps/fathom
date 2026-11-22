@@ -88,8 +88,9 @@ class SeerrClient {
   final String? cookie;
   final Dio _dio;
 
-  SeerrClient(this.baseUrl, this.apiKey, {this.cookie})
-    : _dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 10)));
+  SeerrClient(this.baseUrl, this.apiKey, {this.cookie, Dio? dio})
+    : _dio =
+          dio ?? Dio(BaseOptions(connectTimeout: const Duration(seconds: 10)));
 
   Options get _opts => Options(
     headers: cookie != null && cookie!.isNotEmpty
@@ -691,6 +692,22 @@ class SeerrClient {
     String mediaType = 'all',
     String sort = 'added',
     String sortDirection = 'desc',
+  }) async => (await requestsPage(
+    take: take,
+    filter: filter,
+    mediaType: mediaType,
+    sort: sort,
+    sortDirection: sortDirection,
+  )).requests;
+
+  /// The first [take] of [requests], with how many there are in all: Seerr
+  /// counts every one that matches, however few it was asked for.
+  Future<({List<SeerrRequest> requests, int total})> requestsPage({
+    int take = 40,
+    String filter = 'all',
+    String mediaType = 'all',
+    String sort = 'added',
+    String sortDirection = 'desc',
   }) async {
     try {
       final res = await _dio.get(
@@ -706,10 +723,19 @@ class SeerrClient {
         options: _opts,
       );
       final results = (res.data['results'] as List?) ?? const [];
-      return results
+      final requests = results
           .whereType<Map>()
           .map((e) => SeerrRequest.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+      final info = res.data['pageInfo'];
+      final counted = info is Map ? info['results'] : null;
+      return (
+        requests: requests,
+        // Never fewer than were sent, whatever the count says.
+        total: counted is num && counted > requests.length
+            ? counted.toInt()
+            : requests.length,
+      );
     } on DioException catch (e) {
       throw SeerrException(_friendly(e));
     }

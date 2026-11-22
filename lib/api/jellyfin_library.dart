@@ -286,10 +286,10 @@ Future<List<BaseItemDto>> _getItems(
           ? null
           : await among({'SearchTerm': title, 'Limit': '50'});
       if (byName != null || !byYear || year == null) return byName;
-      return await among({
-        'Years': '${year - 1},$year,${year + 1}',
-        'Limit': '2000',
-      });
+      // Its own year first: most often that's the one, and half the
+      // titles of three years is a long list on a large library.
+      return await among({'Years': '$year', 'Limit': '2000'}) ??
+          await among({'Years': '${year - 1},${year + 1}', 'Limit': '2000'});
     } on DioException catch (e) {
       throw JellyfinException(_friendlyDioError(e));
     }

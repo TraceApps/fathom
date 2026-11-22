@@ -226,14 +226,43 @@ final seerrRecentRequestsProvider =
   return c == null ? const [] : c.requests(take: 20);
 });
 
+/// How many waiting requests are asked for at a time.
+const seerrPendingPage = 100;
+
+/// How many of the waiting requests are asked for: Load More raises it,
+/// and the list puts it back to one page as it goes away. (The section's
+/// count keeps the requests, and so this, alive long after the list.)
+class SeerrPendingLimit extends Notifier<int> {
+  @override
+  int build() => seerrPendingPage;
+  void more() => state += seerrPendingPage;
+
+  /// Safe once the section itself is gone too.
+  void reset() {
+    if (ref.mounted) state = seerrPendingPage;
+  }
+}
+
+final seerrPendingLimitProvider =
+    NotifierProvider.autoDispose<SeerrPendingLimit, int>(
+        SeerrPendingLimit.new);
+
+/// The requests waiting for a yes or no, with how many wait in all.
+typedef SeerrPending = ({List<SeerrRequest> requests, int total});
+
 /// The requests waiting for a yes or no, oldest first (whoever asked first
-/// gets an answer first), for the Manage section's Activity tab.
+/// gets an answer first), for the Manage section's Activity tab. A server
+/// with more of them than are asked for says how many there are, so the
+/// count is the true one and the rest can be asked for.
 final seerrPendingRequestsProvider =
-    FutureProvider.autoDispose<List<SeerrRequest>>((ref) async {
+    FutureProvider.autoDispose<SeerrPending>((ref) async {
   final c = ref.watch(seerrClientProvider);
-  if (c == null) return const [];
-  final waiting =
-      await c.requests(take: 100, filter: 'pending', sortDirection: 'asc');
+  if (c == null) return (requests: const <SeerrRequest>[], total: 0);
+  final page = await c.requestsPage(
+      take: ref.watch(seerrPendingLimitProvider),
+      filter: 'pending',
+      sortDirection: 'asc');
+  final waiting = page.requests;
   // Seerr is asked for this order; a server too old to take the direction
   // answers newest first, so it's put right here as well.
   DateTime at(SeerrRequest r) =>
@@ -245,7 +274,10 @@ final seerrPendingRequestsProvider =
       // Two of one moment stay as Seerr had them.
       return byAge != 0 ? byAge : a.$1.compareTo(b.$1);
     });
-  return [for (final (_, r) in oldestFirst) r];
+  return (
+    requests: [for (final (_, r) in oldestFirst) r],
+    total: page.total,
+  );
 });
 
 /// Whether this account answers requests: Seerr is connected and the account

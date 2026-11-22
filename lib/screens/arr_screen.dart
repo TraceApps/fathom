@@ -128,6 +128,9 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
         : arrSeriesChanged(ref, open.id);
   }
 
+  /// The narrowest window whose top bar still names its Add button.
+  static const double _addNamedFrom = 400;
+
   /// The keyboard's part, where there is one: a desktop window.
   Widget _withKeys(BuildContext context, Widget child) {
     if (!isDesktopWindowFrame) return child;
@@ -173,7 +176,13 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
           SingleActivator(digits[i], meta: true): () => tabs.animateTo(i),
         },
       },
-      child: Focus(focusNode: _keysFocus, autofocus: true, child: child),
+      // Never a stop for Tab: nothing would show the keyboard is there.
+      child: Focus(
+        focusNode: _keysFocus,
+        autofocus: true,
+        skipTraversal: true,
+        child: child,
+      ),
     );
   }
 
@@ -230,17 +239,18 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
             Scaffold(
               appBar: AppBar(
                 leading: mobileDrawerLeading(context),
-                title: Text(l.appNavManage),
+                // Never cut short: on the narrowest phones it's set smaller.
+                title: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(l.appNavManage),
+                ),
                 actions: [
                   // Add opens on the kind of library it's pressed from; from
                   // the other tabs it searches movies and shows together.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: FilledButton.tonalIcon(
-                      style: kInlineButtonStyle,
-                      icon: const Icon(Icons.add_rounded),
-                      label: Text(l.arrAdd),
-                      onPressed: () {
+                  Builder(
+                    builder: (context) {
+                      void add() {
                         final onLibrary =
                             DefaultTabController.of(context).index == 0;
                         final kind = !onLibrary
@@ -251,8 +261,27 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                           ArrKind.sonarr => '/arr/add/series',
                           null => '/arr/add',
                         });
-                      },
-                    ),
+                      }
+
+                      // A small phone has no room for the word beside the
+                      // section's name: the button alone, named to a reader.
+                      if (MediaQuery.sizeOf(context).width < _addNamedFrom) {
+                        return IconButton.filledTonal(
+                          tooltip: l.arrAdd,
+                          icon: const Icon(Icons.add_rounded),
+                          onPressed: add,
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FilledButton.tonalIcon(
+                          style: kInlineButtonStyle,
+                          icon: const Icon(Icons.add_rounded),
+                          label: Text(l.arrAdd),
+                          onPressed: add,
+                        ),
+                      );
+                    },
                   ),
                   ArrHealthButton(onTap: () => context.push('/arr/health')),
                   IconButton(
@@ -482,7 +511,7 @@ class _ActivityTab extends ConsumerWidget {
     // request is the first step of a download.
     final requests = ref.watch(seerrCanManageRequestsProvider);
     final waiting = requests
-        ? ref.watch(seerrPendingRequestsProvider).value?.length ?? 0
+        ? ref.watch(seerrPendingRequestsProvider).value?.total ?? 0
         : 0;
     final chosen = ref.watch(arrActivityViewProvider);
     final view = chosen == ArrActivityView.requests && !requests
@@ -704,8 +733,17 @@ class _QueueCard extends ConsumerWidget {
     this.onSelect,
   });
 
+  /// From this width the card has room for a bigger poster.
+  static const double roomyFrom = 560;
+
+  // By the card's own width: the pane beside the list narrows it.
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
+    builder: (context, box) =>
+        _card(context, ref, roomy: box.maxWidth >= roomyFrom),
+  );
+
+  Widget _card(BuildContext context, WidgetRef ref, {required bool roomy}) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -714,6 +752,9 @@ class _QueueCard extends ConsumerWidget {
         : ref.watch(radarrClientProvider);
     final (String status, Color color) = arrQueueStanding(l, scheme, item);
     final eta = item.estimatedCompletion?.difference(DateTime.now());
+    final left = eta != null && !eta.isNegative && item.status == 'downloading'
+        ? l.arrTimeLeft(arrDuration(eta))
+        : null;
     final heading = [
       item.mediaTitle ?? item.title,
       if (item.episodeCode != null) item.episodeCode!,
@@ -765,152 +806,182 @@ class _QueueCard extends ConsumerWidget {
       ],
     );
     final shown = ArrPaneScope.shows(context, item.kind, titleId);
+    final plain = theme.cardTheme.color ?? scheme.surfaceContainer;
+    // Tinted while the pane beside the list shows its title.
+    final cardColor = shown
+        ? Color.alphaBlend(scheme.primary.withValues(alpha: 0.14), plain)
+        : plain;
+    // The title's wide picture behind the card. A download the app
+    // couldn't match has none.
+    final fanart = client?.imageUrl(item.images, 'fanart') != null;
     final card = Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      // Tinted while the pane beside the list shows its title.
-      color: shown
-          ? Color.alphaBlend(
-              scheme.primary.withValues(alpha: 0.14),
-              theme.cardTheme.color ?? scheme.surfaceContainer,
-            )
-          : null,
-      child: InkWell(
-        onTap: picked != null
-            ? onPick
-            // A download the app couldn't match has no page: open what
-            // fixes it instead.
-            : titleId == null && importable
-            ? () => _manualImport(context, ref)
-            : () => arrOpenTitle(context, item.kind, titleId),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (picked != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4, top: 22),
-                  child: Checkbox(
-                    value: picked,
-                    onChanged: (_) => onPick?.call(),
-                  ),
-                ),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: SizedBox(
-                  width: 52,
-                  height: 78,
-                  child: ArrArt(
-                    client: client,
-                    images: item.images,
-                    width: 185,
-                    placeholderIcon: item.kind == ArrKind.sonarr
-                        ? Icons.live_tv_rounded
-                        : Icons.movie_rounded,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      heading,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+      color: cardColor,
+      child: ArrCardWash(
+        color: cardColor,
+        quiet: !roomy,
+        picture: fanart
+            ? (width) => ArrArt(
+                client: client,
+                images: item.images,
+                type: 'fanart',
+                width: 780,
+                decodeWidth: width,
+                alignment: const Alignment(0, -0.4),
+                bare: true,
+              )
+            : null,
+        // Its own ink, over the picture.
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: picked != null
+                ? onPick
+                // A download the app couldn't match has no page: open what
+                // fixes it instead.
+                : titleId == null && importable
+                ? () => _manualImport(context, ref)
+                : () => arrOpenTitle(context, item.kind, titleId),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (picked != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4, top: 22),
+                      child: Checkbox(
+                        value: picked,
+                        onChanged: (_) => onPick?.call(),
                       ),
                     ),
-                    // The release name, unless it's already the heading (a
-                    // download the app couldn't match to a title).
-                    if (item.mediaTitle != null)
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: item.progress,
-                        minHeight: 6,
-                        backgroundColor: scheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation(color),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: roomy ? 64 : 52,
+                      height: roomy ? 96 : 78,
+                      child: ArrArt(
+                        client: client,
+                        images: item.images,
+                        width: roomy ? 342 : 185,
+                        placeholderIcon: item.kind == ArrKind.sonarr
+                            ? Icons.live_tv_rounded
+                            : Icons.movie_rounded,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ArrChip(label: status, color: color),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            meta,
+                        Text(
+                          heading,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        // The release name, unless it's already the heading (a
+                        // download the app couldn't match to a title).
+                        if (item.mediaTitle != null)
+                          Text(
+                            item.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: item.progress,
+                            minHeight: 6,
+                            backgroundColor: scheme.surfaceContainerHighest,
+                            valueColor: AlwaysStoppedAnimation(color),
+                          ),
                         ),
-                        if (eta != null &&
-                            !eta.isNegative &&
-                            item.status == 'downloading')
-                          Text(
-                            l.arrTimeLeft(arrDuration(eta)),
-                            style: theme.textTheme.bodySmall,
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            ArrChip(label: status, color: color),
+                            const SizedBox(width: 8),
+                            // One line that gives way at its end, however
+                            // narrow the card: the time left first, as
+                            // what's asked of a download most.
+                            Expanded(
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    if (left != null)
+                                      TextSpan(
+                                        text: left,
+                                        style: TextStyle(
+                                          color: scheme.onSurface,
+                                        ),
+                                      ),
+                                    if (left != null && meta.isNotEmpty)
+                                      const TextSpan(text: ' · '),
+                                    TextSpan(text: meta),
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        for (final p in problems.toSet())
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              p,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: arrWarningColor,
+                              ),
+                            ),
+                          ),
+                        // What the apps' own queue offers for these: say which
+                        // show and episode (or movie) it is, and bring it in.
+                        if (importable && picked == null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(0, 40),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              icon: const Icon(Icons.download_done_rounded),
+                              label: Text(l.arrManualImport),
+                              onPressed: () => _manualImport(context, ref),
+                            ),
                           ),
                       ],
                     ),
-                    for (final p in problems.toSet())
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          p,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: arrWarningColor,
-                          ),
-                        ),
-                      ),
-                    // What the apps' own queue offers for these: say which
-                    // show and episode (or movie) it is, and bring it in.
-                    if (importable && picked == null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: FilledButton.tonalIcon(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 40),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          icon: const Icon(Icons.download_done_rounded),
-                          label: Text(l.arrManualImport),
-                          onPressed: () => _manualImport(context, ref),
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
+                  // Held back by a delay profile: send it now.
+                  if (client != null && picked == null && held)
+                    IconButton(
+                      tooltip: l.arrGrabNow,
+                      icon: const Icon(Icons.file_download_rounded),
+                      onPressed: () => _grab(context, ref, client),
+                    ),
+                  if (client != null && picked == null)
+                    IconButton(
+                      tooltip: l.arrRemoveFromQueue,
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => _remove(context, ref, client),
+                    ),
+                ],
               ),
-              // Held back by a delay profile: send it now.
-              if (client != null && picked == null && held)
-                IconButton(
-                  tooltip: l.arrGrabNow,
-                  icon: const Icon(Icons.file_download_rounded),
-                  onPressed: () => _grab(context, ref, client),
-                ),
-              if (client != null && picked == null)
-                IconButton(
-                  tooltip: l.arrRemoveFromQueue,
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => _remove(context, ref, client),
-                ),
-            ],
+            ),
           ),
         ),
       ),

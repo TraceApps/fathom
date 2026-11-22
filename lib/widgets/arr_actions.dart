@@ -37,7 +37,10 @@ Future<bool> arrRun(
 class ArrAction {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+
+  /// Null while the action can't be taken yet: its button shows dimmed, to
+  /// hold its place, and More leaves it out.
+  final VoidCallback? onTap;
   final bool primary;
 
   /// Stays a button on a narrow window, where the other main actions move
@@ -93,7 +96,7 @@ class ArrActionBar extends StatelessWidget {
           ContextMenuAction(
             icon: a.icon,
             label: a.label,
-            onTap: a.onTap,
+            onTap: a.onTap ?? () {},
             color: a.destructive ? Theme.of(context).colorScheme.error : null,
           ),
       ],
@@ -111,8 +114,9 @@ class ArrActionBar extends StatelessWidget {
           ];
     final more = [
       for (final a in main)
-        if (!shown.contains(a)) a,
-      ...this.more,
+        if (!shown.contains(a) && a.onTap != null) a,
+      for (final a in this.more)
+        if (a.onTap != null) a,
     ];
     final buttons = <Widget>[
       for (final a in shown)

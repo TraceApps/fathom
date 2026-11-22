@@ -134,7 +134,7 @@ class _DetailBody extends ConsumerWidget {
     // The Manage panel (approve/decline/edit requests + advanced actions) is
     // offered to anyone who can manage requests, for any title Jellyseerr has a
     // media record for. A pending movie also gets the quick View Request pill.
-    final perms = ref.watch(seerrPermissionsProvider).asData?.value ?? 0;
+    final perms = ref.watch(seerrPermissionsProvider).value ?? 0;
     final canManage = seerrCan(perms, kSeerrManageRequests);
     final showManage = canManage && d.mediaId != null;
     // Any title with a pending request (movie or TV) gets the View Request pill.

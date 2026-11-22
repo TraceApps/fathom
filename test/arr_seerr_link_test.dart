@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:fathom/api/arr_client.dart';
@@ -13,12 +14,16 @@ import 'package:fathom/screens/arr_activity_screens.dart';
 import 'package:fathom/screens/arr_screen.dart';
 import 'package:fathom/screens/discover_screen.dart';
 import 'package:fathom/screens/seerr_detail_screen.dart';
+import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/seerr_providers.dart';
 import 'package:fathom/theme/app_theme.dart';
+import 'package:fathom/widgets/arr_widgets.dart';
+import 'package:fathom/widgets/cached_image.dart';
 import 'package:fathom/widgets/detail_header.dart';
 import 'package:fathom/widgets/hover_pill_button.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -114,6 +119,9 @@ class _Seerr {
   /// How long the permissions take to arrive.
   Duration permissionsTake = Duration.zero;
   List<Map<String, dynamic>> pending;
+
+  /// How many Seerr says wait in all, when it's asked for fewer than that.
+  int? total;
   final Map<String, Map<String, dynamic>> titles = {};
   int pendingAsked = 0;
 
@@ -122,6 +130,9 @@ class _Seerr {
 
   /// The answers given, in order: `approve 4`.
   final List<String> answered = [];
+
+  /// How long Seerr takes over an answer.
+  Duration answerTakes = Duration.zero;
   _Seerr({this.pending = const [], List<Map<String, dynamic>> titles = const []}) {
     for (final t in titles) {
       put(t);
@@ -140,7 +151,7 @@ class _FakeSeerr extends SeerrClient {
   _FakeSeerr(this.seerr) : super('http://seerr', 'k');
 
   @override
-  Future<List<SeerrRequest>> requests({
+  Future<({List<SeerrRequest> requests, int total})> requestsPage({
     int take = 40,
     String filter = 'all',
     String mediaType = 'all',
@@ -149,22 +160,58 @@ class _FakeSeerr extends SeerrClient {
   }) async {
     seerr.pendingAsked++;
     seerr.asked = (take: take, filter: filter, sortDirection: sortDirection);
-    return [for (final r in seerr.pending) SeerrRequest.fromJson(r)];
+    return (
+      requests: [
+        for (final r in seerr.pending.take(take)) SeerrRequest.fromJson(r),
+      ],
+      total: seerr.total ?? seerr.pending.length,
+    );
   }
 
-  void _answer(String how, int id) {
+  Future<void> _answer(String how, int id) async {
+    if (seerr.answerTakes > Duration.zero) {
+      await Future<void>.delayed(seerr.answerTakes);
+    }
     seerr.answered.add('$how $id');
     seerr.pending = [
       for (final r in seerr.pending)
         if (r['id'] != id) r,
     ];
+    if (seerr.total != null) seerr.total = seerr.total! - 1;
   }
 
   @override
-  Future<void> approveRequest(int id) async => _answer('approve', id);
+  Future<void> approveRequest(int id) => _answer('approve', id);
 
   @override
-  Future<void> declineRequest(int id) async => _answer('decline', id);
+  Future<void> declineRequest(int id) => _answer('decline', id);
+}
+
+/// A Seerr that answers every question with [body], and keeps what it was
+/// asked.
+class _Reply implements HttpClientAdapter {
+  final Object? body;
+  final List<Uri> asked = [];
+  _Reply(this.body);
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions o,
+    Stream<Uint8List>? data,
+    Future<void>? cancel,
+  ) async {
+    asked.add(o.uri);
+    return ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }
 
 Map<String, dynamic> _request(
@@ -174,9 +221,12 @@ Map<String, dynamic> _request(
   int? tvdbId,
   String by = 'ana',
   String created = '2026-11-20T10:00:00.000Z',
+
+  /// 1 waits for an answer, 2 was approved, 4 failed on its way.
+  int status = 1,
 }) => {
   'id': id,
-  'status': 1,
+  'status': status,
   'media': {
     'id': 100 + id,
     'mediaType': type,
@@ -397,6 +447,10 @@ List<int> _rows(WidgetTester t) => [
     e.request.id,
 ];
 
+/// The poster on a request's card.
+Finder _cardPoster() =>
+    find.byWidgetPredicate((w) => '${w.runtimeType}' == '_RequestPoster');
+
 Finder _headerButton(String name) => find.byWidgetPredicate(
   (w) => w is HeaderActionButton && w.tooltip == name,
 );
@@ -534,6 +588,7 @@ void main() {
     for (final (name, size) in [
       ('a phone', _phone),
       ('a small phone', Size(360, 760)),
+      ('the narrowest phone', Size(320, 640)),
     ]) {
       testWidgets('on $name the count is a dot and all four fit', (t) async {
         final seerr = two()
@@ -708,6 +763,144 @@ void main() {
       await t.pump(const Duration(seconds: 10));
     });
 
+    testWidgets('an answer that comes once its row is gone still counts', (
+      t,
+    ) async {
+      final seerr = two()..answerTakes = const Duration(seconds: 3);
+      await _open(
+        t,
+        '/arr?tab=activity',
+        seerr: seerr,
+        radarr: _App(ArrKind.radarr),
+      );
+      await t.tap(find.text('Requests (2)'));
+      await _move(t);
+      await t.tap(find.text('Approve').first);
+      await t.pump(const Duration(milliseconds: 50));
+
+      // Off the list before Seerr has replied.
+      await t.tap(find.text('Queue'));
+      await _move(t);
+      expect(find.byType(SeerrRequestTile), findsNothing);
+      expect(seerr.answered, isEmpty);
+      final before = seerr.pendingAsked;
+
+      await t.pump(const Duration(seconds: 3));
+      await _move(t);
+      expect(seerr.answered, ['approve 4']);
+      expect(seerr.pendingAsked, greaterThan(before));
+      expect(_switch(t).last, 'Requests (1)');
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('more than a page of them: Seerr\'s count, and Load More', (
+      t,
+    ) async {
+      final seerr = _Seerr(
+        pending: [for (var i = 1; i <= 130; i++) _request(i, tmdbId: 27205)],
+        titles: [_movie(27205, 'Inception')],
+      );
+      await _open(
+        t,
+        '/arr?tab=activity',
+        seerr: seerr,
+        radarr: _App(ArrKind.radarr),
+      );
+      // Every one that waits is counted, not only the ones sent.
+      expect(seerr.asked!.take, 100);
+      expect(_switch(t).last, 'Requests (130)');
+      await t.tap(find.text('Requests (130)'));
+      await _move(t);
+      final list = find
+          .descendant(
+            of: find.byType(ArrRequestsView),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await t.scrollUntilVisible(
+        find.text('Load More'),
+        3000,
+        scrollable: list,
+        maxScrolls: 40,
+      );
+      expect(find.byKey(const ValueKey(100)), findsOneWidget);
+      expect(find.byKey(const ValueKey(101)), findsNothing);
+
+      await t.tap(find.text('Load More'));
+      await _move(t);
+      expect(seerr.asked!.take, 200);
+      await t.scrollUntilVisible(
+        find.byKey(const ValueKey(130)),
+        3000,
+        scrollable: list,
+        maxScrolls: 40,
+      );
+      await _move(t);
+      // All of them listed: nothing more to bring.
+      expect(find.text('Load More'), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('and it\'s back to one page once the list is left', (t) async {
+      final seerr = _Seerr(
+        pending: [for (var i = 1; i <= 130; i++) _request(i, tmdbId: 27205)],
+        titles: [_movie(27205, 'Inception')],
+      );
+      await _open(
+        t,
+        '/arr?tab=activity',
+        seerr: seerr,
+        radarr: _App(ArrKind.radarr),
+      );
+      await t.tap(find.text('Requests (130)'));
+      await _move(t);
+      Finder list() => find
+          .descendant(
+            of: find.byType(ArrRequestsView),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await t.scrollUntilVisible(
+        find.text('Load More'),
+        3000,
+        scrollable: list(),
+        maxScrolls: 40,
+      );
+      await t.tap(find.text('Load More'));
+      await _move(t);
+      expect(seerr.asked!.take, 200);
+
+      // Off to the queue: the count is all that's shown of them now, and
+      // every later look asks for one page, not for two.
+      await t.scrollUntilVisible(
+        find.text('Queue'),
+        -3000,
+        scrollable: list(),
+        maxScrolls: 40,
+      );
+      await t.tap(find.text('Queue'));
+      await _move(t);
+      expect(find.byType(ArrRequestsView), findsNothing);
+      expect(seerr.asked!.take, 100);
+      expect(_switch(t).last, 'Requests (130)');
+      await t.sendKeyEvent(LogicalKeyboardKey.f5);
+      await _move(t);
+      expect(seerr.asked!.take, 100);
+
+      // Back on it: the first hundred, and the way to the rest.
+      await t.tap(find.text('Requests (130)'));
+      await _move(t);
+      await t.scrollUntilVisible(
+        find.text('Load More'),
+        3000,
+        scrollable: list(),
+        maxScrolls: 40,
+      );
+      expect(find.byKey(const ValueKey(100)), findsOneWidget);
+      expect(find.byKey(const ValueKey(101)), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+
     testWidgets('stays up while the permissions are read again', (t) async {
       final seerr = two();
       await _open(
@@ -759,8 +952,10 @@ void main() {
   });
 
   group('a request\'s row', () {
-    _Seerr movie() => _Seerr(
-      pending: [_request(4, tmdbId: 27205)],
+    // Approved already, unless a test says otherwise: with no answer to
+    // give, the way to the app is the row's own button.
+    _Seerr movie({int status = 2}) => _Seerr(
+      pending: [_request(4, tmdbId: 27205, status: status)],
       titles: [_movie(27205, 'Inception')],
     );
 
@@ -770,23 +965,92 @@ void main() {
       expect(radarr.asked, [27205]);
       final manage = find.widgetWithText(FilledButton, 'Manage in Radarr');
       expect(manage, findsOneWidget);
-      // With the other things done to a request, above the one that ends it.
-      expect(
-        t.getTopLeft(manage).dy,
-        lessThan(
-          t.getTopLeft(find.widgetWithText(FilledButton, 'Delete Request')).dy,
-        ),
-      );
-      expect(
-        t.getTopLeft(manage).dy,
-        greaterThan(
-          t.getTopLeft(find.widgetWithText(FilledButton, 'Decline')).dy,
-        ),
-      );
+      // The one thing in the open: the rest is under the menu.
+      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.text('Delete Request'), findsNothing);
 
       await t.tap(manage);
       await _move(t);
       expect(find.text('page: movie 5'), findsOneWidget);
+    });
+
+    testWidgets('one that waits has its answers in the open instead', (
+      t,
+    ) async {
+      final radarr = _App(ArrKind.radarr, {27205: 5});
+      await _open(t, '/requests', seerr: movie(status: 1), radarr: radarr);
+      expect(find.widgetWithText(FilledButton, 'Approve'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Decline'), findsOneWidget);
+      expect(find.byType(FilledButton), findsNWidgets(2));
+      expect(find.textContaining('Manage in'), findsNothing);
+      expect(find.text('Edit Request'), findsNothing);
+
+      // Everything the row does is under its menu, the way to Radarr above
+      // the ones that end the request.
+      await t.tap(find.byTooltip('More Options'));
+      await _move(t);
+      double top(String name) => t.getTopLeft(find.text(name).last).dy;
+      final names = [
+        'Approve',
+        'Decline',
+        'Edit Request',
+        'Manage in Radarr',
+        'Delete Request',
+      ];
+      for (final (i, name) in names.indexed.skip(1)) {
+        expect(top(name), greaterThan(top(names[i - 1])), reason: name);
+      }
+      await t.tap(find.text('Manage in Radarr'));
+      await _move(t);
+      expect(find.text('page: movie 5'), findsOneWidget);
+    });
+
+    testWidgets('one that failed has Retry in the open', (t) async {
+      final seerr = movie(status: 4);
+      await _open(
+        t,
+        '/requests',
+        seerr: seerr,
+        radarr: _App(ArrKind.radarr, {27205: 5}),
+      );
+      expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
+      expect(find.byType(FilledButton), findsOneWidget);
+      await t.tap(find.byTooltip('More Options'));
+      await _move(t);
+      expect(find.text('Manage in Radarr'), findsOneWidget);
+      expect(find.text('Approve'), findsNothing);
+    });
+
+    testWidgets('a right-click opens the same menu', (t) async {
+      await _open(
+        t,
+        '/requests',
+        seerr: movie(status: 1),
+        radarr: _App(ArrKind.radarr, {27205: 5}),
+      );
+      await t.tap(find.text('Inception'), buttons: kSecondaryButton);
+      await _move(t);
+      expect(find.text('Edit Request'), findsOneWidget);
+      expect(find.text('Manage in Radarr'), findsOneWidget);
+      expect(find.text('Delete Request'), findsOneWidget);
+    });
+
+    testWidgets('someone who only asks has no answers to give', (t) async {
+      final seerr = movie(status: 1)..permissions = 0;
+      await _open(
+        t,
+        '/requests',
+        seerr: seerr,
+        radarr: _App(ArrKind.radarr, {27205: 5}),
+      );
+      expect(find.widgetWithText(FilledButton, 'Approve'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Decline'), findsNothing);
+      // Their own request, still theirs to take back.
+      await t.tap(find.byTooltip('More Options'));
+      await _move(t);
+      expect(find.text('Delete Request'), findsOneWidget);
+      expect(find.text('Approve'), findsNothing);
+      expect(find.text('Edit Request'), findsNothing);
     });
 
     testWidgets('its own movie, from a Radarr that answers with them all', (
@@ -812,6 +1076,10 @@ void main() {
       final radarr = _App(ArrKind.radarr, {238: 2});
       await _open(t, '/requests', seerr: movie(), radarr: radarr);
       expect(radarr.asked, [27205]);
+      expect(find.textContaining('Manage in'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+      await t.tap(find.byTooltip('More Options'));
+      await _move(t);
       expect(find.textContaining('Manage in'), findsNothing);
       expect(find.text('Delete Request'), findsOneWidget);
     });
@@ -847,7 +1115,9 @@ void main() {
         t,
         '/requests',
         seerr: _Seerr(
-          pending: [_request(9, type: 'tv', tmdbId: 1396, tvdbId: 81189)],
+          pending: [
+            _request(9, type: 'tv', tmdbId: 1396, tvdbId: 81189, status: 2),
+          ],
           // Seerr has nothing more on the title (it can't reach TMDB, say).
         ),
         sonarr: sonarr,
@@ -870,7 +1140,9 @@ void main() {
         t,
         '/requests',
         seerr: _Seerr(
-          pending: [_request(9, type: 'tv', tmdbId: 1396, tvdbId: 81189)],
+          pending: [
+            _request(9, type: 'tv', tmdbId: 1396, tvdbId: 81189, status: 2),
+          ],
         ),
         sonarr: sonarr,
       );
@@ -886,7 +1158,10 @@ void main() {
         t,
         '/requests',
         seerr: _Seerr(
-          pending: [_request(9, type: 'tv', tmdbId: 1396, tvdbId: 81189)],
+          // Approved, so the way to it would be in the open.
+          pending: [
+            _request(9, type: 'tv', tmdbId: 1396, tvdbId: 81189, status: 2),
+          ],
         ),
         sonarr: sonarr,
       );
@@ -900,7 +1175,7 @@ void main() {
         t,
         '/requests',
         seerr: _Seerr(
-          pending: [_request(9, type: 'tv', tmdbId: 1396)],
+          pending: [_request(9, type: 'tv', tmdbId: 1396, status: 2)],
           titles: [_show(1396, 'Breaking Bad', externalTvdb: 81189)],
         ),
         sonarr: sonarr,
@@ -915,7 +1190,7 @@ void main() {
         t,
         '/requests',
         seerr: _Seerr(
-          pending: [_request(9, type: 'tv', tmdbId: 1396)],
+          pending: [_request(9, type: 'tv', tmdbId: 1396, status: 2)],
           titles: [_show(1396, 'Breaking Bad')],
         ),
         sonarr: sonarr,
@@ -952,6 +1227,243 @@ void main() {
       await _move(t);
       expect(find.text('Delete Request'), findsOneWidget);
       expect(find.textContaining('Manage in'), findsNothing);
+    });
+
+    // It changes at 560 and at 860 of the room it's given.
+    for (final (width, poster) in [
+      (412.0, 56.0),
+      (559.0, 56.0),
+      (560.0, 64.0),
+      (859.0, 64.0),
+      (860.0, 72.0),
+      (1200.0, 72.0),
+    ]) {
+      testWidgets('makes use of a window ${width.round()} wide', (t) async {
+        await _open(
+          t,
+          '/requests',
+          seerr: movie(status: 1),
+          radarr: _App(ArrKind.radarr, {27205: 5}),
+          size: Size(width, 900),
+        );
+        final art = t.getRect(_cardPoster());
+        expect(art.size, Size(poster, poster * 1.5));
+        final approve = t.getRect(find.widgetWithText(FilledButton, 'Approve'));
+        final decline = t.getRect(find.widgetWithText(FilledButton, 'Decline'));
+        final title = t.getRect(find.text('Inception'));
+        final status = t.getRect(find.text('Status'));
+        if (poster == 56) {
+          // A phone: the answers under the row, each as wide as the other.
+          expect(approve.top, greaterThanOrEqualTo(art.bottom));
+          expect(decline.top, approve.top);
+          expect(decline.left, greaterThan(approve.right));
+          expect(approve.width, closeTo(decline.width, 0.5));
+          expect(approve.height, greaterThanOrEqualTo(40));
+        } else {
+          // Beside the row, one under the other and as wide.
+          expect(approve.top, lessThan(art.bottom));
+          expect(approve.left, greaterThan(title.left));
+          expect(decline.top, greaterThan(approve.bottom));
+          expect(decline.left, approve.left);
+          expect(decline.width, approve.width);
+          expect(approve.width, greaterThanOrEqualTo(132));
+        }
+        if (poster == 72) {
+          // The details in a column of their own.
+          expect(status.left, greaterThan(title.left + 100));
+          expect(status.right, lessThan(approve.left));
+          expect(status.top, lessThan(title.bottom));
+        } else {
+          expect(status.left, title.left);
+          expect(status.top, greaterThan(title.bottom));
+        }
+        expect(t.takeException(), isNull);
+      });
+    }
+
+    for (final width in [412.0, 1200.0]) {
+      testWidgets('has the title\'s wide picture behind it, kept at the size '
+          'it\'s drawn at ${width.round()}', (t) async {
+        final seerr = _Seerr(
+          pending: [_request(4, tmdbId: 27205, status: 1)],
+          titles: [
+            {..._movie(27205, 'Inception'), 'backdropPath': '/wide.jpg'},
+          ],
+        );
+        await _open(
+          t,
+          '/requests',
+          seerr: seerr,
+          radarr: _App(ArrKind.radarr, {27205: 5}),
+          size: Size(width, 900),
+        );
+        final picture = find.descendant(
+          of: find.byType(ArrCardWash),
+          matching: find.byWidgetPredicate(
+            (w) => w is CachedImage && w.url.endsWith('/wide.jpg'),
+          ),
+        );
+        expect(picture, findsOneWidget);
+        final drawn = t.getSize(picture);
+        final needs = math.max(drawn.width, drawn.height * 16 / 9);
+        final decoded = t.widget<CachedImage>(picture).cacheWidth;
+        // Never smaller than it's drawn, and less than a step more: far
+        // from the 1280 it comes in at.
+        expect(decoded, isNotNull);
+        expect(decoded!, greaterThanOrEqualTo(needs));
+        expect(decoded, lessThan(needs + 160));
+        expect(decoded, lessThan(1000));
+        expect(t.takeException(), isNull);
+      });
+    }
+
+    for (final scale in [1.0, 1.5]) {
+      testWidgets('keeps its status whole and inside the card on the '
+          'narrowest phone, with text at $scale', (t) async {
+        // The longest status there is, at the default size and at the size
+        // someone who needs bigger text has it.
+        t.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+        final request = _request(4, tmdbId: 27205, status: 2);
+        (request['media'] as Map)['status'] = 4;
+        await _open(
+          t,
+          '/requests',
+          seerr:
+              _Seerr(pending: [request], titles: [_movie(27205, 'Inception')]),
+          radarr: _App(ArrKind.radarr, {27205: 5}),
+          size: const Size(320, 640),
+        );
+        final card = t.getRect(find.byType(ArrCardWash));
+        // Every word of it, never cut short.
+        final status = find.text('Partially Available');
+        expect(status, findsOneWidget);
+        expect(t.getRect(status).right, lessThanOrEqualTo(card.right - 8));
+        expect(t.getRect(status).left, greaterThan(card.left));
+        // On its one line, not broken over two.
+        final words = t.renderObject<RenderParagraph>(status);
+        expect(
+          words.getMaxIntrinsicWidth(double.infinity),
+          lessThanOrEqualTo(words.size.width + 0.5),
+        );
+        // What each line is stays on one line, as tall as the shortest word
+        // of them.
+        expect(
+          t.getSize(find.text('Requested')).height,
+          t.getSize(find.text('Status')).height,
+        );
+        expect(t.takeException(), isNull);
+      });
+    }
+
+    testWidgets('and is the card alone for a title without one', (t) async {
+      await _open(
+        t,
+        '/requests',
+        seerr: movie(status: 1),
+        radarr: _App(ArrKind.radarr, {27205: 5}),
+      );
+      expect(_cardPoster(), findsOneWidget);
+      expect(t.widget<ArrCardWash>(find.byType(ArrCardWash)).picture, isNull);
+      // The poster's own picture at most, never a wide one.
+      expect(
+        find.descendant(
+          of: find.byType(ArrCardWash),
+          matching: find.byWidgetPredicate(
+            (w) => w is CachedImage && w.url.contains('/w1280/'),
+          ),
+        ),
+        findsNothing,
+      );
+    });
+
+    group('on a TV', () {
+      setUp(() => isTvDevice = true);
+      tearDown(() => isTvDevice = false);
+
+      testWidgets('keeps every action a button to move to', (t) async {
+        final radarr = _App(ArrKind.radarr, {27205: 5});
+        await _open(t, '/requests', seerr: movie(status: 1), radarr: radarr);
+        for (final name in ['Edit', 'Approve', 'Decline', 'Delete Request']) {
+          expect(find.text(name), findsOneWidget, reason: name);
+        }
+        // No menu to open, and none of the card that has one.
+        expect(find.byTooltip('More Options'), findsNothing);
+        expect(_cardPoster(), findsNothing);
+        // The way to Radarr isn't on a TV yet: it isn't asked.
+        expect(radarr.asked, isEmpty);
+        expect(find.textContaining('Manage in'), findsNothing);
+        expect(t.takeException(), isNull);
+      });
+    });
+  });
+
+  group('how many requests Seerr says there are', () {
+    final two = [_request(4, tmdbId: 27205), _request(9, tmdbId: 603)];
+
+    Future<({List<SeerrRequest> requests, int total})> page(_Reply seerr) =>
+        SeerrClient(
+          'http://seerr',
+          'k',
+          dio: Dio()..httpClientAdapter = seerr,
+        ).requestsPage(take: 2, filter: 'pending', sortDirection: 'asc');
+
+    test('its count of them all, when it sent fewer', () async {
+      final seerr = _Reply({
+        'pageInfo': {'pages': 65, 'pageSize': 2, 'results': 130, 'page': 1},
+        'results': two,
+      });
+      final got = await page(seerr);
+      expect([for (final r in got.requests) r.id], [4, 9]);
+      expect(got.total, 130);
+      final asked = seerr.asked.single;
+      expect(asked.path, '/api/v1/request');
+      expect(asked.queryParameters, {
+        'take': '2',
+        'skip': '0',
+        'filter': 'pending',
+        'mediaType': 'all',
+        'sort': 'added',
+        'sortDirection': 'asc',
+      });
+    });
+
+    test('never fewer than it sent', () async {
+      final got = await page(
+        _Reply({
+          'pageInfo': {'results': 1},
+          'results': two,
+        }),
+      );
+      expect(got.total, 2);
+    });
+
+    test('the ones it sent, when it doesn\'t count them', () async {
+      expect((await page(_Reply({'results': two}))).total, 2);
+      expect(
+        (await page(
+          _Reply({
+            'pageInfo': {'results': 'many'},
+            'results': two,
+          }),
+        )).total,
+        2,
+      );
+      expect((await page(_Reply({'pageInfo': {}, 'results': []}))).total, 0);
+    });
+
+    test('the plain list is the same page\'s', () async {
+      final seerr = _Reply({
+        'pageInfo': {'results': 130},
+        'results': two,
+      });
+      final got = await SeerrClient(
+        'http://seerr',
+        'k',
+        dio: Dio()..httpClientAdapter = seerr,
+      ).requests(take: 2, filter: 'pending');
+      expect([for (final r in got) r.id], [4, 9]);
+      expect(seerr.asked.single.queryParameters['take'], '2');
     });
   });
 
