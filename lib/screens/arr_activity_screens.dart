@@ -50,17 +50,17 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
   ArrMerged<ArrWantedItem>? _last;
   (ArrWantedList, bool)? _lastFor;
 
-  // Picking several, by app and episode or movie id. Null: not picking.
+  // Picking several, by app and episode, movie or album id. Null: not
+  // picking.
   Set<String>? _picked;
   bool _busy = false;
 
-  static String _key(ArrWantedItem w) =>
-      '${w.kind.name}:${w.kind == ArrKind.sonarr ? w.episodeId : w.movieId}';
+  static String _key(ArrWantedItem w) => '${w.kind.name}:${w.itemId}';
 
   (ArrWantedList, int, bool) get _arg => (_list, _limit, _monitored);
 
   /// Runs [each] once per app with that app's picked ids (episodes for
-  /// Sonarr, movies for Radarr).
+  /// Sonarr, movies for Radarr, albums for Lidarr).
   Future<void> _forPicked(
     List<ArrWantedItem> all,
     Future<void> Function(ArrClient c, List<int> ids) each,
@@ -70,7 +70,7 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     final picked = _picked ?? const {};
     final byApp = <ArrKind, List<int>>{};
     for (final w in all) {
-      final id = w.kind == ArrKind.sonarr ? w.episodeId : w.movieId;
+      final id = w.itemId;
       if (id != null && picked.contains(_key(w))) {
         (byApp[w.kind] ??= []).add(id);
       }
@@ -93,7 +93,11 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
 
   void _search(List<ArrWantedItem> all) => _forPicked(
     all,
-    (c, ids) => c is SonarrClient ? c.searchEpisodes(ids) : c.searchMany(ids),
+    (c, ids) => switch (c) {
+      SonarrClient() => c.searchEpisodes(ids),
+      LidarrClient() => c.searchAlbums(ids),
+      _ => c.searchMany(ids),
+    },
     (_) => AppLocalizations.of(context).arrSearchAllStarted,
   );
 
@@ -103,9 +107,11 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     final to = !_monitored;
     _forPicked(
       all,
-      (c, ids) => c is SonarrClient
-          ? c.setEpisodesMonitored(ids, to)
-          : c.editMany(ids, {'monitored': to}),
+      (c, ids) => switch (c) {
+        SonarrClient() => c.setEpisodesMonitored(ids, to),
+        LidarrClient() => c.setAlbumsMonitored(ids, to),
+        _ => c.editMany(ids, {'monitored': to}),
+      },
       (n) => to ? l.arrNowMonitoredCount(n) : l.arrNowUnmonitoredCount(n),
       changes: true,
     );
@@ -124,6 +130,7 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
     final clients = <ArrClient>[
       ?ref.read(sonarrClientProvider),
       ?ref.read(radarrClientProvider),
+      ?ref.read(lidarrClientProvider),
     ];
     await arrRun(context, () async {
       await Future.wait([
@@ -359,15 +366,15 @@ class _WantedRow extends ConsumerWidget {
   Future<void> _search(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     return arrRun(context, () async {
-      if (item.kind == ArrKind.sonarr) {
-        final c = ref.read(sonarrClientProvider);
-        if (c == null || item.episodeId == null) return;
-        await c.searchEpisodes([item.episodeId!]);
-      } else {
-        final c = ref.read(radarrClientProvider);
-        if (c == null || item.movieId == null) return;
-        await c.searchMovie(item.movieId!);
-      }
+      final id = item.itemId;
+      final c = arrClient(ref, item.kind);
+      if (id == null) return;
+      await switch (c) {
+        SonarrClient() => c.searchEpisodes([id]),
+        RadarrClient() => c.searchMovie(id),
+        LidarrClient() => c.searchAlbums([id]),
+        _ => Future<void>.value(),
+      };
     }, done: l.arrSearchStarted(item.kind.appName));
   }
 
@@ -376,22 +383,32 @@ class _WantedRow extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final sub = item.kind == ArrKind.sonarr
-        ? [
-            item.episodeCode,
-            item.episodeTitle,
-          ].whereType<String>().where((s) => s.isNotEmpty).join(' · ')
-        : item.year?.toString() ?? '';
+    final sub = switch (item.kind) {
+      ArrKind.sonarr => [
+        item.episodeCode,
+        item.episodeTitle,
+      ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+      ArrKind.radarr => item.year?.toString() ?? '',
+      ArrKind.lidarr => item.albumTitle ?? '',
+    };
     final date = item.date;
-    final sonarr = item.kind == ArrKind.sonarr;
-    final titleId = sonarr ? item.seriesId : item.movieId;
-    final searchLabel = sonarr ? l.arrSearchEpisode : l.arrSearchMovie;
+    final titleId = item.titleId;
+    final searchLabel = switch (item.kind) {
+      ArrKind.sonarr => l.arrSearchEpisode,
+      ArrKind.radarr => l.arrSearchMovie,
+      ArrKind.lidarr => l.arrSearchAlbum,
+    };
     // Where the releases for this one are chosen by hand.
-    final releases = sonarr
-        ? (item.seriesId == null || item.episodeId == null
-              ? null
-              : ArrReleaseTarget.episode(item.seriesId!, item.episodeId!))
-        : (item.movieId == null ? null : ArrReleaseTarget.movie(item.movieId!));
+    final releases = switch (item.kind) {
+      ArrKind.sonarr =>
+        item.seriesId == null || item.episodeId == null
+            ? null
+            : ArrReleaseTarget.episode(item.seriesId!, item.episodeId!),
+      ArrKind.radarr =>
+        item.movieId == null ? null : ArrReleaseTarget.movie(item.movieId!),
+      ArrKind.lidarr =>
+        item.albumId == null ? null : ArrReleaseTarget.album(item.albumId!),
+    };
     return _ArtRow(
       kind: item.kind,
       titleId: titleId,
@@ -619,12 +636,15 @@ class _HistoryEventRow extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final kind = item.kind ?? ArrKind.sonarr;
     final (label, icon, color) = arrHistoryEvent(l, scheme, item.eventType);
+    // The episode, or the album and its track.
     final sub = [
       item.episodeCode,
       item.episodeTitle,
+      item.albumTitle,
+      item.trackTitle,
     ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
     final date = item.date;
-    final titleId = kind == ArrKind.sonarr ? item.seriesId : item.movieId;
+    final titleId = item.titleId;
     // The row's menu, from its button or a right-click or long press.
     void menu(Offset at) => showContextMenu(
       context,
@@ -895,9 +915,7 @@ class _ArtRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final ArrClient? client = kind == ArrKind.sonarr
-        ? ref.watch(sonarrClientProvider)
-        : ref.watch(radarrClientProvider);
+    final client = arrWatchClient(ref, kind);
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -950,9 +968,7 @@ class _ArtRow extends ConsumerWidget {
                   client: client,
                   images: images,
                   width: 185,
-                  placeholderIcon: kind == ArrKind.sonarr
-                      ? Icons.live_tv_rounded
-                      : Icons.movie_rounded,
+                  placeholderIcon: arrKindIcon(kind),
                 ),
               ),
             ),
@@ -1174,6 +1190,7 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
     final clients = <ArrClient>[
       ?ref.read(sonarrClientProvider),
       ?ref.read(radarrClientProvider),
+      ?ref.read(lidarrClientProvider),
     ];
     setState(() => _busy = true);
     // Each app on its own, so one failing doesn't stop the other.
@@ -1271,9 +1288,7 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
                     if (!s.remove(k)) s.add(k);
                     _picked = s;
                   });
-                  final titleId = b.kind == ArrKind.sonarr
-                      ? b.seriesId
-                      : b.movieId;
+                  final titleId = b.titleId;
                   final title = b.title ?? b.sourceTitle;
                   return _ArtRow(
                     kind: b.kind,

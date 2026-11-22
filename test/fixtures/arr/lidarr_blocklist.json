@@ -1,0 +1,39 @@
+{
+  "page": 1,
+  "pageSize": 50,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 1,
+  "records": [
+    {
+      "artistId": 1,
+      "albumIds": [
+        2
+      ],
+      "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+      "quality": {
+        "quality": {
+          "id": 4,
+          "name": "MP3-320"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "date": "2026-11-22T23:00:31Z",
+      "protocol": "UsenetDownloadProtocol",
+      "indexer": "Rig",
+      "message": "Manually marked as failed",
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "id": 1
+    }
+  ]
+}

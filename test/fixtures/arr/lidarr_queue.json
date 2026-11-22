@@ -1,0 +1,106 @@
+{
+  "page": 1,
+  "pageSize": 500,
+  "sortKey": "timeleft",
+  "sortDirection": "descending",
+  "totalRecords": 1,
+  "records": [
+    {
+      "artistId": 1,
+      "albumId": 2,
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "album": {
+        "title": "Dummy",
+        "disambiguation": "",
+        "overview": "",
+        "artistId": 1,
+        "foreignAlbumId": "48140466-cff6-3222-bd55-63c27e43190d",
+        "monitored": true,
+        "anyReleaseOk": true,
+        "profileId": 1,
+        "duration": 3264000,
+        "albumType": "Album",
+        "secondaryTypes": [],
+        "ratings": {
+          "votes": 33,
+          "value": 8.8
+        },
+        "releaseDate": "1994-08-22T00:00:00Z",
+        "genres": [
+          "Trip Hop",
+          "Electronic",
+          "Acid Jazz",
+          "Downtempo"
+        ],
+        "mediumCount": 1,
+        "artist": {
+          "artistName": "Portishead",
+          "id": 1,
+          "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+          "images": []
+        },
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/87888070-1b25-4830-aebc-dee490058b74/24258465158-1200.jpg",
+            "extension": ".jpg"
+          }
+        ],
+        "lastSearchTime": "2026-11-22T22:58:39Z",
+        "id": 2
+      },
+      "quality": {
+        "quality": {
+          "id": 4,
+          "name": "MP3-320"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "size": 200000,
+      "title": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+      "sizeleft": 0,
+      "timeleft": "00:00:00",
+      "estimatedCompletionTime": "2026-11-22T23:05:40Z",
+      "status": "completed",
+      "trackedDownloadStatus": "warning",
+      "trackedDownloadState": "importFailed",
+      "statusMessages": [
+        {
+          "title": "One or more tracks expected in this release were not imported or missing from the release",
+          "messages": []
+        },
+        {
+          "title": "01 - Mysterons.mp3",
+          "messages": [
+            "Couldn't find similar album for [/downloads/watch-music/Portishead-Dummy-1994-WEB-MP3-320-GRP]"
+          ]
+        }
+      ],
+      "downloadId": "Blackhole_Portishead-Dummy-1994-WEB-MP3-320-GRP_639309851474342075",
+      "protocol": "UsenetDownloadProtocol",
+      "downloadClient": "Blackhole",
+      "downloadClientHasPostImportCategory": false,
+      "outputPath": "/downloads/watch-music/Portishead-Dummy-1994-WEB-MP3-320-GRP",
+      "trackFileCount": 12,
+      "trackHasFileCount": 0,
+      "downloadForced": false,
+      "id": 709930814
+    }
+  ]
+}

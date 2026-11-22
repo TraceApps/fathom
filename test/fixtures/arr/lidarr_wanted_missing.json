@@ -1,0 +1,174 @@
+{
+  "page": 1,
+  "pageSize": 50,
+  "sortKey": "releaseDate",
+  "sortDirection": "descending",
+  "totalRecords": 3,
+  "records": [
+    {
+      "title": "A Moon Shaped Pool",
+      "disambiguation": "",
+      "overview": "",
+      "artistId": 2,
+      "foreignAlbumId": "bbce0087-d386-4246-a51d-dbcdfdbe8fb2",
+      "monitored": true,
+      "anyReleaseOk": true,
+      "profileId": 2,
+      "duration": 6769276,
+      "albumType": "Album",
+      "secondaryTypes": [],
+      "ratings": {
+        "votes": 34,
+        "value": 8.4
+      },
+      "releaseDate": "2016-05-08T00:00:00Z",
+      "genres": [
+        "Art Rock",
+        "Art Pop",
+        "Ambient Pop",
+        "Chamber Pop",
+        "Alternative Rock",
+        "Electronic",
+        "Rock",
+        "Indie Rock"
+      ],
+      "mediumCount": 4,
+      "artist": {
+        "artistName": "Radiohead",
+        "id": 2,
+        "foreignArtistId": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+        "images": []
+      },
+      "images": [
+        {
+          "coverType": "cover",
+          "url": "/MediaCover/Albums/11/cover.jpg?lastWrite=639309635412610867",
+          "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/5f81ffe8-fd6c-409e-9441-6a978270d9fd/13521174881-1200.jpg",
+          "extension": ".jpg"
+        },
+        {
+          "coverType": "disc",
+          "url": "/MediaCover/Albums/11/disc.jpg",
+          "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/9ec37330-9396-48fd-b13e-574af3b88bf7/46536965216-1200.jpg",
+          "extension": ".jpg"
+        }
+      ],
+      "statistics": {
+        "trackFileCount": 0,
+        "trackCount": 24,
+        "totalTrackCount": 24,
+        "sizeOnDisk": 0,
+        "percentOfTracks": 0
+      },
+      "id": 11
+    },
+    {
+      "title": "Third",
+      "disambiguation": "",
+      "overview": "",
+      "artistId": 1,
+      "foreignAlbumId": "163339ab-813b-3d29-bba8-e1d5acf63cab",
+      "monitored": true,
+      "anyReleaseOk": true,
+      "profileId": 1,
+      "duration": 6189183,
+      "albumType": "Album",
+      "secondaryTypes": [],
+      "ratings": {
+        "votes": 18,
+        "value": 8.3
+      },
+      "releaseDate": "2008-04-08T00:00:00Z",
+      "genres": [
+        "Trip Hop",
+        "Electronic",
+        "Downtempo",
+        "Experimental Rock",
+        "Folk Rock"
+      ],
+      "mediumCount": 4,
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "images": [
+        {
+          "coverType": "cover",
+          "url": "/MediaCover/Albums/3/cover.jpg?lastWrite=639309635336027711",
+          "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/f5bfccaf-1816-427a-b03d-b41c8ac155c5/8201679314-1200.jpg",
+          "extension": ".jpg"
+        },
+        {
+          "coverType": "disc",
+          "url": "/MediaCover/Albums/3/disc.jpg",
+          "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/daa9710c-2e71-497f-8a02-10d9b611c370/33072863567-1200.jpg",
+          "extension": ".jpg"
+        }
+      ],
+      "statistics": {
+        "trackFileCount": 0,
+        "trackCount": 23,
+        "totalTrackCount": 23,
+        "sizeOnDisk": 0,
+        "percentOfTracks": 0
+      },
+      "id": 3
+    },
+    {
+      "title": "Dummy",
+      "disambiguation": "",
+      "overview": "",
+      "artistId": 1,
+      "foreignAlbumId": "48140466-cff6-3222-bd55-63c27e43190d",
+      "monitored": true,
+      "anyReleaseOk": true,
+      "profileId": 1,
+      "duration": 3264000,
+      "albumType": "Album",
+      "secondaryTypes": [],
+      "ratings": {
+        "votes": 33,
+        "value": 8.8
+      },
+      "releaseDate": "1994-08-22T00:00:00Z",
+      "genres": [
+        "Trip Hop",
+        "Electronic",
+        "Acid Jazz",
+        "Downtempo"
+      ],
+      "mediumCount": 1,
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "images": [
+        {
+          "coverType": "cover",
+          "url": "/MediaCover/Albums/2/cover.jpg?lastWrite=639309635332713115",
+          "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-1200.jpg",
+          "extension": ".jpg"
+        },
+        {
+          "coverType": "disc",
+          "url": "/MediaCover/Albums/2/disc.jpg",
+          "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/87888070-1b25-4830-aebc-dee490058b74/24258465158-1200.jpg",
+          "extension": ".jpg"
+        }
+      ],
+      "lastSearchTime": "2026-11-22T23:00:31Z",
+      "statistics": {
+        "trackFileCount": 0,
+        "trackCount": 12,
+        "totalTrackCount": 12,
+        "sizeOnDisk": 0,
+        "percentOfTracks": 0
+      },
+      "id": 2
+    }
+  ]
+}

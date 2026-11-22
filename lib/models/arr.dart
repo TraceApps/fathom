@@ -30,6 +30,32 @@ List<Map<String, dynamic>> _maps(Object? v) => [
   for (final e in (v as List?) ?? const [])
     if (e is Map) Map<String, dynamic>.from(e),
 ];
+/// usenet or torrent. Lidarr writes them out as its own type names
+/// (UsenetDownloadProtocol, TorrentDownloadProtocol).
+String? _protocol(Object? v) => switch (v) {
+  final String s when s.toLowerCase().startsWith('usenet') => 'usenet',
+  final String s when s.toLowerCase().startsWith('torrent') => 'torrent',
+  final String s => s,
+  _ => null,
+};
+
+/// The artist an item belongs to, where Lidarr sent it along.
+Map<String, dynamic>? _artistOf(Map<String, dynamic> j) =>
+    j['artist'] is Map ? Map<String, dynamic>.from(j['artist'] as Map) : null;
+
+/// The pictures of a Lidarr item: its artist's, and when Lidarr sent the
+/// artist without any (it does, in its lists) the album's cover in the
+/// poster's place.
+List<ArrImage> _lidarrPictures(Map<String, dynamic> j, {Object? album}) {
+  final own = _images(_artistOf(j)?['images']);
+  if (own.isNotEmpty) return own;
+  return [
+    for (final i in _images(album ?? (j['album'] as Map?)?['images']))
+      if (i.coverType == 'cover')
+        ArrImage(coverType: 'poster', url: i.url, remoteUrl: i.remoteUrl),
+  ];
+}
+
 /// A value as words, numbers included; null when there's nothing to say.
 String? _text(Object? v) => switch (v) {
   final String s when s.trim().isNotEmpty => s.trim(),
@@ -530,6 +556,7 @@ class ArrEpisode {
 enum ArrQueueState {
   failed,
   importBlocked,
+  importFailed,
   needsAttention,
   waitingToImport,
   importing,
@@ -541,7 +568,10 @@ enum ArrQueueState {
   /// Stuck until someone steps in: said in its color wherever it's shown, and
   /// first in the queue.
   bool get needsHelp =>
-      this == failed || this == importBlocked || this == needsAttention;
+      this == failed ||
+      this == importBlocked ||
+      this == importFailed ||
+      this == needsAttention;
 }
 
 /// Something downloading (or stuck) in an app's queue.
@@ -554,6 +584,11 @@ class ArrQueueItem {
   final String? episodeTitle;
   final int? movieId;
   final int? seriesId;
+
+  /// Lidarr: the artist and the album being downloaded.
+  final int? artistId;
+  final int? albumId;
+  final String? albumTitle;
   final double size;
   final double sizeleft;
   final DateTime? estimatedCompletion;
@@ -584,6 +619,9 @@ class ArrQueueItem {
     this.episodeTitle,
     this.movieId,
     this.seriesId,
+    this.artistId,
+    this.albumId,
+    this.albumTitle,
     this.size = 0,
     this.sizeleft = 0,
     this.estimatedCompletion,
@@ -604,6 +642,8 @@ class ArrQueueItem {
   factory ArrQueueItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
     final movie = j['movie'] as Map?;
     final series = j['series'] as Map?;
+    final artist = _artistOf(j);
+    final album = j['album'] as Map?;
     final episode = j['episode'] as Map?;
     ArrEpisode? ep;
     if (episode != null) {
@@ -613,11 +653,16 @@ class ArrQueueItem {
       kind: kind,
       id: _int(j['id']),
       title: arrUnescape(j['title'] as String? ?? ''),
-      mediaTitle: (movie?['title'] ?? series?['title']) as String?,
+      mediaTitle:
+          (movie?['title'] ?? series?['title'] ?? artist?['artistName'])
+              as String?,
       episodeCode: ep?.code,
       episodeTitle: ep?.title,
       movieId: _intOrNull(j['movieId']),
       seriesId: _intOrNull(j['seriesId']),
+      artistId: _intOrNull(j['artistId']),
+      albumId: _intOrNull(j['albumId']),
+      albumTitle: _text(album?['title']),
       size: (j['size'] as num?)?.toDouble() ?? 0,
       sizeleft: (j['sizeleft'] as num?)?.toDouble() ?? 0,
       estimatedCompletion: _date(j['estimatedCompletionTime']),
@@ -634,9 +679,11 @@ class ArrQueueItem {
       errorMessage: j['errorMessage'] as String?,
       downloadClient: j['downloadClient'] as String?,
       indexer: j['indexer'] as String?,
-      protocol: j['protocol'] as String?,
+      protocol: _protocol(j['protocol']),
       quality: _qualityName(j['quality']),
-      images: _images(movie?['images'] ?? series?['images']),
+      images: artist != null
+          ? _lidarrPictures(j)
+          : _images(movie?['images'] ?? series?['images']),
       downloadId: j['downloadId'] as String?,
       clientHasPostImportCategory:
           j['downloadClientHasPostImportCategory'] == true,
@@ -650,8 +697,14 @@ class ArrQueueItem {
 
   /// The app can stop tracking it and leave it in the client only when it
   /// knows the title (the apps' own rule).
-  bool get canIgnore =>
-      (kind == ArrKind.sonarr ? seriesId : movieId) != null;
+  bool get canIgnore => titleId != null;
+
+  /// The show, movie or artist this is a download of, by its id in its app.
+  int? get titleId => switch (kind) {
+    ArrKind.sonarr => seriesId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => artistId,
+  };
 
   /// Downloaded, but the app won't import it on its own (Import Blocked, or
   /// waiting with a warning): Manual Import is how to finish it. The apps'
@@ -670,11 +723,18 @@ class ArrQueueItem {
     if (status == 'failed' ||
         trackedDownloadState == 'failed' ||
         trackedDownloadState == 'failedPending' ||
+        // Lidarr's names for the same two.
+        trackedDownloadState == 'downloadFailed' ||
+        trackedDownloadState == 'downloadFailedPending' ||
         trackedDownloadStatus == 'error') {
       return ArrQueueState.failed;
     }
     if (trackedDownloadState == 'importBlocked') {
       return ArrQueueState.importBlocked;
+    }
+    // Lidarr: it tried and couldn't, which its own page marks as a warning.
+    if (trackedDownloadState == 'importFailed') {
+      return ArrQueueState.importFailed;
     }
     // A warning outranks where it stands: a finished download that waits to
     // be imported with a warning is waiting on a person, not on the app.
@@ -711,10 +771,19 @@ class ArrCalendarEntry {
   final int? seriesId;
   final int? movieId;
   final int? episodeId;
+
+  /// Lidarr: the artist, and the album that's out.
+  final int? artistId;
+  final int? albumId;
+  final String? albumTitle;
   final List<ArrImage> images;
 
-  /// The show or movie this is a release of, by its id in its app.
-  int? get titleId => kind == ArrKind.sonarr ? seriesId : movieId;
+  /// The show, movie or artist this is a release of, by its id in its app.
+  int? get titleId => switch (kind) {
+    ArrKind.sonarr => seriesId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => artistId,
+  };
 
   const ArrCalendarEntry({
     required this.kind,
@@ -729,8 +798,30 @@ class ArrCalendarEntry {
     this.seriesId,
     this.movieId,
     this.episodeId,
+    this.artistId,
+    this.albumId,
+    this.albumTitle,
     this.images = const [],
   });
+
+  /// Lidarr's calendar: one entry per album, on its release day (asked
+  /// with includeArtist). Downloaded once every track is there.
+  static ArrCalendarEntry? fromAlbum(Map<String, dynamic> j) {
+    final a = ArrAlbum.fromJson(j);
+    final day = a.releaseDate;
+    if (day == null) return null;
+    return ArrCalendarEntry(
+      kind: ArrKind.lidarr,
+      date: day,
+      title: a.artistName ?? '',
+      albumTitle: a.title,
+      hasFile: a.complete,
+      monitored: a.monitored,
+      artistId: a.artistId,
+      albumId: a.id,
+      images: _lidarrPictures(j, album: j['images']),
+    );
+  }
 
   /// Sonarr's calendar: one entry per episode (asked with includeSeries).
   static ArrCalendarEntry? fromEpisode(Map<String, dynamic> j) {
@@ -797,6 +888,11 @@ class ArrHistoryItem {
   final int? episodeId;
   final int? seriesId;
   final int? movieId;
+
+  /// Lidarr: the artist and album the event was about.
+  final int? artistId;
+  final int? albumId;
+  final String? albumTitle;
   final String? title; // the show or movie, when the app sent it along
   final String? episodeCode;
   final String? episodeTitle;
@@ -816,6 +912,9 @@ class ArrHistoryItem {
     this.episodeId,
     this.seriesId,
     this.movieId,
+    this.artistId,
+    this.albumId,
+    this.albumTitle,
     this.title,
     this.episodeCode,
     this.episodeTitle,
@@ -834,6 +933,7 @@ class ArrHistoryItem {
     final episode = j['episode'] is Map
         ? ArrEpisode.fromJson(Map<String, dynamic>.from(j['episode']))
         : null;
+    final artist = _artistOf(j);
     return ArrHistoryItem(
       kind: kind,
       id: _int(j['id']),
@@ -847,11 +947,19 @@ class ArrHistoryItem {
       episodeId: _intOrNull(j['episodeId']),
       seriesId: _intOrNull(j['seriesId']),
       movieId: _intOrNull(j['movieId']),
-      title: series?.title ?? movie?.title,
+      artistId: _intOrNull(j['artistId']),
+      albumId: _intOrNull(j['albumId']),
+      albumTitle: _text((j['album'] as Map?)?['title']),
+      title: series?.title ?? movie?.title ?? _text(artist?['artistName']),
       episodeCode: episode?.code,
       episodeTitle: episode?.title,
       trackTitle: _text((j['track'] as Map?)?['title']),
-      images: series?.images ?? movie?.images ?? const [],
+      images:
+          series?.images ??
+          movie?.images ??
+          (artist == null && j['album'] == null
+              ? const []
+              : _lidarrPictures(j)),
       data: j['data'] is Map ? Map<String, dynamic>.from(j['data']) : const {},
     );
   }
@@ -863,6 +971,15 @@ class ArrHistoryItem {
               data['indexer'] ??
               data['downloadClient'])
           as String?;
+
+  /// The show, movie or artist it belongs to, by its id in its app (null
+  /// when the history came without the app being known).
+  int? get titleId => switch (kind) {
+    ArrKind.sonarr => seriesId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => artistId,
+    null => null,
+  };
 
   /// A grab can be marked failed: the app blocklists the release and looks
   /// for another.
@@ -881,6 +998,11 @@ class ArrWantedItem {
   final int? seriesId;
   final int? movieId;
   final int? episodeId;
+
+  /// Lidarr: the artist, and the album that's wanted.
+  final int? artistId;
+  final int? albumId;
+  final String? albumTitle;
   final String? quality; // what's there now (cutoff unmet)
   final bool available; // out, so a search can find it
   final List<ArrImage> images;
@@ -895,10 +1017,45 @@ class ArrWantedItem {
     this.seriesId,
     this.movieId,
     this.episodeId,
+    this.artistId,
+    this.albumId,
+    this.albumTitle,
     this.quality,
     this.available = true,
     this.images = const [],
   });
+
+  /// The show, movie or artist it belongs to, by its id in its app.
+  int? get titleId => switch (kind) {
+    ArrKind.sonarr => seriesId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => artistId,
+  };
+
+  /// The episode, movie or album itself: what a search looks for.
+  int? get itemId => switch (kind) {
+    ArrKind.sonarr => episodeId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => albumId,
+  };
+
+  /// Lidarr's Wanted lists albums (asked with includeArtist). An album not
+  /// out yet can't be found, so it goes last.
+  factory ArrWantedItem.fromAlbum(Map<String, dynamic> j) {
+    final a = ArrAlbum.fromJson(j);
+    final now = DateTime.now();
+    return ArrWantedItem(
+      kind: ArrKind.lidarr,
+      title: a.artistName ?? '',
+      albumTitle: a.title,
+      date: a.releaseDate,
+      year: a.releaseDate?.year,
+      artistId: a.artistId,
+      albumId: a.id,
+      available: a.released(now),
+      images: _lidarrPictures(j, album: j['images']),
+    );
+  }
 
   /// Sonarr's Wanted lists episodes (asked with includeSeries, and with
   /// includeEpisodeFile for cutoff unmet).
@@ -1117,11 +1274,25 @@ String? arrFolderNameOf(String? path, {required bool isFile}) {
 }
 
 /// Kinds of History events to show. Each app numbers them its own way
-/// (Sonarr's EpisodeHistoryEventType, Radarr's MovieHistoryEventType).
+/// (Sonarr's EpisodeHistoryEventType, Radarr's MovieHistoryEventType,
+/// Lidarr's EntityHistoryEventType).
 enum ArrHistoryFilter { all, grabbed, imported, failed, deleted, renamed, ignored }
 
 /// The event type numbers [f] means in [kind]'s history (empty: all).
 List<int> arrHistoryEventTypes(ArrKind kind, ArrHistoryFilter f) {
+  if (kind == ArrKind.lidarr) {
+    // Lidarr: artist folder (2) or track by track (3); 7 is an album only
+    // partly imported, a failure of its own.
+    return switch (f) {
+      ArrHistoryFilter.all => const [],
+      ArrHistoryFilter.grabbed => const [1],
+      ArrHistoryFilter.imported => const [2, 3],
+      ArrHistoryFilter.failed => const [4, 7],
+      ArrHistoryFilter.deleted => const [5],
+      ArrHistoryFilter.renamed => const [6],
+      ArrHistoryFilter.ignored => const [10],
+    };
+  }
   final sonarr = kind == ArrKind.sonarr;
   return switch (f) {
     ArrHistoryFilter.all => const [],
@@ -1141,9 +1312,10 @@ class ArrBlocklistItem {
   final int id;
   final DateTime? date;
   final String sourceTitle;
-  final String? title; // the show or movie
+  final String? title; // the show, movie or artist
   final int? seriesId;
   final int? movieId;
+  final int? artistId;
   final String? quality;
   final String? indexer;
   final String? protocol; // usenet, torrent
@@ -1158,6 +1330,7 @@ class ArrBlocklistItem {
     this.title,
     this.seriesId,
     this.movieId,
+    this.artistId,
     this.quality,
     this.indexer,
     this.protocol,
@@ -1166,19 +1339,20 @@ class ArrBlocklistItem {
   });
 
   factory ArrBlocklistItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
-    final owner = (j['series'] ?? j['movie']) as Map?;
+    final owner = (j['series'] ?? j['movie'] ?? j['artist']) as Map?;
     final q = ((j['quality'] as Map?)?['quality'] as Map?)?['name'] as String?;
     return ArrBlocklistItem(
       kind: kind,
       id: _int(j['id']),
       date: DateTime.tryParse((j['date'] as String?) ?? '')?.toLocal(),
       sourceTitle: arrUnescape((j['sourceTitle'] as String?) ?? ''),
-      title: owner?['title'] as String?,
+      title: (owner?['title'] ?? owner?['artistName']) as String?,
       seriesId: _intOrNull(j['seriesId']),
       movieId: _intOrNull(j['movieId']),
+      artistId: _intOrNull(j['artistId']),
       quality: q,
       indexer: j['indexer'] as String?,
-      protocol: j['protocol'] as String?,
+      protocol: _protocol(j['protocol']),
       message: j['message'] as String?,
       images: [
         for (final i in (owner?['images'] as List?) ?? const [])
@@ -1186,6 +1360,13 @@ class ArrBlocklistItem {
       ],
     );
   }
+
+  /// The show, movie or artist it belongs to, by its id in its app.
+  int? get titleId => switch (kind) {
+    ArrKind.sonarr => seriesId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => artistId,
+  };
 }
 
 /// A Radarr collection (a film series, from TMDB), with its movies and the
@@ -1603,7 +1784,7 @@ class ArrSearchResult {
     ageHours:
         (j['ageHours'] as num?)?.toDouble() ??
         (j['age'] == null ? null : (j['age'] as num).toDouble() * 24),
-    protocol: j['protocol'] as String? ?? 'unknown',
+    protocol: _protocol(j['protocol']) ?? 'unknown',
     seeders: _intOrNull(j['seeders']),
     leechers: _intOrNull(j['leechers']),
     customFormatScore: _int(j['customFormatScore']),

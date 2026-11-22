@@ -269,7 +269,8 @@ void main() {
 
     test('is read from what the app says of it', () {
       const s = ArrQueueState.values;
-      expect(s, hasLength(9));
+      // Lidarr's Import Failed is the tenth.
+      expect(s, hasLength(10));
       for (final (status, tracked, state, is_) in [
         ('downloading', 'ok', 'downloading', ArrQueueState.downloading),
         (null, null, null, ArrQueueState.downloading),
@@ -384,6 +385,7 @@ void main() {
         [
           ArrQueueState.failed,
           ArrQueueState.importBlocked,
+          ArrQueueState.importFailed,
           ArrQueueState.needsAttention,
         ],
       );

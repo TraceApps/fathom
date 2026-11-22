@@ -177,10 +177,12 @@ double _cellScale(BuildContext context) =>
     ? (l.arrUnaired, arrUnreleasedColor)
     : (l.arrNotReleased, arrUnreleasedColor);
 
-/// The line under a release's title: the episode, or which of a movie's
-/// releases this is.
+/// The line under a release's title: the episode, the album, or which of a
+/// movie's releases this is.
 String _about(AppLocalizations l, ArrCalendarEntry e) =>
-    e.kind == ArrKind.sonarr
+    e.kind == ArrKind.lidarr
+    ? e.albumTitle ?? ''
+    : e.kind == ArrKind.sonarr
     ? [
         e.episodeCode,
         e.episodeTitle,
@@ -237,6 +239,7 @@ void _entryMenu(
   final id = e.titleId;
   final client = arrClient(ref, e.kind);
   final episode = e.episodeId;
+  final album = e.albumId;
   // What the menu was opened on may be gone by the time a line is picked
   // (the window resized, the month redrawn): each acts from what's there
   // then, or not at all.
@@ -274,6 +277,18 @@ void _entryMenu(
             (host) => arrRun(
               host,
               () => client.searchEpisodes([episode]),
+              done: l.arrSearchStarted(client.kind.appName),
+            ),
+          ),
+        ),
+      if (client is LidarrClient && album != null)
+        ContextMenuAction(
+          icon: Icons.search_rounded,
+          label: l.arrSearchAlbum,
+          onTap: () => act(
+            (host) => arrRun(
+              host,
+              () => client.searchAlbums([album]),
               done: l.arrSearchStarted(client.kind.appName),
             ),
           ),
@@ -392,9 +407,7 @@ class _CalendarRow extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final ArrClient? client = entry.kind == ArrKind.sonarr
-        ? ref.watch(sonarrClientProvider)
-        : ref.watch(radarrClientProvider);
+    final client = arrWatchClient(ref, entry.kind);
     final (status, color) = _standing(l, scheme, entry);
     final subtitle = _about(l, entry);
     return ArrRowInk(
@@ -422,9 +435,7 @@ class _CalendarRow extends ConsumerWidget {
                   client: client,
                   images: entry.images,
                   width: 185,
-                  placeholderIcon: entry.kind == ArrKind.sonarr
-                      ? Icons.live_tv_rounded
-                      : Icons.movie_rounded,
+                  placeholderIcon: arrKindIcon(entry.kind),
                 ),
               ),
             ),

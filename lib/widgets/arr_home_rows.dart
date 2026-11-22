@@ -23,12 +23,13 @@ import 'motion.dart';
 @visibleForTesting
 DateTime Function() arrHomeNow = DateTime.now;
 
-ArrClient? _clientOf(WidgetRef ref, ArrKind kind) => kind == ArrKind.sonarr
-    ? ref.watch(sonarrClientProvider)
-    : ref.watch(radarrClientProvider);
+ArrClient? _clientOf(WidgetRef ref, ArrKind kind) => switch (kind) {
+  ArrKind.sonarr => ref.watch(sonarrClientProvider),
+  ArrKind.radarr => ref.watch(radarrClientProvider),
+  ArrKind.lidarr => ref.watch(lidarrClientProvider),
+};
 
-IconData _iconOf(ArrKind kind) =>
-    kind == ArrKind.sonarr ? Icons.live_tv_rounded : Icons.movie_rounded;
+IconData _iconOf(ArrKind kind) => arrKindIcon(kind);
 
 /// Downloading Now: a card for each movie and show in the queue, with how
 /// far along it is. The row keeps itself current while it's on screen, and
@@ -99,12 +100,19 @@ class _DownloadCard extends ConsumerWidget {
     final left = title.finishes?.difference(arrHomeNow());
     // What of the title is coming, then how it's doing: how far along while
     // it downloads, and in a word once it's anything else.
+    // An artist's albums: one by name, several by how many.
+    final albums = {for (final i in title.items) i.albumId ?? i.id};
     final about = [
       if (title.kind == ArrKind.sonarr)
         if (title.items.length == 1)
           ?title.lead.episodeCode
         else
           l.detailEpisodeCount(title.items.length),
+      if (title.kind == ArrKind.lidarr)
+        if (albums.length == 1)
+          ?title.lead.albumTitle
+        else
+          l.arrAlbumCount(albums.length),
       if (state != ArrQueueState.downloading)
         standing
       else ...[
@@ -221,7 +229,11 @@ class _ComingUpCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final e = release.first;
-    final about = e.kind == ArrKind.sonarr
+    final about = e.kind == ArrKind.lidarr
+        ? release.more > 0 && e.albumTitle != null
+              ? l.arrHomeEpisodeAndMore(e.albumTitle!, release.more)
+              : e.albumTitle ?? ''
+        : e.kind == ArrKind.sonarr
         ? release.more > 0 && e.episodeCode != null
               ? l.arrHomeEpisodeAndMore(e.episodeCode!, release.more)
               : [

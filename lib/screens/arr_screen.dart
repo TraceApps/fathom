@@ -791,9 +791,7 @@ class _QueueCard extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final ArrClient? client = item.kind == ArrKind.sonarr
-        ? ref.watch(sonarrClientProvider)
-        : ref.watch(radarrClientProvider);
+    final client = arrWatchClient(ref, item.kind);
     final (String status, Color color) = arrQueueStanding(l, scheme, item);
     final eta = item.estimatedCompletion?.difference(DateTime.now());
     final left = eta != null && !eta.isNegative && item.status == 'downloading'
@@ -801,7 +799,9 @@ class _QueueCard extends ConsumerWidget {
         : null;
     final heading = [
       item.mediaTitle ?? item.title,
-      if (item.episodeCode != null) item.episodeCode!,
+      ?item.episodeCode,
+      // An artist's download is an album.
+      if (item.mediaTitle != null) ?item.albumTitle,
     ].join(' · ');
     final meta = [
       ?item.quality,
@@ -812,11 +812,14 @@ class _QueueCard extends ConsumerWidget {
       if (item.errorMessage?.isNotEmpty ?? false) item.errorMessage!,
       ...item.messages,
     ];
-    final titleId = item.kind == ArrKind.sonarr ? item.seriesId : item.movieId;
+    final titleId = item.titleId;
     // Saying which show or movie a download is takes a keyboard and a
-    // pointer: not on a TV.
+    // pointer: not on a TV. Lidarr's downloads are imported in Lidarr.
     final importable =
-        !isTvDevice && client != null && item.canManualImport;
+        !isTvDevice &&
+        client != null &&
+        item.kind != ArrKind.lidarr &&
+        item.canManualImport;
     final held = item.status == 'delay';
     // What the card's buttons do, by name, on a right-click or a long press.
     void menu(Offset at) => showContextMenu(
@@ -915,9 +918,7 @@ class _QueueCard extends ConsumerWidget {
                         client: client,
                         images: item.images,
                         width: roomy ? 342 : 185,
-                        placeholderIcon: item.kind == ArrKind.sonarr
-                            ? Icons.live_tv_rounded
-                            : Icons.movie_rounded,
+                        placeholderIcon: arrKindIcon(item.kind),
                       ),
                     ),
                   ),

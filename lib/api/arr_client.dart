@@ -1472,26 +1472,59 @@ class LidarrClient extends ArrClient {
     if (failed != null) throw failed;
   }
 
-  // Lidarr's albums aren't in the section's merged lists yet: nothing asks
-  // these of it.
+  /// Albums out between [start] and [end]. Lidarr keeps a release date as
+  /// midnight UTC of its day, as Radarr does: the days are asked for as
+  /// UTC's, and what falls outside them here is dropped.
   @override
   Future<List<ArrCalendarEntry>> calendar(
     DateTime start,
     DateTime end, {
     bool unmonitored = false,
-  }) => throw UnsupportedError('Lidarr calendar');
+  }) async {
+    DateTime day(DateTime d) => DateTime.utc(d.year, d.month, d.day);
+    final data = await _get('calendar', {
+      'start': day(start).toIso8601String(),
+      'end': day(end).toIso8601String(),
+      'unmonitored': unmonitored,
+      'includeArtist': true,
+    });
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map)
+          if (ArrCalendarEntry.fromAlbum(Map<String, dynamic>.from(m))
+              case final e?
+              when !e.date.isBefore(start) && e.date.isBefore(end))
+            e,
+    ];
+  }
+
+  Map<String, dynamic> _wantedQuery(int pageSize, {bool monitored = true}) =>
+      {
+        'page': 1,
+        'pageSize': pageSize,
+        'sortKey': 'releaseDate',
+        'sortDirection': 'descending',
+        'includeArtist': true,
+        'monitored': monitored,
+      };
 
   @override
   Future<ArrPage<ArrWantedItem>> missing({
     int pageSize = 50,
     bool monitored = true,
-  }) => throw UnsupportedError('Lidarr wanted');
+  }) async => _page(
+    await _get('wanted/missing', _wantedQuery(pageSize, monitored: monitored)),
+    ArrWantedItem.fromAlbum,
+  );
 
   @override
   Future<ArrPage<ArrWantedItem>> cutoffUnmet({
     int pageSize = 50,
     bool monitored = true,
-  }) => throw UnsupportedError('Lidarr wanted');
+  }) async => _page(
+    await _get('wanted/cutoff', _wantedQuery(pageSize, monitored: monitored)),
+    ArrWantedItem.fromAlbum,
+  );
 
   @override
   Future<void> searchAllMissing() =>

@@ -83,21 +83,26 @@ class ArrMerged<T> {
   bool get hasMore => items.length < total;
 }
 
+/// The connected apps, always in one order: Sonarr, Radarr, Lidarr.
+List<ArrClient> _arrClients(Ref ref) => [
+  ?ref.watch(sonarrClientProvider),
+  ?ref.watch(radarrClientProvider),
+  ?ref.watch(lidarrClientProvider),
+];
+
 Future<ArrMerged<T>> _both<T>(
-  SonarrClient? sonarr,
-  RadarrClient? radarr,
+  List<ArrClient> clients,
   Future<List<T>> Function(ArrClient c) load,
 ) async {
   final errors = <ArrKind, String>{};
-  // Sonarr's, then Radarr's, whichever answers first: what's alike in a list
-  // sorted after keeps its place from one asking to the next.
+  // Sonarr's, then Radarr's, then Lidarr's, whichever answers first: what's
+  // alike in a list sorted after keeps its place from one asking to the next.
   final lists = await Future.wait([
-    for (final c in <ArrClient?>[sonarr, radarr])
-      if (c != null)
-        load(c).catchError((Object e) {
-          errors[c.kind] = e.toString();
-          return <T>[];
-        }),
+    for (final c in clients)
+      load(c).catchError((Object e) {
+        errors[c.kind] = e.toString();
+        return <T>[];
+      }),
   ]);
   return ArrMerged([for (final l in lists) ...l], errors);
 }
@@ -251,8 +256,7 @@ final arrCalendarProvider = FutureProvider.autoDispose
     .family<ArrMerged<ArrCalendarEntry>, ArrDays>((ref, w) async {
       final unmonitored = ref.watch(arrCalendarUnmonitoredProvider);
       final merged = await _both<ArrCalendarEntry>(
-        ref.watch(sonarrClientProvider),
-        ref.watch(radarrClientProvider),
+        _arrClients(ref),
         (c) => c.calendar(w.start, w.end, unmonitored: unmonitored),
       );
       merged.items.sort(arrCalendarOrder);
@@ -263,8 +267,7 @@ final arrQueueProvider = FutureProvider.autoDispose<ArrMerged<ArrQueueItem>>((
   ref,
 ) async {
   final merged = await _both<ArrQueueItem>(
-    ref.watch(sonarrClientProvider),
-    ref.watch(radarrClientProvider),
+    _arrClients(ref),
     (c) => c.queue(),
   );
   merged.items.sort(arrQueueOrder);
@@ -280,7 +283,9 @@ int arrCalendarOrder(ArrCalendarEntry a, ArrCalendarEntry b) {
   if (kind != 0) return kind;
   final title = a.title.compareTo(b.title);
   if (title != 0) return title;
-  return (a.episodeId ?? a.movieId ?? 0).compareTo(b.episodeId ?? b.movieId ?? 0);
+  return (a.episodeId ?? a.movieId ?? a.albumId ?? 0).compareTo(
+    b.episodeId ?? b.movieId ?? b.albumId ?? 0,
+  );
 }
 
 /// The queue's order: what's stuck first (the same ones a card says so of,
@@ -360,7 +365,7 @@ class ArrHomeDownload {
 List<ArrHomeDownload> arrHomeDownloads(List<ArrQueueItem> queue) {
   final byTitle = <(ArrKind, int), List<ArrQueueItem>>{};
   for (final i in queue) {
-    final id = i.kind == ArrKind.sonarr ? i.seriesId : i.movieId;
+    final id = i.titleId;
     if (id == null || i.mediaTitle == null) continue;
     (byTitle[(i.kind, id)] ??= []).add(i);
   }
@@ -415,7 +420,9 @@ List<ArrHomeRelease> arrHomeComingUp(
     for (final e in first.entries)
       (
         first: e.value,
-        more: e.key.$1 == ArrKind.sonarr ? count[e.key]! - 1 : 0,
+        // A show's later episodes, an artist's later albums; a movie's later
+        // releases are the same movie.
+        more: e.key.$1 == ArrKind.radarr ? 0 : count[e.key]! - 1,
       ),
   ];
 }
@@ -454,8 +461,7 @@ final arrHomeComingUpProvider = FutureProvider.autoDispose
         }
       });
       return _both<ArrCalendarEntry>(
-        ref.watch(sonarrClientProvider),
-        ref.watch(radarrClientProvider),
+        _arrClients(ref),
         (c) => c.calendar(week.start, week.end),
       );
     });
@@ -535,6 +541,13 @@ final sonarrSeriesHistoryProvider = FutureProvider.autoDispose
     });
 
 ArrClient? arrClientOf(Ref ref, ArrKind kind) => switch (kind) {
+  ArrKind.sonarr => ref.watch(sonarrClientProvider),
+  ArrKind.radarr => ref.watch(radarrClientProvider),
+  ArrKind.lidarr => ref.watch(lidarrClientProvider),
+};
+
+/// The client for [kind], watched (a widget that shows its pictures).
+ArrClient? arrWatchClient(WidgetRef ref, ArrKind kind) => switch (kind) {
   ArrKind.sonarr => ref.watch(sonarrClientProvider),
   ArrKind.radarr => ref.watch(radarrClientProvider),
   ArrKind.lidarr => ref.watch(lidarrClientProvider),
@@ -830,13 +843,9 @@ Future<ArrMerged<T>> _bothPaged<T>(
 ) async {
   final errors = <ArrKind, String>{};
   var total = 0;
-  // Sonarr's, then Radarr's, whichever answers first (see [_both]).
+  // In the apps' one order, whichever answers first (see [_both]).
   final pages = await Future.wait([
-    for (final c in <ArrClient?>[
-      ref.watch(sonarrClientProvider),
-      ref.watch(radarrClientProvider),
-    ])
-      if (c != null)
+    for (final c in _arrClients(ref))
         load(c)
             .then((p) {
               total += p.total;
@@ -936,11 +945,7 @@ final arrHealthProvider = FutureProvider.autoDispose<List<ArrAppHealth>>((
   }
 
   return Future.wait([
-    for (final c in <ArrClient?>[
-      ref.watch(sonarrClientProvider),
-      ref.watch(radarrClientProvider),
-    ])
-      if (c != null) one(c),
+    for (final c in _arrClients(ref)) one(c),
   ]);
 });
 
@@ -1155,11 +1160,7 @@ final arrQueueStatusProvider = FutureProvider.autoDispose<ArrQueueStatus>((
   var problem = false;
   var unreachable = false;
   await Future.wait([
-    for (final c in <ArrClient?>[
-      ref.watch(sonarrClientProvider),
-      ref.watch(radarrClientProvider),
-    ])
-      if (c != null)
+    for (final c in _arrClients(ref))
         c
             .queueStatus()
             .then((s) {

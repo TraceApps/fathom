@@ -1,0 +1,170 @@
+[
+  {
+    "guid": "1_http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-CD-FLAC-GRP",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 601,
+    "age": 3,
+    "ageHours": 72.00001984241666,
+    "ageMinutes": 4320.00119055,
+    "size": 400000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GRP",
+    "releaseHash": "",
+    "title": "Portishead-Dummy-1994-CD-FLAC-GRP",
+    "discography": false,
+    "sceneSource": false,
+    "artistName": "Portishead",
+    "albumTitle": "Dummy",
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "rejections": [
+      "Release in queue already meets cutoff: MP3-320 v1"
+    ],
+    "publishDate": "2026-11-19T23:06:08Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-CD-FLAC-GRP",
+    "downloadAllowed": true,
+    "releaseWeight": 0,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "UsenetDownloadProtocol",
+    "indexerFlags": 0
+  },
+  {
+    "guid": "1_http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-FLAC-1994-GRP",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 601,
+    "age": 30,
+    "ageHours": 720.0000198876944,
+    "ageMinutes": 43200.001193263335,
+    "size": 450000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GRP",
+    "releaseHash": "",
+    "title": "Portishead-Dummy-1994-FLAC-1994-GRP",
+    "discography": false,
+    "sceneSource": false,
+    "artistName": "Portishead",
+    "albumTitle": "Dummy",
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "rejections": [
+      "Release in queue already meets cutoff: MP3-320 v1"
+    ],
+    "publishDate": "2026-10-23T23:06:08Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-FLAC-1994-GRP",
+    "downloadAllowed": true,
+    "releaseWeight": 1,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "UsenetDownloadProtocol",
+    "indexerFlags": 0
+  },
+  {
+    "guid": "1_http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+    "quality": {
+      "quality": {
+        "id": 4,
+        "name": "MP3-320"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 501,
+    "age": 10,
+    "ageHours": 240.00001988897222,
+    "ageMinutes": 14400.00119334,
+    "size": 120000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GRP",
+    "releaseHash": "",
+    "title": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+    "discography": false,
+    "sceneSource": false,
+    "artistName": "Portishead",
+    "albumTitle": "Dummy",
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "rejections": [
+      "Release in queue already meets cutoff: MP3-320 v1"
+    ],
+    "publishDate": "2026-11-12T23:06:08Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+    "downloadAllowed": true,
+    "releaseWeight": 2,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "UsenetDownloadProtocol",
+    "indexerFlags": 0
+  },
+  {
+    "guid": "1_http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-V0-GRP",
+    "quality": {
+      "quality": {
+        "id": 0,
+        "name": "Unknown"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 1,
+    "age": 200,
+    "ageHours": 4800.000019889778,
+    "ageMinutes": 288000.0011933883,
+    "size": 95000000,
+    "indexerId": 1,
+    "indexer": "Rig",
+    "releaseGroup": "GRP",
+    "releaseHash": "",
+    "title": "Portishead-Dummy-1994-WEB-MP3-V0-GRP",
+    "discography": false,
+    "sceneSource": false,
+    "artistName": "Portishead",
+    "albumTitle": "Dummy",
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "rejections": [
+      "Release in queue already meets cutoff: MP3-320 v1"
+    ],
+    "publishDate": "2026-05-06T23:06:08Z",
+    "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-V0-GRP",
+    "downloadAllowed": true,
+    "releaseWeight": 3,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "protocol": "UsenetDownloadProtocol",
+    "indexerFlags": 0
+  }
+]

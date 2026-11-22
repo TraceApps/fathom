@@ -1037,7 +1037,11 @@ class _QueueRemoveDialogState extends State<_QueueRemoveDialog> {
       images: one ? item.images : const [],
       heading: one ? l.arrRemoveFromQueue : l.arrRemoveCount(items.length),
       title: one
-          ? [item.mediaTitle ?? item.title, ?item.episodeCode].join(' · ')
+          ? [
+              item.mediaTitle ?? item.title,
+              ?item.episodeCode,
+              if (item.mediaTitle != null) ?item.albumTitle,
+            ].join(' · ')
           : {for (final i in items) i.mediaTitle ?? i.title}.join(', '),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

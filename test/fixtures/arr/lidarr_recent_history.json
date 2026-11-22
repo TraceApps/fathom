@@ -1,0 +1,356 @@
+{
+  "page": 1,
+  "pageSize": 50,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 30,
+  "records": [
+    {
+      "albumId": 2,
+      "artistId": 1,
+      "trackId": 0,
+      "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+      "quality": {
+        "quality": {
+          "id": 4,
+          "name": "MP3-320"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T23:00:31Z",
+      "eventType": "downloadFailed",
+      "data": {
+        "downloadClient": "Usenet Blackhole",
+        "message": "Manually marked as failed",
+        "releaseGroup": "GRP",
+        "size": "120000000",
+        "indexer": "Rig"
+      },
+      "album": {
+        "id": 2,
+        "title": "Dummy",
+        "artistId": 1,
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/87888070-1b25-4830-aebc-dee490058b74/24258465158-1200.jpg",
+            "extension": ".jpg"
+          }
+        ]
+      },
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "id": 30
+    },
+    {
+      "albumId": 2,
+      "artistId": 1,
+      "trackId": 0,
+      "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+      "quality": {
+        "quality": {
+          "id": 4,
+          "name": "MP3-320"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T23:00:10Z",
+      "downloadId": "Blackhole_Portishead-Dummy-1994-WEB-MP3-320-GRP_639309851474342075",
+      "eventType": "albumImportIncomplete",
+      "data": {
+        "statusMessages": "[\n  {\n    \"title\": \"One or more tracks expected in this release were not imported or missing from the release\",\n    \"messages\": []\n  },\n  {\n    \"title\": \"01 - Mysterons.mp3\",\n    \"messages\": [\n      \"Couldn't find similar album for [/downloads/watch-music/Portishead-Dummy-1994-WEB-MP3-320-GRP]\"\n    ]\n  }\n]",
+        "releaseGroup": "GRP",
+        "indexerFlags": null
+      },
+      "album": {
+        "id": 2,
+        "title": "Dummy",
+        "artistId": 1,
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/87888070-1b25-4830-aebc-dee490058b74/24258465158-1200.jpg",
+            "extension": ".jpg"
+          }
+        ]
+      },
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "id": 29
+    },
+    {
+      "albumId": 2,
+      "artistId": 1,
+      "trackId": 0,
+      "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+      "quality": {
+        "quality": {
+          "id": 4,
+          "name": "MP3-320"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T22:58:51Z",
+      "eventType": "grabbed",
+      "data": {
+        "indexer": "Rig",
+        "nzbInfoUrl": null,
+        "releaseGroup": "GRP",
+        "age": "10",
+        "ageHours": "240.0036036828889",
+        "ageMinutes": "14400.216221226667",
+        "publishedDate": "2026-11-12T22:58:39Z",
+        "downloadClient": "Usenet Blackhole",
+        "size": "120000000",
+        "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+        "guid": "1_http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+        "protocol": "UsenetDownloadProtocol",
+        "downloadForced": "False",
+        "customFormatScore": "0",
+        "releaseSource": "InteractiveSearch",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 2,
+        "title": "Dummy",
+        "artistId": 1,
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/87888070-1b25-4830-aebc-dee490058b74/24258465158-1200.jpg",
+            "extension": ".jpg"
+          }
+        ]
+      },
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "id": 28
+    },
+    {
+      "albumId": 1,
+      "artistId": 1,
+      "trackId": 1,
+      "sourceTitle": "01 - Cowboys",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T17:29:21Z",
+      "eventType": "trackFileImported",
+      "data": {
+        "fileId": "35",
+        "droppedPath": "/downloads/Portishead - Portishead (1997) [FLAC]/01 - Cowboys.flac",
+        "importedPath": "/music/Portishead/01 - Cowboys.flac",
+        "downloadClient": null,
+        "releaseGroup": null,
+        "size": "200734",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 1,
+        "title": "Portishead",
+        "artistId": 1,
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/23d752fa-d27c-33bf-ab33-aff5fb47d507/6505314487-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/597828df-b34b-418e-a726-fdaaffb241ce/33758111379-1200.jpg",
+            "extension": ".jpg"
+          }
+        ]
+      },
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "track": {
+        "id": 1,
+        "title": "Cowboys",
+        "trackNumber": "A1",
+        "albumId": 1
+      },
+      "id": 27
+    },
+    {
+      "albumId": 1,
+      "artistId": 1,
+      "trackId": 1,
+      "sourceTitle": "/music/Portishead/Portishead (1997)/12 Vinyl 01/Portishead - Portishead - 01 - Cowboys.flac",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T17:29:21Z",
+      "eventType": "trackFileDeleted",
+      "data": {
+        "reason": "Manual",
+        "releaseGroup": null,
+        "size": "200734",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 1,
+        "title": "Portishead",
+        "artistId": 1,
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/23d752fa-d27c-33bf-ab33-aff5fb47d507/6505314487-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/597828df-b34b-418e-a726-fdaaffb241ce/33758111379-1200.jpg",
+            "extension": ".jpg"
+          }
+        ]
+      },
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "track": {
+        "id": 1,
+        "title": "Cowboys",
+        "trackNumber": "A1",
+        "albumId": 1
+      },
+      "id": 26
+    },
+    {
+      "albumId": 1,
+      "artistId": 1,
+      "trackId": 1,
+      "sourceTitle": "/music/Portishead/01 - Cowboys.flac",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T17:29:20Z",
+      "eventType": "trackFileRenamed",
+      "data": {
+        "sourcePath": "/music/Portishead/01 - Cowboys.flac",
+        "path": "/music/Portishead/Portishead (1997)/12 Vinyl 01/Portishead - Portishead - 01 - Cowboys.flac",
+        "releaseGroup": null,
+        "size": "200734",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 1,
+        "title": "Portishead",
+        "artistId": 1,
+        "images": [
+          {
+            "coverType": "cover",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/23d752fa-d27c-33bf-ab33-aff5fb47d507/6505314487-1200.jpg",
+            "extension": ".jpg"
+          },
+          {
+            "coverType": "disc",
+            "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/597828df-b34b-418e-a726-fdaaffb241ce/33758111379-1200.jpg",
+            "extension": ".jpg"
+          }
+        ]
+      },
+      "artist": {
+        "artistName": "Portishead",
+        "id": 1,
+        "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+        "images": []
+      },
+      "track": {
+        "id": 1,
+        "title": "Cowboys",
+        "trackNumber": "A1",
+        "albumId": 1
+      },
+      "id": 25
+    }
+  ]
+}

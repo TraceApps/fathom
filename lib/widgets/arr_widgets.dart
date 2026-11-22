@@ -81,6 +81,7 @@ String arrDuration(Duration d) {
 ) => switch (item.state) {
   ArrQueueState.failed => (l.arrFailed, arrMissingColor),
   ArrQueueState.importBlocked => (l.arrImportBlocked, arrWarningColor),
+  ArrQueueState.importFailed => (l.arrImportFailed, arrWarningColor),
   ArrQueueState.needsAttention => (l.arrNeedsAttention, arrWarningColor),
   ArrQueueState.waitingToImport => (l.arrWaitingToImport, arrDownloadedColor),
   ArrQueueState.importing => (l.arrImporting, arrDownloadedColor),
@@ -743,6 +744,13 @@ class ArrListColumn extends StatelessWidget {
     ),
   );
 }
+
+/// What stands for a title of [kind] where it has no picture.
+IconData arrKindIcon(ArrKind kind) => switch (kind) {
+  ArrKind.sonarr => Icons.live_tv_rounded,
+  ArrKind.radarr => Icons.movie_rounded,
+  ArrKind.lidarr => Icons.library_music_rounded,
+};
 
 /// Section heading on Arr pages.
 TextStyle? arrSectionStyle(ThemeData theme) =>
