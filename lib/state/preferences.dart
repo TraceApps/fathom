@@ -352,11 +352,14 @@ class Prefs {
   final String seerrAuthMode;
   final String seerrCookie; // session cookie when signed in
 
-  // Sonarr and Radarr (the Arr section). Empty URL means not connected.
+  // Sonarr, Radarr and Lidarr (the Arr section). Empty URL means not
+  // connected.
   final String sonarrUrl;
   final String sonarrApiKey;
   final String radarrUrl;
   final String radarrApiKey;
+  final String lidarrUrl;
+  final String lidarrApiKey;
   // What Add starts with for a new show / movie (ArrAddDefaults as JSON).
   final Map<String, dynamic> sonarrAddDefaults;
   final Map<String, dynamic> radarrAddDefaults;
@@ -502,6 +505,8 @@ class Prefs {
     this.sonarrApiKey = '',
     this.radarrUrl = '',
     this.radarrApiKey = '',
+    this.lidarrUrl = '',
+    this.lidarrApiKey = '',
     this.sonarrAddDefaults = const {},
     this.radarrAddDefaults = const {},
     this.arrImport = const {},
@@ -638,6 +643,8 @@ class Prefs {
     String? sonarrApiKey,
     String? radarrUrl,
     String? radarrApiKey,
+    String? lidarrUrl,
+    String? lidarrApiKey,
     Map<String, dynamic>? sonarrAddDefaults,
     Map<String, dynamic>? radarrAddDefaults,
     Map<String, dynamic>? arrImport,
@@ -788,6 +795,8 @@ class Prefs {
         sonarrApiKey: sonarrApiKey ?? this.sonarrApiKey,
         radarrUrl: radarrUrl ?? this.radarrUrl,
         radarrApiKey: radarrApiKey ?? this.radarrApiKey,
+        lidarrUrl: lidarrUrl ?? this.lidarrUrl,
+        lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
         sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
         radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
         arrImport: arrImport ?? this.arrImport,
@@ -924,6 +933,8 @@ class Prefs {
         'sonarrApiKey': sonarrApiKey,
         'radarrUrl': radarrUrl,
         'radarrApiKey': radarrApiKey,
+        'lidarrUrl': lidarrUrl,
+        'lidarrApiKey': lidarrApiKey,
         'sonarrAddDefaults': sonarrAddDefaults,
         'radarrAddDefaults': radarrAddDefaults,
         'arrImport': arrImport,
@@ -1085,6 +1096,8 @@ class Prefs {
         sonarrApiKey: j['sonarrApiKey'] as String? ?? '',
         radarrUrl: j['radarrUrl'] as String? ?? '',
         radarrApiKey: j['radarrApiKey'] as String? ?? '',
+        lidarrUrl: j['lidarrUrl'] as String? ?? '',
+        lidarrApiKey: j['lidarrApiKey'] as String? ?? '',
         sonarrAddDefaults: j['sonarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['sonarrAddDefaults'] as Map)
             : const {},

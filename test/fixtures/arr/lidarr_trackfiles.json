@@ -1,0 +1,343 @@
+[
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/06 - Humming.flac",
+    "size": 256557,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 12
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/01 - Cowboys.flac",
+    "size": 200734,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 13
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/07 - Mourning Air.flac",
+    "size": 182131,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 14
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/02 - All Mine.flac",
+    "size": 173423,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 15
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/03 - Undenied.flac",
+    "size": 188798,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 16
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/08 - Seven Months.flac",
+    "size": 184210,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 17
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/09 - Only You.flac",
+    "size": 214526,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 18
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/04 - Half Day Closing.flac",
+    "size": 163751,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 19
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/10 - Elysium.flac",
+    "size": 252415,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 20
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/05 - Over.flac",
+    "size": 172315,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 21
+  },
+  {
+    "artistId": 1,
+    "albumId": 1,
+    "path": "/music/Portishead/11 - Western Eyes.flac",
+    "size": 171108,
+    "dateAdded": "2026-11-22T17:04:47Z",
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "customFormats": [],
+    "customFormatScore": 0,
+    "indexerFlags": 0,
+    "mediaInfo": {
+      "audioChannels": 2,
+      "audioBitRate": "5 kbps",
+      "audioCodec": "FLAC",
+      "audioBits": "16bit",
+      "audioSampleRate": "44.1kHz"
+    },
+    "qualityCutoffNotMet": false,
+    "id": 22
+  }
+]

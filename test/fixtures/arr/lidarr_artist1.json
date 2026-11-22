@@ -1,0 +1,83 @@
+{
+  "status": "continuing",
+  "ended": false,
+  "artistName": "Portishead",
+  "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+  "tadbId": 0,
+  "discogsId": 0,
+  "artistType": "Group",
+  "disambiguation": "",
+  "links": [
+    {
+      "url": "http://www.portishead.co.uk/",
+      "name": "portishead"
+    },
+    {
+      "url": "http://musicmoz.org/Bands_and_Artists/P/Portishead/",
+      "name": "musicmoz"
+    }
+  ],
+  "nextAlbum": null,
+  "lastAlbum": {
+    "title": "Third",
+    "releaseDate": "2008-04-08T00:00:00Z",
+    "albumType": "Album",
+    "id": 3
+  },
+  "images": [
+    {
+      "coverType": "poster",
+      "url": "/MediaCover/1/poster.jpg?lastWrite=639309635338590035",
+      "remoteUrl": "/config/MediaCover/1/poster.jpg",
+      "extension": ".jpg"
+    },
+    {
+      "coverType": "fanart",
+      "url": "/MediaCover/1/fanart.jpg?lastWrite=639309635341162129",
+      "remoteUrl": "/config/MediaCover/1/fanart.jpg",
+      "extension": ".jpg"
+    },
+    {
+      "coverType": "banner",
+      "url": "/MediaCover/1/banner.jpg?lastWrite=639309635343162545",
+      "remoteUrl": "/config/MediaCover/1/banner.jpg",
+      "extension": ".jpg"
+    },
+    {
+      "coverType": "clearlogo",
+      "url": "/MediaCover/1/clearlogo.png?lastWrite=639309635344668368",
+      "remoteUrl": "/config/MediaCover/1/clearlogo.png",
+      "extension": ".png"
+    }
+  ],
+  "path": "/music/Portishead",
+  "qualityProfileId": 1,
+  "metadataProfileId": 1,
+  "monitored": true,
+  "monitorNewItems": "all",
+  "rootFolderPath": "/music",
+  "genres": [
+    "Trip Hop",
+    "Electronic",
+    "Downtempo",
+    "Experimental Rock",
+    "Folktronica"
+  ],
+  "cleanName": "portishead",
+  "sortName": "portishead",
+  "tags": [],
+  "added": "2026-11-22T16:58:52Z",
+  "ratings": {
+    "votes": 22,
+    "value": 9.1
+  },
+  "statistics": {
+    "albumCount": 3,
+    "trackFileCount": 11,
+    "trackCount": 46,
+    "totalTrackCount": 46,
+    "sizeOnDisk": 2159968,
+    "percentOfTracks": 23.91304347826087
+  },
+  "id": 1
+}

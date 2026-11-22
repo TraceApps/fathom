@@ -433,17 +433,11 @@ class _DeleteDialogState extends State<_DeleteDialog> {
     final c = widget.client;
     final ok = await arrRun(
       context,
-      () => c is SonarrClient
-          ? c.deleteSeries(
-              widget.id,
-              deleteFiles: _files,
-              addExclusion: _exclude,
-            )
-          : (c as RadarrClient).deleteMovie(
-              widget.id,
-              deleteFiles: _files,
-              addExclusion: _exclude,
-            ),
+      () => c.deleteTitle(
+        widget.id,
+        deleteFiles: _files,
+        addExclusion: _exclude,
+      ),
       done: l.arrDeleted(widget.title),
     );
     if (!mounted) return;
@@ -508,7 +502,7 @@ class _DeleteDialogState extends State<_DeleteDialog> {
 
 // -------------------------------------------------------------------- Edit
 
-/// Edits a movie's or show's settings in place. True when saved.
+/// Edits a movie's, show's or artist's settings in place. True when saved.
 Future<bool> showArrEditDialog(
   BuildContext context, {
   required ArrClient client,
@@ -553,7 +547,7 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
     super.dispose();
   }
 
-  bool get _sonarr => widget.client is SonarrClient;
+  ArrKind get _kind => widget.client.kind;
 
   @override
   void initState() {
@@ -563,10 +557,7 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
 
   Future<void> _load() async {
     try {
-      final c = widget.client;
-      final raw = c is SonarrClient
-          ? await c.seriesRaw(widget.id)
-          : await (c as RadarrClient).movieRaw(widget.id);
+      final raw = await widget.client.titleRaw(widget.id);
       if (!mounted) return;
       setState(() {
         _raw = raw;
@@ -622,9 +613,7 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
     setState(() => _busy = true);
     final ok = await arrRun(
       context,
-      () => c is SonarrClient
-          ? c.updateSeries(_raw!, moveFiles: move)
-          : (c as RadarrClient).updateMovie(_raw!, moveFiles: move),
+      () => c.updateTitle(_raw!, moveFiles: move),
       done: l.arrSaved,
     );
     if (!mounted) return;
@@ -645,6 +634,11 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
             .asData
             ?.value ??
         const <ArrQualityProfile>[];
+    // Asked for with the title, not after it: the field shows as it arrives.
+    final metadataProfiles = _kind != ArrKind.lidarr
+        ? const <ArrMetadataProfile>[]
+        : ref.watch(lidarrMetadataProfilesProvider).asData?.value ??
+              const <ArrMetadataProfile>[];
     Widget body;
     if (_error != null) {
       body = Text(
@@ -661,8 +655,9 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // A show's monitoring lives in its Monitoring dialog (with which
-          // episodes, specials and new seasons); a movie has just the switch.
-          if (!_sonarr) ...[
+          // episodes, specials and new seasons), and an artist's (which
+          // albums, and new ones); a movie has just the switch.
+          if (_kind == ArrKind.radarr) ...[
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l.arrMonitored),
@@ -680,7 +675,17 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
                 ? null
                 : (v) => v == null ? null : _set('qualityProfileId', v),
           ),
-          if (_sonarr) ...[
+          if (_kind == ArrKind.lidarr)
+            ArrDropdownField<int>(
+              label: l.arrMetadataProfile,
+              value: (raw['metadataProfileId'] as num?)?.toInt(),
+              options: {for (final p in metadataProfiles) p.id: p.name},
+              helper: l.arrMetadataProfileHint,
+              onChanged: _busy
+                  ? null
+                  : (v) => v == null ? null : _set('metadataProfileId', v),
+            ),
+          if (_kind == ArrKind.sonarr) ...[
             ArrDropdownField<String>(
               label: l.arrSeriesType,
               value: raw['seriesType'] as String?,
@@ -695,7 +700,7 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
               value: raw['seasonFolder'] != false,
               onChanged: _busy ? null : (v) => _set('seasonFolder', v),
             ),
-          ] else
+          ] else if (_kind == ArrKind.radarr)
             ArrDropdownField<String>(
               label: l.arrMinimumAvailability,
               value: raw['minimumAvailability'] as String?,

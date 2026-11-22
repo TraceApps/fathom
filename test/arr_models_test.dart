@@ -198,7 +198,8 @@ void main() {
 
   group('blocklist and history filters', () {
     test('reads both apps\' blocklists (recorded from the rig)', () {
-      for (final kind in ArrKind.values) {
+      // Lidarr's blocklist isn't read yet.
+      for (final kind in const [ArrKind.sonarr, ArrKind.radarr]) {
         final page = _fixture('${kind.name}_blocklist') as Map;
         final items = [
           for (final m in page['records'] as List)
@@ -278,7 +279,8 @@ void main() {
           c.imageUrl(const [
             ArrImage(coverType: 'poster', url: '/sonarr/MediaCover/1/poster.jpg')
           ], 'poster'),
-          'http://nas:8989/sonarr/MediaCover/1/poster.jpg');
+          // The 500-pixel copy the app keeps beside it, for a poster's width.
+          'http://nas:8989/sonarr/MediaCover/1/poster-500.jpg');
       expect(c.imageUrl(const [], 'poster'), isNull);
     });
   });

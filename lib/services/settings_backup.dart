@@ -34,6 +34,7 @@ const secretPrefKeys = <String>{
   'seerrCookie',
   'sonarrApiKey',
   'radarrApiKey',
+  'lidarrApiKey',
 };
 
 const _appearanceKeys = <String>{

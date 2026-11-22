@@ -269,3 +269,193 @@ class _MonitoringDialogState extends State<_MonitoringDialog> {
     );
   }
 }
+
+// ------------------------------------------------------------------ Lidarr
+
+/// Which of an artist's albums Lidarr looks for: the artist's own switch, a
+/// choice that sets every album at once (All, Missing, Latest...), and which
+/// albums added later are monitored. True when something changed.
+Future<bool> showArrArtistMonitoringDialog(
+  BuildContext context, {
+  required LidarrClient client,
+  required ArrArtist artist,
+  required List<ArrAlbum>? albums,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) =>
+        _ArtistMonitoringDialog(client: client, artist: artist, albums: albums),
+  );
+  return ok ?? false;
+}
+
+/// The album choices for an artist already in Lidarr, with what each does,
+/// as Lidarr carries them out.
+Map<String, ({String label, String hint})> arrAlbumMonitoringChoices(
+  AppLocalizations l, {
+  required int monitored,
+  required int total,
+}) => {
+  'keep': (
+    label: l.arrMonitorKeep,
+    hint: l.arrMonitorKeepAlbumsHint(monitored, total),
+  ),
+  'all': (label: l.arrMonitorAllAlbums, hint: l.arrMonitorAllAlbumsHint),
+  'future': (
+    label: l.arrMonitorFutureAlbums,
+    hint: l.arrMonitorFutureAlbumsHint,
+  ),
+  'missing': (
+    label: l.arrMonitorMissingAlbums,
+    hint: l.arrMonitorMissingAlbumsHint,
+  ),
+  'existing': (
+    label: l.arrMonitorExistingAlbums,
+    hint: l.arrMonitorExistingAlbumsHint,
+  ),
+  'latest': (label: l.arrMonitorLatestAlbum, hint: l.arrMonitorLatestAlbumHint),
+  'first': (label: l.arrMonitorFirstAlbum, hint: l.arrMonitorFirstAlbumHint),
+  'none': (label: l.arrMonitorNone, hint: l.arrMonitorNoneAlbumsHint),
+};
+
+/// Lidarr's choices for albums an artist gets later.
+Map<String, String> arrNewAlbumChoices(AppLocalizations l) => {
+  'all': l.arrNewAlbumsAll,
+  'new': l.arrNewAlbumsNew,
+  'none': l.arrNewAlbumsNone,
+};
+
+/// What a choice for later albums does, as Lidarr decides it.
+String arrNewAlbumHint(AppLocalizations l, String choice) => switch (choice) {
+  'new' => l.arrNewAlbumsNewHint,
+  'none' => l.arrNewAlbumsNoneHint,
+  _ => l.arrNewAlbumsAllHint,
+};
+
+class _ArtistMonitoringDialog extends StatefulWidget {
+  final LidarrClient client;
+  final ArrArtist artist;
+  final List<ArrAlbum>? albums;
+  const _ArtistMonitoringDialog({
+    required this.client,
+    required this.artist,
+    required this.albums,
+  });
+
+  @override
+  State<_ArtistMonitoringDialog> createState() =>
+      _ArtistMonitoringDialogState();
+}
+
+class _ArtistMonitoringDialogState extends State<_ArtistMonitoringDialog> {
+  bool _busy = false;
+  late bool _monitored = widget.artist.monitored;
+  String _choice = 'keep';
+  late final String _newBefore = widget.artist.monitorNewItems ?? 'all';
+  late String _new = _newBefore;
+
+  void _pick(String choice) => setState(() {
+    _choice = choice;
+    // As for a show: None stops the artist being monitored, any other
+    // choice is pointless with it off, and Keep puts the switch back.
+    _monitored = switch (choice) {
+      'keep' => widget.artist.monitored,
+      'none' => false,
+      _ => true,
+    };
+  });
+
+  bool get _changed =>
+      _choice != 'keep' ||
+      _new != _newBefore ||
+      _monitored != widget.artist.monitored;
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    final ok = await arrRun(
+      context,
+      () => widget.client.applyMonitoring(
+        widget.artist.id,
+        monitor: _choice == 'keep' ? null : _choice,
+        monitored: _monitored,
+        newItems: _new,
+      ),
+      done: l.arrSaved,
+    );
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final albums = widget.albums ?? const <ArrAlbum>[];
+    final choices = arrAlbumMonitoringChoices(
+      l,
+      monitored: albums.where((a) => a.monitored).length,
+      total: albums.length,
+    );
+    if (widget.albums == null) choices.remove('keep');
+    final enabled = !_busy;
+    return ArrDialogFrame(
+      client: widget.client,
+      images: widget.artist.images,
+      heading: l.arrMonitoring,
+      title: widget.artist.name,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.arrMonitorThisArtist),
+            subtitle: Text(l.arrMonitoredArtistHint),
+            value: _monitored,
+            onChanged: enabled
+                ? (v) {
+                    if (v && _choice == 'none') {
+                      _pick('keep');
+                      setState(() => _monitored = true);
+                    } else {
+                      setState(() => _monitored = v);
+                    }
+                  }
+                : null,
+          ),
+          const SizedBox(height: 12),
+          ArrDropdownField<String>(
+            label: l.arrMonitorAlbums,
+            value: choices.containsKey(_choice) ? _choice : null,
+            options: {for (final e in choices.entries) e.key: e.value.label},
+            helper: choices[_choice]?.hint,
+            onChanged: enabled ? (v) => _pick(v ?? 'keep') : null,
+          ),
+          ArrDropdownField<String>(
+            label: l.arrMonitorNewAlbums,
+            value: _new,
+            options: arrNewAlbumChoices(l),
+            helper: arrNewAlbumHint(l, _new),
+            onChanged: enabled
+                ? (v) => setState(() => _new = v ?? _newBefore)
+                : null,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context, false),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          style: kInlineButtonStyle,
+          onPressed: enabled && _changed ? _save : null,
+          child: _busy ? const AppSpinner.inline() : Text(l.commonSave),
+        ),
+      ],
+    );
+  }
+}

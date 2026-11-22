@@ -1,0 +1,308 @@
+[
+  {
+    "title": "Portishead",
+    "disambiguation": "",
+    "overview": "",
+    "artistId": 1,
+    "foreignAlbumId": "46b38f09-e90b-39eb-b04f-002da20f7f96",
+    "monitored": true,
+    "anyReleaseOk": true,
+    "profileId": 1,
+    "duration": 3032092,
+    "albumType": "Album",
+    "secondaryTypes": [],
+    "ratings": {
+      "votes": 21,
+      "value": 8.2
+    },
+    "releaseDate": "1997-09-29T00:00:00Z",
+    "releases": [
+      {
+        "id": 1,
+        "albumId": 1,
+        "foreignReleaseId": "1949ef16-3494-4e8d-8063-6dd230a46748",
+        "title": "Portishead",
+        "status": "Official",
+        "duration": 3032092,
+        "trackCount": 11,
+        "mediumCount": 2,
+        "media": [
+          {
+            "mediumNumber": 1,
+            "mediumName": "",
+            "mediumFormat": "12\" Vinyl"
+          },
+          {
+            "mediumNumber": 2,
+            "mediumName": "",
+            "mediumFormat": "12\" Vinyl"
+          }
+        ],
+        "disambiguation": "",
+        "country": [
+          "United States"
+        ],
+        "label": [
+          "Go! Beat",
+          "London Records 90"
+        ],
+        "format": "2x12\" Vinyl",
+        "monitored": true
+      }
+    ],
+    "genres": [
+      "Trip Hop",
+      "Electronic",
+      "Downtempo",
+      "Acid Jazz",
+      "Rock",
+      "Alternative Rock",
+      "Dark Jazz"
+    ],
+    "mediumCount": 2,
+    "media": [
+      {
+        "mediumNumber": 1,
+        "mediumName": "",
+        "mediumFormat": "12\" Vinyl"
+      },
+      {
+        "mediumNumber": 2,
+        "mediumName": "",
+        "mediumFormat": "12\" Vinyl"
+      }
+    ],
+    "artist": {
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+      "id": 1
+    },
+    "images": [
+      {
+        "coverType": "cover",
+        "url": "/MediaCover/Albums/1/cover.jpg?lastWrite=639309635327753141",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/23d752fa-d27c-33bf-ab33-aff5fb47d507/6505314487-1200.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "disc",
+        "url": "/MediaCover/Albums/1/disc.jpg",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/597828df-b34b-418e-a726-fdaaffb241ce/33758111379-1200.jpg",
+        "extension": ".jpg"
+      }
+    ],
+    "statistics": {
+      "trackFileCount": 11,
+      "trackCount": 11,
+      "totalTrackCount": 11,
+      "sizeOnDisk": 2159968,
+      "percentOfTracks": 100
+    },
+    "id": 1
+  },
+  {
+    "title": "Dummy",
+    "disambiguation": "",
+    "overview": "",
+    "artistId": 1,
+    "foreignAlbumId": "48140466-cff6-3222-bd55-63c27e43190d",
+    "monitored": true,
+    "anyReleaseOk": true,
+    "profileId": 1,
+    "duration": 3264000,
+    "albumType": "Album",
+    "secondaryTypes": [],
+    "ratings": {
+      "votes": 33,
+      "value": 8.8
+    },
+    "releaseDate": "1994-08-22T00:00:00Z",
+    "releases": [
+      {
+        "id": 18,
+        "albumId": 2,
+        "foreignReleaseId": "f88d6d9b-9664-4c54-887c-2bd83248bc2c",
+        "title": "Dummy",
+        "status": "Promotion",
+        "duration": 3264000,
+        "trackCount": 12,
+        "mediumCount": 1,
+        "media": [
+          {
+            "mediumNumber": 1,
+            "mediumName": "",
+            "mediumFormat": "CD"
+          }
+        ],
+        "disambiguation": "",
+        "country": [
+          "United States"
+        ],
+        "label": [
+          "Go! Discs"
+        ],
+        "format": "CD",
+        "monitored": true
+      }
+    ],
+    "genres": [
+      "Trip Hop",
+      "Electronic",
+      "Acid Jazz",
+      "Downtempo"
+    ],
+    "mediumCount": 1,
+    "media": [
+      {
+        "mediumNumber": 1,
+        "mediumName": "",
+        "mediumFormat": "CD"
+      }
+    ],
+    "artist": {
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+      "id": 1
+    },
+    "images": [
+      {
+        "coverType": "cover",
+        "url": "/MediaCover/Albums/2/cover.jpg?lastWrite=639309635332713115",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-1200.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "disc",
+        "url": "/MediaCover/Albums/2/disc.jpg",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/87888070-1b25-4830-aebc-dee490058b74/24258465158-1200.jpg",
+        "extension": ".jpg"
+      }
+    ],
+    "statistics": {
+      "trackFileCount": 0,
+      "trackCount": 12,
+      "totalTrackCount": 12,
+      "sizeOnDisk": 0,
+      "percentOfTracks": 0
+    },
+    "id": 2
+  },
+  {
+    "title": "Third",
+    "disambiguation": "",
+    "overview": "",
+    "artistId": 1,
+    "foreignAlbumId": "163339ab-813b-3d29-bba8-e1d5acf63cab",
+    "monitored": true,
+    "anyReleaseOk": true,
+    "profileId": 1,
+    "duration": 6189183,
+    "albumType": "Album",
+    "secondaryTypes": [],
+    "ratings": {
+      "votes": 18,
+      "value": 8.3
+    },
+    "releaseDate": "2008-04-08T00:00:00Z",
+    "releases": [
+      {
+        "id": 39,
+        "albumId": 3,
+        "foreignReleaseId": "18256dad-c3fe-4d39-beb7-ec33421c250b",
+        "title": "Third",
+        "status": "Official",
+        "duration": 6189183,
+        "trackCount": 23,
+        "mediumCount": 4,
+        "media": [
+          {
+            "mediumNumber": 1,
+            "mediumName": "",
+            "mediumFormat": "USB Flash Drive"
+          },
+          {
+            "mediumNumber": 2,
+            "mediumName": "",
+            "mediumFormat": "12\" Vinyl"
+          },
+          {
+            "mediumNumber": 3,
+            "mediumName": "",
+            "mediumFormat": "12\" Vinyl"
+          },
+          {
+            "mediumNumber": 4,
+            "mediumName": "",
+            "mediumFormat": "12\" Vinyl"
+          }
+        ],
+        "disambiguation": "",
+        "country": [
+          "Europe"
+        ],
+        "label": [
+          "Universal Island Records"
+        ],
+        "format": "USB Flash Drive, 3x12\" Vinyl",
+        "monitored": true
+      }
+    ],
+    "genres": [
+      "Trip Hop",
+      "Electronic",
+      "Downtempo",
+      "Experimental Rock",
+      "Folk Rock"
+    ],
+    "mediumCount": 4,
+    "media": [
+      {
+        "mediumNumber": 1,
+        "mediumName": "",
+        "mediumFormat": "USB Flash Drive"
+      },
+      {
+        "mediumNumber": 2,
+        "mediumName": "",
+        "mediumFormat": "12\" Vinyl"
+      },
+      {
+        "mediumNumber": 3,
+        "mediumName": "",
+        "mediumFormat": "12\" Vinyl"
+      },
+      {
+        "mediumNumber": 4,
+        "mediumName": "",
+        "mediumFormat": "12\" Vinyl"
+      }
+    ],
+    "artist": {
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+      "id": 1
+    },
+    "images": [
+      {
+        "coverType": "cover",
+        "url": "/MediaCover/Albums/3/cover.jpg?lastWrite=639309635336027711",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/f5bfccaf-1816-427a-b03d-b41c8ac155c5/8201679314-1200.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "disc",
+        "url": "/MediaCover/Albums/3/disc.jpg",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/daa9710c-2e71-497f-8a02-10d9b611c370/33072863567-1200.jpg",
+        "extension": ".jpg"
+      }
+    ],
+    "statistics": {
+      "trackFileCount": 0,
+      "trackCount": 23,
+      "totalTrackCount": 23,
+      "sizeOnDisk": 0,
+      "percentOfTracks": 0
+    },
+    "id": 3
+  }
+]

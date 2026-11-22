@@ -1,0 +1,439 @@
+[
+  {
+    "artistId": 1,
+    "foreignTrackId": "09ae131e-c6a8-31a7-b9ac-c78778a377f9",
+    "foreignRecordingId": "83b416db-4ee1-4560-a3b3-52fd453eb285",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 1,
+    "trackNumber": "1",
+    "title": "Silence",
+    "duration": 300773,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 415
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "1b56a5df-ca88-3db7-a20c-57243e59eb1b",
+    "foreignRecordingId": "82f19edd-6d1c-415e-9fe2-876435663cef",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 2,
+    "trackNumber": "2",
+    "title": "Hunter",
+    "duration": 238733,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 416
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "2d984de4-aca2-3474-b0c7-2a1a8821c5c3",
+    "foreignRecordingId": "9258baf5-052d-4a22-a68a-2311008b6f91",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 3,
+    "trackNumber": "3",
+    "title": "Nylon Smile",
+    "duration": 199600,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 417
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "1adc78b8-b7d8-3a52-bc5b-c6ec1591461c",
+    "foreignRecordingId": "a7ed3365-affa-4331-8bd9-1ececaf9ae77",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 4,
+    "trackNumber": "4",
+    "title": "The Rip",
+    "duration": 270960,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 418
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "121f7ef5-3bc2-39e1-992d-c7fc5067554d",
+    "foreignRecordingId": "8855e971-0570-4d20-9258-4b7ed7441f10",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 5,
+    "trackNumber": "5",
+    "title": "Plastic",
+    "duration": 210573,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 419
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "b3dc2c38-3e7a-36bc-a284-f6435ffb2f87",
+    "foreignRecordingId": "b00efba7-0d88-478c-97ad-257aef64cc27",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 6,
+    "trackNumber": "6",
+    "title": "We Carry On",
+    "duration": 387786,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 420
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "58cfb8e0-4a59-3136-87a7-096a9724ea0e",
+    "foreignRecordingId": "59e5540f-1c4b-4df2-ae16-c32982853895",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 7,
+    "trackNumber": "7",
+    "title": "Deep Water",
+    "duration": 93226,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 421
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "a52ada78-104a-3a4c-874a-88e061d18885",
+    "foreignRecordingId": "a4eaf9db-a183-4b55-8ea0-05a18f18368f",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 8,
+    "trackNumber": "8",
+    "title": "Machine Gun",
+    "duration": 286440,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 422
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "fd7c91f2-8b3c-3f46-9b31-f5b62956b3e2",
+    "foreignRecordingId": "5bd5990e-2f7e-44d8-8e36-4c5a346f197e",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 9,
+    "trackNumber": "9",
+    "title": "Small",
+    "duration": 407373,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 423
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "be56490a-1314-3549-b979-95bd29551ad9",
+    "foreignRecordingId": "92748d27-3f5a-4991-8693-fabf9c84edf3",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 10,
+    "trackNumber": "10",
+    "title": "Magic Doors",
+    "duration": 211933,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 424
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "a0590c5b-6bbd-3b68-a368-e233afaaffbc",
+    "foreignRecordingId": "2eaca226-0ee9-4312-a7e2-29eb2652cc6c",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 11,
+    "trackNumber": "11",
+    "title": "Threads",
+    "duration": 347786,
+    "mediumNumber": 1,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 425
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "896e11a4-3215-36a8-bec8-055aea2432b1",
+    "foreignRecordingId": "83b416db-4ee1-4560-a3b3-52fd453eb285",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 1,
+    "trackNumber": "A1",
+    "title": "Silence",
+    "duration": 300000,
+    "mediumNumber": 2,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 426
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "1820eb75-6280-35b7-86a4-7020eb4c1de5",
+    "foreignRecordingId": "82f19edd-6d1c-415e-9fe2-876435663cef",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 2,
+    "trackNumber": "A2",
+    "title": "Hunter",
+    "duration": 238000,
+    "mediumNumber": 2,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 427
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "2fef716d-e3fc-340f-b4f2-31c72da277e8",
+    "foreignRecordingId": "9258baf5-052d-4a22-a68a-2311008b6f91",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 3,
+    "trackNumber": "A3",
+    "title": "Nylon Smile",
+    "duration": 199000,
+    "mediumNumber": 2,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 428
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "8297f037-b400-3a97-b60e-18fc0c908247",
+    "foreignRecordingId": "a7ed3365-affa-4331-8bd9-1ececaf9ae77",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 4,
+    "trackNumber": "B1",
+    "title": "The Rip",
+    "duration": 270000,
+    "mediumNumber": 2,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 429
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "edaa2909-bb68-31a1-b88a-169b936e7c03",
+    "foreignRecordingId": "8855e971-0570-4d20-9258-4b7ed7441f10",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 5,
+    "trackNumber": "B2",
+    "title": "Plastic",
+    "duration": 210000,
+    "mediumNumber": 2,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 430
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "9639634e-53c6-3406-9a13-18ce8d6c5b28",
+    "foreignRecordingId": "b00efba7-0d88-478c-97ad-257aef64cc27",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 6,
+    "trackNumber": "B3",
+    "title": "We Carry On",
+    "duration": 387000,
+    "mediumNumber": 2,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 431
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "4fde0db9-bd49-341e-8775-9470b754d988",
+    "foreignRecordingId": "59e5540f-1c4b-4df2-ae16-c32982853895",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 1,
+    "trackNumber": "C1",
+    "title": "Deep Water",
+    "duration": 93000,
+    "mediumNumber": 3,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 432
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "5d147647-f97e-3558-bce3-91ceb4898483",
+    "foreignRecordingId": "a4eaf9db-a183-4b55-8ea0-05a18f18368f",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 2,
+    "trackNumber": "C2",
+    "title": "Machine Gun",
+    "duration": 286000,
+    "mediumNumber": 3,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 433
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "9fc597cf-af41-308e-8c6b-8d2707b49aff",
+    "foreignRecordingId": "5bd5990e-2f7e-44d8-8e36-4c5a346f197e",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 3,
+    "trackNumber": "C3",
+    "title": "Small",
+    "duration": 407000,
+    "mediumNumber": 3,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 434
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "4ba63c2a-0fc1-3a4f-86a8-b2f2a34f1a5c",
+    "foreignRecordingId": "92748d27-3f5a-4991-8693-fabf9c84edf3",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 4,
+    "trackNumber": "D1",
+    "title": "Magic Doors",
+    "duration": 211000,
+    "mediumNumber": 3,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 435
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "f6469212-7919-393f-be54-c9107209b600",
+    "foreignRecordingId": "2eaca226-0ee9-4312-a7e2-29eb2652cc6c",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 5,
+    "trackNumber": "D2",
+    "title": "Threads",
+    "duration": 347000,
+    "mediumNumber": 3,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 436
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "6bb9a188-1d91-3286-9f0a-d6b66250221f",
+    "foreignRecordingId": "097340ae-3190-4c13-bd06-5d6b58196bd5",
+    "trackFileId": 0,
+    "albumId": 3,
+    "explicit": false,
+    "absoluteTrackNumber": 1,
+    "trackNumber": "A1",
+    "title": "Machine Gun",
+    "duration": 286000,
+    "mediumNumber": 4,
+    "hasFile": false,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 437
+  }
+]

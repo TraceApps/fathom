@@ -28,6 +28,8 @@ import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
 import 'arr_releases_screen.dart';
 
+part 'arr_artist_screen.dart';
+
 /// A refresh of a movie's page, by a pull or a key: Radarr is asked for it
 /// again.
 void _askMovieAgain(WidgetRef ref, int id) {
@@ -595,7 +597,11 @@ void _leave(BuildContext context) {
 class _Body extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final Widget child;
-  const _Body({this.padding = EdgeInsets.zero, required this.child});
+  const _Body({
+    super.key,
+    this.padding = EdgeInsets.zero,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) => Align(
@@ -720,9 +726,12 @@ Future<void> _editMovieFile(
   }
 }
 
-/// Watch, for a title the Jellyfin library has: it opens the title there,
-/// to play it. The main action then, ahead of searching for a release.
+/// Watch, for a title the Jellyfin library has (Play, for an artist): it
+/// opens the title there, to play it. The main action then, ahead of
+/// searching for a release.
 ArrAction? _watchAction(BuildContext context, WidgetRef ref, ArrLibraryKey k) {
+  final l = AppLocalizations.of(context);
+  final label = k.kind == ArrKind.lidarr ? l.commonPlay : l.detailWatch;
   final asked = ref.watch(arrLibraryItemProvider(k));
   final itemId = asked.value;
   if (itemId == null) {
@@ -737,17 +746,20 @@ ArrAction? _watchAction(BuildContext context, WidgetRef ref, ArrLibraryKey k) {
     if (!likely) return null;
     return ArrAction(
       icon: Icons.play_arrow_rounded,
-      label: AppLocalizations.of(context).detailWatch,
+      label: label,
       primary: true,
       onTap: null,
     );
   }
   return ArrAction(
     icon: Icons.play_arrow_rounded,
-    label: AppLocalizations.of(context).detailWatch,
+    label: label,
     primary: true,
-    onTap: () =>
-        context.push('/item', extra: BaseItemDto(id: itemId, name: k.title)),
+    // An artist opens on its albums, as the Music library opens one.
+    onTap: () => context.push(
+      k.kind == ArrKind.lidarr ? '/artist' : '/item',
+      extra: BaseItemDto(id: itemId, name: k.title),
+    ),
   );
 }
 
@@ -1501,6 +1513,17 @@ class ArrFileCard extends StatelessWidget {
         : [
             mi.audioCodec,
             mi.channels,
+            // Lidarr's: "16bit", "44.1kHz", "1411 kbps", set the way the
+            // video's bit depth is.
+            mi.audioBits?.replaceFirstMapped(
+              RegExp(r'(\d)\s*bit$'),
+              (m) => '${m[1]}-bit',
+            ),
+            mi.audioSampleRate?.replaceFirstMapped(
+              RegExp(r'(\d)\s*kHz$'),
+              (m) => '${m[1]} kHz',
+            ),
+            mi.audioBitRate,
             mi.audioLanguages,
           ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
     return Card(
@@ -1603,7 +1626,13 @@ class _HistoryRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final (label, icon, color) = arrHistoryEvent(l, scheme, item.eventType);
-    final heading = [?episode, label, ?item.quality].join(' · ');
+    // Lidarr's events are a track's: its title stands where an episode's
+    // code would.
+    final heading = [
+      ?(episode ?? item.trackTitle),
+      label,
+      ?item.quality,
+    ].join(' · ');
     final sub = [
       ?item.sourceTitle,
       if (item.date != null)

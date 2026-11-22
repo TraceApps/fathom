@@ -2,11 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Every Sonarr and Radarr call Fathom makes must be a route the app serves,
-/// checked against the route lists taken from their published API specs
-/// (test/fixtures/sonarr_routes.txt, radarr_routes.txt). Calls in
-/// SonarrClient go to Sonarr, in RadarrClient to Radarr, and the shared ones
-/// in ArrClient to both.
+/// Every Sonarr, Radarr and Lidarr call Fathom makes must be a route the app
+/// serves, checked against the route lists taken from their published API
+/// specs (test/fixtures/sonarr_routes.txt, radarr_routes.txt,
+/// lidarr_routes.txt). Calls in SonarrClient go to Sonarr, in RadarrClient to
+/// Radarr, in LidarrClient to Lidarr (on its v1 API), and the shared ones in
+/// ArrClient to all three.
 void main() {
   Set<String> routes(String app) => {
         for (final line in File('test/fixtures/${app}_routes.txt').readAsLinesSync())
@@ -16,11 +17,14 @@ void main() {
   test('every Arr call uses a route the app serves', () {
     final sonarr = routes('sonarr');
     final radarr = routes('radarr');
+    final lidarr = routes('lidarr');
     final src = File('lib/api/arr_client.dart').readAsStringSync();
     final sonarrAt = src.indexOf('class SonarrClient');
     final radarrAt = src.indexOf('class RadarrClient');
+    final lidarrAt = src.indexOf('class LidarrClient');
     expect(sonarrAt, greaterThan(0));
     expect(radarrAt, greaterThan(sonarrAt));
+    expect(lidarrAt, greaterThan(radarrAt));
 
     // _get/_post/_put/_delete('path'), _send('METHOD', 'path') for calls
     // that need a body or query the short forms don't take, plus
@@ -36,17 +40,20 @@ void main() {
     for (final m in call.allMatches(src)) {
       // '$id' and '${x.y}' segments are the spec's {id}.
       final raw = m.group(2) ?? m.group(4)!;
-      final path = '/api/v3/${raw.replaceAll(RegExp(r'\$\{[^}]*\}|\$\w+'), '{}')}';
+      final tail = raw.replaceAll(RegExp(r'\$\{[^}]*\}|\$\w+'), '{}');
       final method = m.group(3) ??
           (m.group(1) == 'api' ? 'GET' : m.group(1)!.toUpperCase());
-      if (m.group(3) != null) sent.add(route0(method, path));
-      final route = '$method $path';
-      final apps = m.start > radarrAt
-          ? {'radarr': radarr}
-          : m.start > sonarrAt
-              ? {'sonarr': sonarr}
-              : {'sonarr': sonarr, 'radarr': radarr};
+      if (m.group(3) != null) sent.add(route0(method, '/api/v3/$tail'));
+      final apps = m.start > lidarrAt
+          ? {'lidarr': lidarr}
+          : m.start > radarrAt
+              ? {'radarr': radarr}
+              : m.start > sonarrAt
+                  ? {'sonarr': sonarr}
+                  : {'sonarr': sonarr, 'radarr': radarr, 'lidarr': lidarr};
       for (final a in apps.entries) {
+        final v = a.key == 'lidarr' ? 'v1' : 'v3';
+        final route = '$method /api/$v/$tail';
         checked.add('${a.key} $route');
         if (!a.value.contains(route)) unknown.add('${a.key}: $route');
       }

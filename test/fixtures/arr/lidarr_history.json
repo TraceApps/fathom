@@ -1,0 +1,133 @@
+{
+  "page": 1,
+  "pageSize": 3,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 27,
+  "records": [
+    {
+      "albumId": 1,
+      "artistId": 1,
+      "trackId": 1,
+      "sourceTitle": "01 - Cowboys",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T17:29:21Z",
+      "eventType": "trackFileImported",
+      "data": {
+        "fileId": "35",
+        "droppedPath": "/downloads/Portishead - Portishead (1997) [FLAC]/01 - Cowboys.flac",
+        "importedPath": "/music/Portishead/01 - Cowboys.flac",
+        "downloadClient": null,
+        "releaseGroup": null,
+        "size": "200734",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 1,
+        "title": "Portishead",
+        "artistId": 1
+      },
+      "track": {
+        "id": 1,
+        "title": "Cowboys",
+        "trackNumber": "A1",
+        "albumId": 1
+      },
+      "id": 27
+    },
+    {
+      "albumId": 1,
+      "artistId": 1,
+      "trackId": 1,
+      "sourceTitle": "/music/Portishead/Portishead (1997)/12 Vinyl 01/Portishead - Portishead - 01 - Cowboys.flac",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T17:29:21Z",
+      "eventType": "trackFileDeleted",
+      "data": {
+        "reason": "Manual",
+        "releaseGroup": null,
+        "size": "200734",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 1,
+        "title": "Portishead",
+        "artistId": 1
+      },
+      "track": {
+        "id": 1,
+        "title": "Cowboys",
+        "trackNumber": "A1",
+        "albumId": 1
+      },
+      "id": 26
+    },
+    {
+      "albumId": 1,
+      "artistId": 1,
+      "trackId": 1,
+      "sourceTitle": "/music/Portishead/01 - Cowboys.flac",
+      "quality": {
+        "quality": {
+          "id": 6,
+          "name": "FLAC"
+        },
+        "revision": {
+          "version": 1,
+          "real": 0,
+          "isRepack": false
+        }
+      },
+      "customFormats": [],
+      "customFormatScore": 0,
+      "qualityCutoffNotMet": false,
+      "date": "2026-11-22T17:29:20Z",
+      "eventType": "trackFileRenamed",
+      "data": {
+        "sourcePath": "/music/Portishead/01 - Cowboys.flac",
+        "path": "/music/Portishead/Portishead (1997)/12 Vinyl 01/Portishead - Portishead - 01 - Cowboys.flac",
+        "releaseGroup": null,
+        "size": "200734",
+        "indexerFlags": "0"
+      },
+      "album": {
+        "id": 1,
+        "title": "Portishead",
+        "artistId": 1
+      },
+      "track": {
+        "id": 1,
+        "title": "Cowboys",
+        "trackNumber": "A1",
+        "albumId": 1
+      },
+      "id": 25
+    }
+  ]
+}

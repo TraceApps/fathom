@@ -748,8 +748,8 @@ class ArrListColumn extends StatelessWidget {
 TextStyle? arrSectionStyle(ThemeData theme) =>
     theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
 
-/// Opens a show or movie: in the pane beside the list where the Manage
-/// section has one, otherwise on its own page.
+/// Opens a show, movie or artist: in the pane beside the list where the
+/// Manage section has one, otherwise on its own page.
 void arrOpenTitle(BuildContext context, ArrKind kind, int? id) {
   if (id == null) return;
   final scope = ArrPaneScope.read(context);
@@ -759,9 +759,13 @@ void arrOpenTitle(BuildContext context, ArrKind kind, int? id) {
   arrOpenTitlePage(context, kind, id);
 }
 
-/// Opens a show or movie on its own page.
+/// Opens a show, movie or artist on its own page.
 void arrOpenTitlePage(BuildContext context, ArrKind kind, int id) =>
-    context.push(kind == ArrKind.sonarr ? '/arr/series/$id' : '/arr/movie/$id');
+    context.push(switch (kind) {
+      ArrKind.sonarr => '/arr/series/$id',
+      ArrKind.radarr => '/arr/movie/$id',
+      ArrKind.lidarr => '/arr/artist/$id',
+    });
 
 /// The first lines of a row's or a poster's menu: open the title, and where
 /// that opens it in the pane beside the lists, open its own page as well.
@@ -849,19 +853,40 @@ class ArrRowInk extends StatelessWidget {
     Icons.cloud_download_rounded,
     arrUnreleasedColor,
   ),
-  'downloadFolderImported' || 'seriesFolderImported' || 'movieFolderImported' =>
-    (l.arrEventImported, Icons.download_done_rounded, arrDownloadedColor),
+  'downloadFolderImported' ||
+  'seriesFolderImported' ||
+  'movieFolderImported' ||
+  // Lidarr's: one for each track, and one for a whole download.
+  'trackFileImported' ||
+  'artistFolderImported' ||
+  'downloadImported' => (
+    l.arrEventImported,
+    Icons.download_done_rounded,
+    arrDownloadedColor,
+  ),
+  // Lidarr took some of an album's tracks, not all of them.
+  'albumImportIncomplete' => (
+    l.arrEventImportIncomplete,
+    Icons.rule_rounded,
+    arrWarningColor,
+  ),
   'downloadFailed' => (l.arrEventFailed, Icons.error_rounded, arrMissingColor),
-  'episodeFileDeleted' || 'movieFileDeleted' => (
+  'episodeFileDeleted' || 'movieFileDeleted' || 'trackFileDeleted' => (
     l.arrEventDeleted,
     Icons.delete_rounded,
     arrMissingColor,
   ),
-  'episodeFileRenamed' || 'movieFileRenamed' => (
+  'episodeFileRenamed' || 'movieFileRenamed' || 'trackFileRenamed' => (
     l.arrEventRenamed,
     Icons.drive_file_rename_outline_rounded,
     scheme.outline,
   ),
   'downloadIgnored' => (l.arrEventIgnored, Icons.block_rounded, scheme.outline),
+  // Lidarr wrote its tags into a track's file.
+  'trackFileRetagged' => (
+    l.arrEventRetagged,
+    Icons.sell_rounded,
+    scheme.outline,
+  ),
   _ => (l.arrEventOther, Icons.history_rounded, scheme.outline),
 };

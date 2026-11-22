@@ -34,12 +34,40 @@ final radarrClientProvider = Provider<RadarrClient?>((ref) {
   return RadarrClient(c.$1, c.$2);
 });
 
-/// Whether the Arr section shows: Sonarr, Radarr or both connected.
+/// The Lidarr server, when one is connected.
+final lidarrClientProvider = Provider<LidarrClient?>((ref) {
+  final c = ref.watch(
+    preferencesProvider.select((p) {
+      final v = p.asData?.value;
+      return (v?.lidarrUrl ?? '', v?.lidarrApiKey ?? '');
+    }),
+  );
+  if (c.$1.isEmpty || c.$2.isEmpty) return null;
+  return LidarrClient(c.$1, c.$2);
+});
+
+/// Whether the Arr section shows: Sonarr, Radarr or Lidarr connected.
 final arrConfiguredProvider = Provider<bool>(
   (ref) =>
       ref.watch(sonarrClientProvider) != null ||
-      ref.watch(radarrClientProvider) != null,
+      ref.watch(radarrClientProvider) != null ||
+      ref.watch(lidarrClientProvider) != null,
 );
+
+/// The libraries the Library tab can show, in its switch's order: Movies,
+/// Shows, Music, each where its app is connected.
+final arrLibraryKindsProvider = Provider<List<ArrKind>>(
+  (ref) => [
+    if (ref.watch(radarrClientProvider) != null) ArrKind.radarr,
+    if (ref.watch(sonarrClientProvider) != null) ArrKind.sonarr,
+    if (ref.watch(lidarrClientProvider) != null) ArrKind.lidarr,
+  ],
+);
+
+/// The library on show: the one picked, while its app is connected;
+/// otherwise the first that is. Null with none connected.
+ArrKind? arrShownLibrary(List<ArrKind> kinds, ArrKind picked) =>
+    kinds.contains(picked) ? picked : kinds.firstOrNull;
 
 /// Results gathered from both apps. One app being unreachable doesn't hide
 /// the other's: its error is kept beside what did arrive.
@@ -451,9 +479,7 @@ final sonarrSeriesListProvider = FutureProvider.autoDispose<List<ArrSeries>>((
 /// Quality profile names by id, for one app.
 final arrQualityProfilesProvider = FutureProvider.autoDispose
     .family<Map<int, String>, ArrKind>((ref, kind) async {
-      final ArrClient? c = kind == ArrKind.sonarr
-          ? ref.watch(sonarrClientProvider)
-          : ref.watch(radarrClientProvider);
+      final c = arrClientOf(ref, kind);
       if (c == null) return const {};
       try {
         return {for (final p in await c.qualityProfiles()) p.id: p.name};
@@ -508,14 +534,97 @@ final sonarrSeriesHistoryProvider = FutureProvider.autoDispose
       return c.history(seriesId);
     });
 
-ArrClient? arrClientOf(Ref ref, ArrKind kind) => kind == ArrKind.sonarr
-    ? ref.watch(sonarrClientProvider)
-    : ref.watch(radarrClientProvider);
+ArrClient? arrClientOf(Ref ref, ArrKind kind) => switch (kind) {
+  ArrKind.sonarr => ref.watch(sonarrClientProvider),
+  ArrKind.radarr => ref.watch(radarrClientProvider),
+  ArrKind.lidarr => ref.watch(lidarrClientProvider),
+};
 
 /// The client for [kind], read once (for actions, not for rebuilding).
-ArrClient? arrClient(WidgetRef ref, ArrKind kind) => kind == ArrKind.sonarr
-    ? ref.read(sonarrClientProvider)
-    : ref.read(radarrClientProvider);
+ArrClient? arrClient(WidgetRef ref, ArrKind kind) => switch (kind) {
+  ArrKind.sonarr => ref.read(sonarrClientProvider),
+  ArrKind.radarr => ref.read(radarrClientProvider),
+  ArrKind.lidarr => ref.read(lidarrClientProvider),
+};
+
+final lidarrArtistsProvider = FutureProvider.autoDispose<List<ArrArtist>>((
+  ref,
+) async {
+  final c = ref.watch(lidarrClientProvider);
+  if (c == null) return const [];
+  return c.artists();
+});
+
+final lidarrArtistProvider = FutureProvider.autoDispose.family<ArrArtist, int>((
+  ref,
+  id,
+) async {
+  final c = ref.watch(lidarrClientProvider);
+  if (c == null) throw ArrException('Lidarr is not connected.');
+  return c.artist(id);
+});
+
+final lidarrAlbumsProvider = FutureProvider.autoDispose
+    .family<List<ArrAlbum>, int>((ref, artistId) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null) return const [];
+      return c.albums(artistId);
+    });
+
+final lidarrAlbumProvider = FutureProvider.autoDispose.family<ArrAlbum, int>((
+  ref,
+  id,
+) async {
+  final c = ref.watch(lidarrClientProvider);
+  if (c == null) throw ArrException('Lidarr is not connected.');
+  return c.album(id);
+});
+
+/// An album's tracks: asked for when the album is opened.
+final lidarrTracksProvider = FutureProvider.autoDispose
+    .family<List<ArrTrack>, int>((ref, albumId) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null) return const [];
+      return c.tracks(albumId);
+    });
+
+/// An artist's track files, by id.
+final lidarrTrackFilesProvider = FutureProvider.autoDispose
+    .family<Map<int, ArrFile>, int>((ref, artistId) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null) return const {};
+      return {for (final f in await c.trackFiles(artistId)) f.id: f};
+    });
+
+final lidarrArtistHistoryProvider = FutureProvider.autoDispose
+    .family<List<ArrHistoryItem>, int>((ref, artistId) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null) return const [];
+      return c.history(artistId);
+    });
+
+/// Lidarr's metadata profiles, in its order.
+final lidarrMetadataProfilesProvider =
+    FutureProvider.autoDispose<List<ArrMetadataProfile>>((ref) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null) return const [];
+      try {
+        return await c.metadataProfiles();
+      } catch (_) {
+        return const [];
+      }
+    });
+
+/// After a change to an artist: everything that shows it reloads. Its
+/// albums' tracks too, which an album search or a deleted file changes.
+void arrArtistChanged(WidgetRef ref, int id) {
+  ref.invalidate(lidarrArtistProvider(id));
+  ref.invalidate(lidarrAlbumsProvider(id));
+  ref.invalidate(lidarrTrackFilesProvider(id));
+  ref.invalidate(lidarrTracksProvider);
+  ref.invalidate(lidarrArtistHistoryProvider(id));
+  ref.invalidate(lidarrArtistsProvider);
+}
 
 /// Radarr's collections, by title.
 final radarrCollectionsProvider =
@@ -527,9 +636,7 @@ final radarrCollectionsProvider =
 /// One app's tags, sorted by name.
 final arrTagsProvider = FutureProvider.autoDispose
     .family<List<ArrTag>, ArrKind>((ref, kind) async {
-      final c = kind == ArrKind.sonarr
-          ? ref.watch(sonarrClientProvider)
-          : ref.watch(radarrClientProvider);
+      final c = arrClientOf(ref, kind);
       return c == null ? const [] : c.tags();
     });
 
@@ -601,9 +708,12 @@ Future<void> saveArrImportMode(WidgetRef ref, String mode) => ref
 
 /// The saved starting choices for Add in one app.
 ArrAddDefaults arrSavedDefaults(Prefs p, ArrKind kind) =>
-    ArrAddDefaults.fromJson(
-      kind == ArrKind.sonarr ? p.sonarrAddDefaults : p.radarrAddDefaults,
-    );
+    ArrAddDefaults.fromJson(switch (kind) {
+      ArrKind.sonarr => p.sonarrAddDefaults,
+      ArrKind.radarr => p.radarrAddDefaults,
+      // Artists aren't added from Fathom yet: nothing is saved for them.
+      ArrKind.lidarr => const {},
+    });
 
 /// Saves what Add starts with next time in [kind].
 Future<void> saveArrAddDefaults(
@@ -613,9 +723,11 @@ Future<void> saveArrAddDefaults(
 ) => ref
     .read(preferencesProvider.notifier)
     .edit(
-      (p) => kind == ArrKind.sonarr
-          ? p.copyWith(sonarrAddDefaults: d.toJson())
-          : p.copyWith(radarrAddDefaults: d.toJson()),
+      (p) => switch (kind) {
+        ArrKind.sonarr => p.copyWith(sonarrAddDefaults: d.toJson()),
+        ArrKind.radarr => p.copyWith(radarrAddDefaults: d.toJson()),
+        ArrKind.lidarr => p,
+      },
     );
 
 /// Everything Add needs from one app before it can show its form: the root
@@ -640,6 +752,7 @@ final arrAddSetupProvider = FutureProvider.autoDispose
       // Add still works from the saved ones or the app's first.
       Future<List<ArrAddedWith>> library() async {
         try {
+          if (kind == ArrKind.lidarr) return const [];
           if (kind == ArrKind.sonarr) {
             return [
               for (final s in await ref.watch(sonarrSeriesListProvider.future))
@@ -880,7 +993,8 @@ final arrMatchProvider = FutureProvider.autoDispose
   return tmdbId <= 0 ? null : (kind: ArrKind.radarr, providerId: tmdbId);
 }
 
-/// A Radarr movie or a Sonarr show, as the Jellyfin library is asked for it.
+/// A Radarr movie, a Sonarr show or a Lidarr artist, as the Jellyfin
+/// library is asked for it.
 typedef ArrLibraryKey = ({
   ArrKind kind,
   String title,
@@ -888,6 +1002,9 @@ typedef ArrLibraryKey = ({
   int? tmdbId,
   int? tvdbId,
   String? imdbId,
+
+  /// An artist's MusicBrainz id, which Jellyfin reads from the files' tags.
+  String? mbId,
 
   /// The app has files of it, so it's worth a longer look.
   bool onDisk,
@@ -900,6 +1017,7 @@ ArrLibraryKey arrLibraryKeyOfMovie(ArrMovie m) => (
   tmdbId: m.tmdbId,
   tvdbId: null,
   imdbId: m.imdbId,
+  mbId: null,
   onDisk: m.hasFile,
 );
 
@@ -910,7 +1028,19 @@ ArrLibraryKey arrLibraryKeyOfSeries(ArrSeries s) => (
   tmdbId: s.tmdbId,
   tvdbId: s.tvdbId,
   imdbId: s.imdbId,
+  mbId: null,
   onDisk: s.episodeFileCount > 0,
+);
+
+ArrLibraryKey arrLibraryKeyOfArtist(ArrArtist a) => (
+  kind: ArrKind.lidarr,
+  title: a.name,
+  year: null,
+  tmdbId: null,
+  tvdbId: null,
+  imdbId: null,
+  mbId: a.foreignArtistId,
+  onDisk: a.trackFileCount > 0,
 );
 
 /// When the library is asked again for a title that's on disk and wasn't
@@ -923,8 +1053,8 @@ const arrLibraryLookAgain = [
   Duration(seconds: 120),
 ];
 
-/// The Jellyfin item of a Radarr movie or a Sonarr show, by the ids the two
-/// share: what Watch opens. Null when the library hasn't got it, and when
+/// The Jellyfin item of a Radarr movie, a Sonarr show or a Lidarr artist, by
+/// the ids they share: what Watch (Play, for an artist) opens. Null when the library hasn't got it, and when
 /// the server can't be asked, where the button simply doesn't show.
 final arrLibraryItemProvider = StreamProvider.autoDispose
     .family<String?, ArrLibraryKey>((ref, k) async* {
@@ -950,7 +1080,11 @@ final arrLibraryItemProvider = StreamProvider.autoDispose
             baseUrl: session.baseUrl,
             userId: session.userId,
             token: session.accessToken,
-            itemType: k.kind == ArrKind.radarr ? 'Movie' : 'Series',
+            itemType: switch (k.kind) {
+              ArrKind.radarr => 'Movie',
+              ArrKind.sonarr => 'Series',
+              ArrKind.lidarr => 'MusicArtist',
+            },
             title: k.title,
             year: k.year,
             byYear: k.onDisk,
@@ -958,6 +1092,7 @@ final arrLibraryItemProvider = StreamProvider.autoDispose
               'Tmdb': ?id(k.tmdbId),
               'Tvdb': ?id(k.tvdbId),
               'Imdb': ?k.imdbId,
+              'MusicBrainzArtist': ?k.mbId,
             },
           );
         } catch (_) {

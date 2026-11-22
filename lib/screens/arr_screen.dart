@@ -120,6 +120,7 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
   void _refresh() {
     ref.invalidate(radarrMoviesProvider);
     ref.invalidate(sonarrSeriesListProvider);
+    ref.invalidate(lidarrArtistsProvider);
     ref.invalidate(arrCalendarProvider);
     ref.invalidate(arrQueueProvider);
     ref.invalidate(arrQueueStatusProvider);
@@ -132,9 +133,14 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
     if (open == null) return;
     // Whether the library has it now is asked again too.
     ref.invalidate(arrLibraryItemProvider);
-    open.kind == ArrKind.radarr
-        ? arrMovieChanged(ref, open.id)
-        : arrSeriesChanged(ref, open.id);
+    switch (open.kind) {
+      case ArrKind.radarr:
+        arrMovieChanged(ref, open.id);
+      case ArrKind.sonarr:
+        arrSeriesChanged(ref, open.id);
+      case ArrKind.lidarr:
+        arrArtistChanged(ref, open.id);
+    }
   }
 
   /// The narrowest window whose top bar still names its Add button.
@@ -198,9 +204,8 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sonarr = ref.watch(sonarrClientProvider) != null;
-    final radarr = ref.watch(radarrClientProvider) != null;
-    if (!sonarr && !radarr) {
+    final kinds = ref.watch(arrLibraryKindsProvider);
+    if (kinds.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           leading: mobileDrawerLeading(context),
@@ -219,13 +224,18 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
     }
     final open = _open;
     if (open != null) {
-      open.kind == ArrKind.radarr
-          ? _closeWhenGone(open, radarrMoviesProvider, (ArrMovie m) => m.id)
-          : _closeWhenGone(
-              open,
-              sonarrSeriesListProvider,
-              (ArrSeries s) => s.id,
-            );
+      switch (open.kind) {
+        case ArrKind.radarr:
+          _closeWhenGone(open, radarrMoviesProvider, (ArrMovie m) => m.id);
+        case ArrKind.sonarr:
+          _closeWhenGone(
+            open,
+            sonarrSeriesListProvider,
+            (ArrSeries s) => s.id,
+          );
+        case ArrKind.lidarr:
+          _closeWhenGone(open, lidarrArtistsProvider, (ArrArtist a) => a.id);
+      }
     }
     // Four tabs fit a phone side by side; on a wide window they'd stretch
     // across it, so they keep their own width there.
@@ -257,6 +267,10 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                 actions: [
                   // Add opens on the kind of library it's pressed from; from
                   // the other tabs it searches movies and shows together.
+                  // Artists are added in Lidarr itself: with only Lidarr,
+                  // there's nothing for it to add to.
+                  if (kinds.contains(ArrKind.radarr) ||
+                      kinds.contains(ArrKind.sonarr))
                   Builder(
                     builder: (context) {
                       void add() {
@@ -264,11 +278,16 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                             DefaultTabController.of(context).index == 0;
                         final kind = !onLibrary
                             ? null
-                            : _libraryKind(ref, sonarr: sonarr, radarr: radarr);
+                            : arrShownLibrary(
+                                ref.read(arrLibraryKindsProvider),
+                                ref.read(arrLibraryKindProvider),
+                              );
                         context.push(switch (kind) {
                           ArrKind.radarr => '/arr/add/movie',
                           ArrKind.sonarr => '/arr/add/series',
-                          null => '/arr/add',
+                          // Artists are added in Lidarr itself for now: Add
+                          // offers movies and shows.
+                          ArrKind.lidarr || null => '/arr/add',
                         });
                       }
 
@@ -402,22 +421,15 @@ class _Pane extends StatelessWidget {
       openPage: () => arrOpenTitlePage(context, title.kind, title.id),
       child: MediaQuery(
         data: media.copyWith(size: Size(width, media.size.height)),
-        child: title.kind == ArrKind.radarr
-            ? ArrMovieScreen(id: title.id)
-            : ArrSeriesScreen(id: title.id),
+        child: switch (title.kind) {
+          ArrKind.radarr => ArrMovieScreen(id: title.id),
+          ArrKind.sonarr => ArrSeriesScreen(id: title.id),
+          ArrKind.lidarr => ArrArtistScreen(id: title.id),
+        },
       ),
     );
   }
 }
-
-/// The library on show: the one picked when both apps are connected,
-/// otherwise the one that is.
-ArrKind _libraryKind(WidgetRef ref, {required bool sonarr, required bool radarr}) =>
-    sonarr && radarr
-    ? ref.read(arrLibraryKindProvider)
-    : radarr
-    ? ArrKind.radarr
-    : ArrKind.sonarr;
 
 /// How many downloads are in the queue, beside the Activity tab's name, as
 /// on the apps' own Activity entry. Orange when one needs a look, or when an
@@ -459,8 +471,8 @@ class _QueueCount extends ConsumerWidget {
 
 // ---------------------------------------------------------------- Library
 
-/// Movies and Shows behind one switch. The search box is shared, so a title
-/// typed once can be looked for in both.
+/// Movies, Shows and Music behind one switch. The search box is shared, so
+/// a title typed once can be looked for in each.
 class _LibraryTab extends ConsumerStatefulWidget {
   /// The search box's focus, held by the section for Ctrl+F.
   final FocusNode searchFocus;
@@ -482,29 +494,46 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sonarr = ref.watch(sonarrClientProvider) != null;
-    final radarr = ref.watch(radarrClientProvider) != null;
-    final both = sonarr && radarr;
-    final kind = both
-        ? ref.watch(arrLibraryKindProvider)
-        : radarr
-        ? ArrKind.radarr
-        : ArrKind.sonarr;
+    final kinds = ref.watch(arrLibraryKindsProvider);
+    final kind =
+        arrShownLibrary(kinds, ref.watch(arrLibraryKindProvider)) ??
+        ArrKind.radarr;
     // With one app connected there's nothing to switch between.
-    final switcher = both
+    final switcher = kinds.length > 1
         ? ArrSwitch<ArrKind>(
             options: [
-              (ArrKind.radarr, l.arrMovies),
-              (ArrKind.sonarr, l.arrShows),
+              for (final k in kinds)
+                (
+                  k,
+                  switch (k) {
+                    ArrKind.radarr => l.arrMovies,
+                    ArrKind.sonarr => l.arrShows,
+                    ArrKind.lidarr => l.arrMusic,
+                  },
+                ),
             ],
             value: kind,
             onChanged: ref.read(arrLibraryKindProvider.notifier).set,
           )
         : null;
     final focus = widget.searchFocus;
-    return kind == ArrKind.radarr
-        ? _MoviesTab(search: _search, searchFocus: focus, switcher: switcher)
-        : _ShowsTab(search: _search, searchFocus: focus, switcher: switcher);
+    return switch (kind) {
+      ArrKind.radarr => _MoviesTab(
+        search: _search,
+        searchFocus: focus,
+        switcher: switcher,
+      ),
+      ArrKind.sonarr => _ShowsTab(
+        search: _search,
+        searchFocus: focus,
+        switcher: switcher,
+      ),
+      ArrKind.lidarr => _ArtistsTab(
+        search: _search,
+        searchFocus: focus,
+        switcher: switcher,
+      ),
+    };
   }
 }
 
@@ -1557,6 +1586,183 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
   }
 }
 
+class _ArtistsTab extends ConsumerStatefulWidget {
+  /// The Library tab's search box, shared with the other libraries.
+  final TextEditingController search;
+  final FocusNode searchFocus;
+
+  /// The library switch; null with only one of the apps connected.
+  final Widget? switcher;
+
+  const _ArtistsTab({
+    required this.search,
+    required this.searchFocus,
+    this.switcher,
+  });
+
+  @override
+  ConsumerState<_ArtistsTab> createState() => _ArtistsTabState();
+}
+
+class _ArtistsTabState extends ConsumerState<_ArtistsTab>
+    with _Picking<_ArtistsTab> {
+  TextEditingController get _search => widget.search;
+  _Sort _sort = _Sort.title;
+  _Filter _filter = _Filter.all;
+
+  List<ArrArtist> _apply(List<ArrArtist> all) {
+    final q = _search.text.trim().toLowerCase();
+    final list = all.where((a) {
+      if (q.isNotEmpty && !a.name.toLowerCase().contains(q)) return false;
+      return switch (_filter) {
+        _Filter.monitored => a.monitored,
+        _Filter.unmonitored => !a.monitored,
+        _Filter.missing => a.monitored && a.missingTracks > 0,
+        _ => true,
+      };
+    }).toList();
+    // By Lidarr's sort name: "Beatles, The" files under B.
+    int byName(ArrArtist a, ArrArtist b) =>
+        (a.sortName ?? a.name.toLowerCase()).compareTo(
+          b.sortName ?? b.name.toLowerCase(),
+        );
+    list.sort(switch (_sort) {
+      _Sort.added => (a, b) => (b.added ?? DateTime(0)).compareTo(
+        a.added ?? DateTime(0),
+      ),
+      _Sort.size => (a, b) => b.sizeOnDisk.compareTo(a.sizeOnDisk),
+      _ => byName,
+    });
+    return list;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final client = ref.watch(lidarrClientProvider);
+    final async = ref.watch(lidarrArtistsProvider);
+    final shown = async.whenData(_apply);
+    final scheme = Theme.of(context).colorScheme;
+    final shownIds = [
+      for (final a in shown.asData?.value ?? const <ArrArtist>[]) a.id,
+    ];
+    trimTo(shown.hasValue ? shownIds : null);
+    void reshown() => keepShown([
+      for (final a in _apply(async.asData?.value ?? const [])) a.id,
+    ]);
+    return backEndsPicking(
+      _LibraryFrame(
+        // Artists aren't added from Fathom yet.
+        addRow: false,
+        switcher: widget.switcher,
+        search: _search,
+        searchFocus: widget.searchFocus,
+        hint: l.arrSearchArtists,
+        onSearch: () {
+          setState(() {});
+          reshown();
+        },
+        sort: _sort,
+        // An artist has no year of its own.
+        sorts: const [_Sort.title, _Sort.added, _Sort.size],
+        onSort: (s) => setState(() => _sort = s),
+        filter: _filter,
+        filters: const [
+          _Filter.all,
+          _Filter.monitored,
+          _Filter.unmonitored,
+          _Filter.missing,
+        ],
+        onFilter: (f) {
+          setState(() => _filter = f);
+          reshown();
+        },
+        onRefresh: () => ref.refresh(lidarrArtistsProvider.future),
+        onSelect: isTvDevice || shownIds.isEmpty || selection.active
+            ? null
+            : selection.start,
+        bar: client == null || !selection.active
+            ? null
+            : ArrBulkBar(
+                client: client,
+                selection: selection,
+                all: shownIds,
+                sizes: {
+                  for (final a in async.asData?.value ?? const <ArrArtist>[])
+                    a.id: a.sizeOnDisk,
+                },
+                onChanged: () => ref.invalidate(lidarrArtistsProvider),
+              ),
+        kind: ArrKind.lidarr,
+        body: async.when(
+          loading: () => const ArrPosterGridSkeleton(
+            gridDelegate: _PosterGrid.cells,
+            padding: _PosterGrid.padding,
+          ),
+          error: (e, _) => SliverFillRemaining(
+            hasScrollBody: true,
+            child: ErrorView(
+              message: e.toString(),
+              onRetry: () => ref.invalidate(lidarrArtistsProvider),
+            ),
+          ),
+          data: (all) {
+            final list = shown.asData?.value ?? const [];
+            if (list.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: true,
+                child: EmptyState(
+                  icon: Icons.library_music_rounded,
+                  title: all.isEmpty ? l.arrNoArtists : l.arrNoMatches,
+                ),
+              );
+            }
+            return _PosterGrid(
+              count: list.length,
+              builder: (i) {
+                final a = list[i];
+                // Lidarr's bar: green when every wanted track is there, red
+                // when some are missing, grey when the artist isn't
+                // monitored.
+                final color = !a.monitored
+                    ? scheme.outline
+                    : a.missingTracks > 0
+                    ? arrMissingColor
+                    : arrDownloadedColor;
+                return _ArrPosterCard(
+                  key: ValueKey('la${a.id}'),
+                  shownAs: (kind: ArrKind.lidarr, id: a.id),
+                  client: client,
+                  images: a.images,
+                  title: a.name,
+                  subtitle: l.arrTracksOf(a.trackFileCount, a.trackCount),
+                  bar: ArrPosterBar(color: color, fraction: a.progress),
+                  icon: Icons.library_music_rounded,
+                  selected: selection.active ? selection.contains(a.id) : null,
+                  onTap: () => selection.active
+                      ? selection.toggle(a.id)
+                      : arrOpenTitle(context, ArrKind.lidarr, a.id),
+                  onMenu: client == null || selection.active
+                      ? null
+                      : (at) => posterMenu(
+                          at,
+                          kind: ArrKind.lidarr,
+                          id: a.id,
+                          title: a.name,
+                          searchLabel: l.arrSearchMonitored,
+                          search: () => client.searchArtist(a.id),
+                          done: l.arrSearchStarted(client.kind.appName),
+                        ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 /// Something more a library offers beside Sort and Filter (Collections,
 /// Import Library): a button on a wide window, a line of the More menu on a
 /// phone.
@@ -1577,6 +1783,9 @@ class _LibraryFrame extends StatelessWidget {
   final String hint;
   final VoidCallback onSearch;
   final _Sort sort;
+
+  /// The orders this library offers.
+  final List<_Sort> sorts;
   final ValueChanged<_Sort> onSort;
   final _Filter filter;
   final List<_Filter> filters;
@@ -1608,6 +1817,7 @@ class _LibraryFrame extends StatelessWidget {
     required this.hint,
     required this.onSearch,
     required this.sort,
+    this.sorts = _Sort.values,
     required this.onSort,
     required this.filter,
     required this.filters,
@@ -1671,7 +1881,7 @@ class _LibraryFrame extends StatelessWidget {
       initialValue: sort,
       onSelected: onSort,
       itemBuilder: (_) => [
-        for (final s in _Sort.values)
+        for (final s in sorts)
           CheckedPopupMenuItem(
             value: s,
             checked: s == sort,

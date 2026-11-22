@@ -13,34 +13,47 @@ import '../widgets/error_view.dart';
 import '../widgets/tv_focus.dart';
 import '../widgets/ui_common.dart';
 
-/// What an interactive search is for: a movie, a season, or one episode.
+/// What an interactive search is for: a movie, a season, one episode, or an
+/// album.
 class ArrReleaseTarget {
   final ArrKind kind;
   final int? movieId;
   final int? seriesId;
   final int? seasonNumber;
   final int? episodeId;
+  final int? albumId;
 
   const ArrReleaseTarget.movie(int id)
     : kind = ArrKind.radarr,
       movieId = id,
       seriesId = null,
       seasonNumber = null,
-      episodeId = null;
+      episodeId = null,
+      albumId = null;
 
   const ArrReleaseTarget.season(int series, int season)
     : kind = ArrKind.sonarr,
       movieId = null,
       seriesId = series,
       seasonNumber = season,
-      episodeId = null;
+      episodeId = null,
+      albumId = null;
 
   const ArrReleaseTarget.episode(int series, int episode)
     : kind = ArrKind.sonarr,
       movieId = null,
       seriesId = series,
       seasonNumber = null,
-      episodeId = episode;
+      episodeId = episode,
+      albumId = null;
+
+  const ArrReleaseTarget.album(int id)
+    : kind = ArrKind.lidarr,
+      movieId = null,
+      seriesId = null,
+      seasonNumber = null,
+      episodeId = null,
+      albumId = id;
 
   /// The route to the search, its target in the query.
   String get location {
@@ -49,6 +62,7 @@ class ArrReleaseTarget {
       if (seriesId != null) 'series': '$seriesId',
       if (seasonNumber != null) 'season': '$seasonNumber',
       if (episodeId != null) 'episode': '$episodeId',
+      if (albumId != null) 'album': '$albumId',
     };
     return Uri(path: '/arr/releases', queryParameters: q).toString();
   }
@@ -58,7 +72,9 @@ class ArrReleaseTarget {
     int? n(String k) => int.tryParse(q[k] ?? '');
     final movie = n('movie'), series = n('series');
     final season = n('season'), episode = n('episode');
+    final album = n('album');
     if (movie != null) return ArrReleaseTarget.movie(movie);
+    if (album != null) return ArrReleaseTarget.album(album);
     if (series != null && episode != null) {
       return ArrReleaseTarget.episode(series, episode);
     }
@@ -68,13 +84,13 @@ class ArrReleaseTarget {
     return null;
   }
 
-  Future<List<ArrSearchResult>> load(ArrClient c) {
-    if (c is RadarrClient) return c.releasesForMovie(movieId!);
-    final s = c as SonarrClient;
-    return episodeId != null
-        ? s.releasesForEpisode(episodeId!)
-        : s.releasesForSeason(seriesId!, seasonNumber!);
-  }
+  Future<List<ArrSearchResult>> load(ArrClient c) => switch (c) {
+    RadarrClient() => c.releasesForMovie(movieId!),
+    LidarrClient() => c.releasesForAlbum(albumId!),
+    SonarrClient() when episodeId != null => c.releasesForEpisode(episodeId!),
+    SonarrClient() => c.releasesForSeason(seriesId!, seasonNumber!),
+    _ => throw ArgumentError.value(c, 'c'),
+  };
 }
 
 enum _Sort { best, quality, size, age, seeders }
@@ -99,9 +115,7 @@ class _ArrReleasesScreenState extends ConsumerState<ArrReleasesScreen> {
   ArrClient? get _client {
     final t = widget.target;
     if (t == null) return null;
-    return t.kind == ArrKind.sonarr
-        ? ref.read(sonarrClientProvider)
-        : ref.read(radarrClientProvider);
+    return arrClient(ref, t.kind);
   }
 
   @override
@@ -178,6 +192,10 @@ class _ArrReleasesScreenState extends ConsumerState<ArrReleasesScreen> {
 
   String _subtitle(AppLocalizations l) {
     final t = widget.target!;
+    if (t.albumId != null) {
+      final a = ref.watch(lidarrAlbumProvider(t.albumId!)).asData?.value;
+      return a == null ? '' : [?a.artistName, a.title].join(' · ');
+    }
     if (t.movieId != null) {
       return ref.watch(radarrMovieProvider(t.movieId!)).asData?.value.title ??
           '';

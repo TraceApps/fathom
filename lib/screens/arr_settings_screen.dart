@@ -32,6 +32,8 @@ class ArrSettingsScreen extends StatelessWidget {
           const _ArrConnectionCard(kind: ArrKind.sonarr),
           const SizedBox(height: 16),
           const _ArrConnectionCard(kind: ArrKind.radarr),
+          const SizedBox(height: 16),
+          const _ArrConnectionCard(kind: ArrKind.lidarr),
         ],
       ),
     );
@@ -53,16 +55,13 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
   // What the last check said: "Sonarr 4.0.14", or null before any check.
   String? _version;
 
-  bool get _sonarr => widget.kind == ArrKind.sonarr;
-
   @override
   void initState() {
     super.initState();
     final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    _url = TextEditingController(text: _sonarr ? p.sonarrUrl : p.radarrUrl);
-    _key = TextEditingController(
-      text: _sonarr ? p.sonarrApiKey : p.radarrApiKey,
-    );
+    final (url, key) = _saved(p);
+    _url = TextEditingController(text: url);
+    _key = TextEditingController(text: key);
     if (_url.text.isNotEmpty && _key.text.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => mounted ? _check(quiet: true) : null,
@@ -77,8 +76,24 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     super.dispose();
   }
 
-  ArrClient _client(String url, String key) =>
-      _sonarr ? SonarrClient(url, key) : RadarrClient(url, key);
+  /// The address and key saved for this app.
+  (String, String) _saved(Prefs p) => switch (widget.kind) {
+    ArrKind.sonarr => (p.sonarrUrl, p.sonarrApiKey),
+    ArrKind.radarr => (p.radarrUrl, p.radarrApiKey),
+    ArrKind.lidarr => (p.lidarrUrl, p.lidarrApiKey),
+  };
+
+  Prefs _withSaved(Prefs p, String url, String key) => switch (widget.kind) {
+    ArrKind.sonarr => p.copyWith(sonarrUrl: url, sonarrApiKey: key),
+    ArrKind.radarr => p.copyWith(radarrUrl: url, radarrApiKey: key),
+    ArrKind.lidarr => p.copyWith(lidarrUrl: url, lidarrApiKey: key),
+  };
+
+  ArrClient _client(String url, String key) => switch (widget.kind) {
+    ArrKind.sonarr => SonarrClient(url, key),
+    ArrKind.radarr => RadarrClient(url, key),
+    ArrKind.lidarr => LidarrClient(url, key),
+  };
 
   /// Asks the server what it is. Quiet on open, so a saved connection just
   /// shows its version without a message.
@@ -124,11 +139,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     setState(() => _busy = true);
     await ref
         .read(preferencesProvider.notifier)
-        .edit(
-          (p) => _sonarr
-              ? p.copyWith(sonarrUrl: address, sonarrApiKey: key)
-              : p.copyWith(radarrUrl: address, radarrApiKey: key),
-        );
+        .edit((p) => _withSaved(p, address, key));
     await _check();
     if (mounted) setState(() => _busy = false);
   }
@@ -137,11 +148,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     final l = AppLocalizations.of(context);
     await ref
         .read(preferencesProvider.notifier)
-        .edit(
-          (p) => _sonarr
-              ? p.copyWith(sonarrUrl: '', sonarrApiKey: '')
-              : p.copyWith(radarrUrl: '', radarrApiKey: ''),
-        );
+        .edit((p) => _withSaved(p, '', ''));
     if (!mounted) return;
     _url.clear();
     _key.clear();
@@ -157,9 +164,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     final saved = ref.watch(
       preferencesProvider.select((p) {
         final v = p.asData?.value;
-        return _sonarr
-            ? (v?.sonarrUrl.isNotEmpty ?? false)
-            : (v?.radarrUrl.isNotEmpty ?? false);
+        return v != null && _saved(v).$1.isNotEmpty;
       }),
     );
     final status = !saved
@@ -176,10 +181,11 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
           children: [
             Row(
               children: [
-                Icon(
-                  _sonarr ? Icons.live_tv_rounded : Icons.movie_rounded,
-                  color: scheme.primary,
-                ),
+                Icon(switch (widget.kind) {
+                  ArrKind.sonarr => Icons.live_tv_rounded,
+                  ArrKind.radarr => Icons.movie_rounded,
+                  ArrKind.lidarr => Icons.library_music_rounded,
+                }, color: scheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -210,9 +216,11 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
               controller: _url,
               keyboardType: TextInputType.url,
               label: l.arrServerAddress,
-              hint: _sonarr
-                  ? 'http://192.168.1.10:8989'
-                  : 'http://192.168.1.10:7878',
+              hint: switch (widget.kind) {
+                ArrKind.sonarr => 'http://192.168.1.10:8989',
+                ArrKind.radarr => 'http://192.168.1.10:7878',
+                ArrKind.lidarr => 'http://192.168.1.10:8686',
+              },
               icon: Icons.link_rounded,
             ),
             const SizedBox(height: 14),
@@ -241,7 +249,8 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                 ),
               ],
             ),
-            if (saved && _version != null) ...[
+            // Artists aren't added from Fathom yet: nothing to start with.
+            if (saved && _version != null && widget.kind != ArrKind.lidarr) ...[
               const SizedBox(height: 12),
               const Divider(height: 1),
               _DefaultsTile(kind: widget.kind),

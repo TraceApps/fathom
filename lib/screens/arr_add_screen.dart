@@ -219,17 +219,17 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
     final title = switch (_only) {
       ArrKind.radarr => l.arrAddMovie,
       ArrKind.sonarr => l.arrAddShow,
-      null => l.arrAddTitle,
+      ArrKind.lidarr || null => l.arrAddTitle,
     };
     final hint = switch (_only) {
       ArrKind.radarr => l.arrAddMovieHint,
       ArrKind.sonarr => l.arrAddShowHint,
-      null => l.arrAddAnyHint,
+      ArrKind.lidarr || null => l.arrAddAnyHint,
     };
     final tip = switch (_only) {
       ArrKind.radarr => l.arrAddMovieTip,
       ArrKind.sonarr => l.arrAddShowTip,
-      null => l.arrAddAnyTip,
+      ArrKind.lidarr || null => l.arrAddAnyTip,
     };
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -282,7 +282,7 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
                     icon: switch (_only) {
                       ArrKind.sonarr => Icons.live_tv_rounded,
                       ArrKind.radarr => Icons.movie_rounded,
-                      null => Icons.add_circle_outline_rounded,
+                      ArrKind.lidarr || null => Icons.add_circle_outline_rounded,
                     },
                     title: title,
                     message: tip,

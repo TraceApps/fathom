@@ -27,9 +27,9 @@ Point Fathom at your [Jellyseerr / Overseerr](https://docs.jellyseerr.dev) insta
 
 Discover follows your Seerr server's own display settings: with **Hide Available**, **Hide Already Requested** (Seerr 3.5 and later), or **Hide Blocklisted** turned on in Seerr, those titles stay out of Fathom's Discover rows too, just as on Seerr's web page. Search still finds them.
 
-### Sonarr and Radarr
+### Sonarr, Radarr and Lidarr
 
-Connect [Sonarr](https://sonarr.tv) for shows and [Radarr](https://radarr.video) for movies, one or both, in **Settings → Sonarr & Radarr**. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. **Save & Test** checks the address really is that app and shows its version.
+Connect [Sonarr](https://sonarr.tv) for shows, [Radarr](https://radarr.video) for movies and [Lidarr](https://lidarr.audio) for music, any of them, in **Settings → Sonarr, Radarr & Lidarr**. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, `:8686` for Lidarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. **Save & Test** checks the address really is that app and shows its version.
 
 Once connected, a **Manage** section appears in the navigation. The API keys stay on this device and are never included in [Backup & Restore](backup.md).
 

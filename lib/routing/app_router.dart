@@ -591,6 +591,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, state) => _managePage(ArrSeriesScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
+              path: '/arr/artist/:id',
+              pageBuilder: (_, state) => _managePage(ArrArtistScreen(
+                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
+          GoRoute(
               path: '/updates',
               pageBuilder: (_, _) => _fadePage(const UpdatesScreen())),
           GoRoute(

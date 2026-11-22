@@ -1,0 +1,211 @@
+[
+  {
+    "artistId": 1,
+    "foreignTrackId": "5e28c289-d23b-34c6-9283-99568eb7c9e4",
+    "foreignRecordingId": "d2d7e3b5-c49e-49f3-b442-ccdc1430a262",
+    "trackFileId": 13,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 1,
+    "trackNumber": "A1",
+    "title": "Cowboys",
+    "duration": 282000,
+    "mediumNumber": 1,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 1
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "e47e2f3f-b721-3af4-a5cb-39726e522692",
+    "foreignRecordingId": "4e22d68a-19a2-4fd4-a29f-36bc05fc81fe",
+    "trackFileId": 15,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 2,
+    "trackNumber": "A2",
+    "title": "All Mine",
+    "duration": 242360,
+    "mediumNumber": 1,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 2
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "d2a6b18c-d33d-3329-8562-e419895d10e1",
+    "foreignRecordingId": "54727d71-8789-407c-a622-3e1acf01e178",
+    "trackFileId": 16,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 3,
+    "trackNumber": "B1",
+    "title": "Undenied",
+    "duration": 264666,
+    "mediumNumber": 1,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 3
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "435037c7-1935-3a3d-b37e-e4a5964f7127",
+    "foreignRecordingId": "0082002e-4ac5-4a6a-88c9-a95f480c0f02",
+    "trackFileId": 19,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 4,
+    "trackNumber": "B2",
+    "title": "Half Day Closing",
+    "duration": 228306,
+    "mediumNumber": 1,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 4
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "fc0b31f1-5074-3f7e-aab1-6917b9fc1756",
+    "foreignRecordingId": "c4310335-9213-46a6-af81-b86fcb1975ed",
+    "trackFileId": 21,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 5,
+    "trackNumber": "B3",
+    "title": "Over",
+    "duration": 240760,
+    "mediumNumber": 1,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 5
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "63119e9a-0288-3975-9751-6ea86b2530f4",
+    "foreignRecordingId": "4cc1cd3c-965a-467c-a4c7-1049a0682b3d",
+    "trackFileId": 12,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 1,
+    "trackNumber": "C1",
+    "title": "Humming",
+    "duration": 363000,
+    "mediumNumber": 2,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 6
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "8d513812-82b6-3b7c-8a17-aba182d346da",
+    "foreignRecordingId": "f831bf4a-df9e-40c1-9b8c-aa1b40f4b13f",
+    "trackFileId": 14,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 2,
+    "trackNumber": "C2",
+    "title": "Mourning Air",
+    "duration": 255000,
+    "mediumNumber": 2,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 7
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "17d5c34b-edff-35ea-8b24-96caa0768b35",
+    "foreignRecordingId": "0d61fbd1-2649-4411-a892-b8ed4c388266",
+    "trackFileId": 17,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 3,
+    "trackNumber": "C3",
+    "title": "Seven Months",
+    "duration": 258000,
+    "mediumNumber": 2,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 8
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "90b997e0-bfd1-3086-8fe1-1b8625293ef2",
+    "foreignRecordingId": "073e2d76-5c7e-43b2-aef1-2512cda7f8a3",
+    "trackFileId": 18,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 4,
+    "trackNumber": "D1",
+    "title": "Only You",
+    "duration": 302000,
+    "mediumNumber": 2,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 9
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "3bb759d3-9ffc-3066-aaf1-8a3578f46d52",
+    "foreignRecordingId": "f49db552-8a2e-4a29-9ea2-a0d48a7723ef",
+    "trackFileId": 20,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 5,
+    "trackNumber": "D2",
+    "title": "Elysium",
+    "duration": 357000,
+    "mediumNumber": 2,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 10
+  },
+  {
+    "artistId": 1,
+    "foreignTrackId": "9f8b92ab-6c92-3f2e-9e16-22d74c14e5dd",
+    "foreignRecordingId": "34745941-69c5-401a-bdb9-ae761a9b3562",
+    "trackFileId": 22,
+    "albumId": 1,
+    "explicit": false,
+    "absoluteTrackNumber": 6,
+    "trackNumber": "D3",
+    "title": "Western Eyes",
+    "duration": 239000,
+    "mediumNumber": 2,
+    "hasFile": true,
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    },
+    "id": 11
+  }
+]

@@ -12,8 +12,9 @@ class ArrException implements Exception {
   String toString() => message;
 }
 
-/// Talks to one Sonarr or Radarr server over its v3 API, with its API key.
-/// [baseUrl] is what the user typed, including any URL base ("/sonarr").
+/// Talks to one Sonarr, Radarr or Lidarr server over its API (v3, or v1 for
+/// Lidarr), with its API key. [baseUrl] is what the user typed, including
+/// any URL base ("/sonarr").
 abstract class ArrClient {
   final ArrKind kind;
   final String baseUrl;
@@ -36,7 +37,8 @@ abstract class ArrClient {
   /// For pictures served by the app itself (its MediaCover copies).
   Map<String, String> get imageHeaders => {'X-Api-Key': apiKey};
 
-  String _api(String path) => '$baseUrl/api/v3/$path';
+  String _api(String path) =>
+      '$baseUrl/api/${kind == ArrKind.lidarr ? 'v1' : 'v3'}/$path';
 
   Future<dynamic> _get(String path, [Map<String, dynamic>? query]) async {
     try {
@@ -179,12 +181,33 @@ abstract class ArrClient {
   /// a rename preview is always empty.
   Future<bool> renamingOn() async {
     final data = await _get('config/naming');
-    final key = kind == ArrKind.sonarr ? 'renameEpisodes' : 'renameMovies';
+    final key = switch (kind) {
+      ArrKind.sonarr => 'renameEpisodes',
+      ArrKind.radarr => 'renameMovies',
+      ArrKind.lidarr => 'renameTracks',
+    };
     return data is Map && data[key] == true;
   }
 
   /// Renames the files the preview listed.
   Future<void> rename(int id, List<int> fileIds);
+
+  // One title (a show, a movie, an artist), the same way in every app.
+
+  /// The title exactly as the app keeps it, for sending back changed.
+  Future<Map<String, dynamic>> titleRaw(int id);
+
+  /// Saves a changed title. [raw] is what [titleRaw] gave, edited. With
+  /// [moveFiles], a changed path moves the title's folder there too.
+  Future<void> updateTitle(Map<String, dynamic> raw, {bool moveFiles = false});
+
+  /// Takes the title out of the app; with [deleteFiles] its files go too,
+  /// and with [addExclusion] an import list won't add it back.
+  Future<void> deleteTitle(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  });
 
   // Several titles at once, as the apps' select mode does.
 
@@ -250,7 +273,11 @@ abstract class ArrClient {
     final data = await _get('manualimport', {
       'downloadId': ?downloadId,
       'folder': ?folder,
-      kind == ArrKind.sonarr ? 'seriesId' : 'movieId': ?titleId,
+      switch (kind) {
+        ArrKind.sonarr => 'seriesId',
+        ArrKind.radarr => 'movieId',
+        ArrKind.lidarr => 'artistId',
+      }: ?titleId,
       'filterExistingFiles': filterExisting,
     });
     return [
@@ -282,7 +309,12 @@ abstract class ArrClient {
   /// Changes the quality, languages or release group of files already in
   /// the library. Each map has the file's id and what changes.
   Future<void> updateFiles(List<Map<String, dynamic>> files) => _put(
-    kind == ArrKind.sonarr ? 'episodefile/bulk' : 'moviefile/bulk',
+    switch (kind) {
+      ArrKind.sonarr => 'episodefile/bulk',
+      ArrKind.radarr => 'moviefile/bulk',
+      // Lidarr's file editor takes another shape; nothing asks it yet.
+      ArrKind.lidarr => throw UnsupportedError('Lidarr track files'),
+    },
     files,
   );
 
@@ -333,13 +365,21 @@ abstract class ArrClient {
     final data = await _get('queue', {
       'page': 1,
       'pageSize': 500,
-      if (kind == ArrKind.sonarr) ...{
-        'includeSeries': true,
-        'includeEpisode': true,
-        'includeUnknownSeriesItems': true,
-      } else ...{
-        'includeMovie': true,
-        'includeUnknownMovieItems': true,
+      ...switch (kind) {
+        ArrKind.sonarr => {
+          'includeSeries': true,
+          'includeEpisode': true,
+          'includeUnknownSeriesItems': true,
+        },
+        ArrKind.radarr => {
+          'includeMovie': true,
+          'includeUnknownMovieItems': true,
+        },
+        ArrKind.lidarr => {
+          'includeArtist': true,
+          'includeAlbum': true,
+          'includeUnknownArtistItems': true,
+        },
       },
     });
     final records = (data as Map?)?['records'];
@@ -405,11 +445,15 @@ abstract class ArrClient {
       'sortKey': 'date',
       'sortDirection': 'descending',
       if (types.isNotEmpty) 'eventType': types,
-      if (kind == ArrKind.sonarr) ...{
-        'includeSeries': true,
-        'includeEpisode': true,
-      } else
-        'includeMovie': true,
+      ...switch (kind) {
+        ArrKind.sonarr => {'includeSeries': true, 'includeEpisode': true},
+        ArrKind.radarr => {'includeMovie': true},
+        ArrKind.lidarr => {
+          'includeArtist': true,
+          'includeAlbum': true,
+          'includeTrack': true,
+        },
+      },
     });
     return _page(data, (m) => ArrHistoryItem.fromJson(m, kind));
   }
@@ -449,26 +493,43 @@ abstract class ArrClient {
     }
     if (image == null) return null;
     final remote = image.remoteUrl;
-    if (remote != null && remote.isNotEmpty) {
+    // Lidarr's "remote" link of a saved artist's picture is a path on its
+    // own server (/config/MediaCover/...), not an address: its copy then.
+    if (remote != null && remote.startsWith(RegExp('https?://'))) {
       return sizedImageUrl(remote, width);
     }
     final local = image.url;
     if (local == null || local.isEmpty) return null;
     // The app's own copy: its path already carries any URL base, so it
     // resolves against the server's origin.
-    return Uri.parse(baseUrl).resolve(local).toString();
+    return Uri.parse(
+      baseUrl,
+    ).resolve(sizedLocalImageUrl(local, type, width)).toString();
   }
 
-  /// The address of this title in the app's own web page.
-  String webUrl(String? titleSlug) =>
-      '$baseUrl/${kind == ArrKind.sonarr ? 'series' : 'movie'}/${titleSlug ?? ''}';
+  /// The address of this title in the app's own web page. [titleSlug] is
+  /// Lidarr's MusicBrainz id of the artist.
+  String webUrl(String? titleSlug) {
+    final where = switch (kind) {
+      ArrKind.sonarr => 'series',
+      ArrKind.radarr => 'movie',
+      ArrKind.lidarr => 'artist',
+    };
+    return '$baseUrl/$where/${titleSlug ?? ''}';
+  }
 }
 
 /// TMDB serves every size of a picture; the apps keep the "original" link,
-/// which can be several megabytes. Asks for a sensible width instead. Other
-/// sources (TheTVDB, fanart.tv) are left as they are.
+/// which can be several megabytes. Asks for a sensible width instead. So
+/// does the Cover Art Archive, behind Lidarr's album covers: 250, 500 or
+/// 1200 pixels. Other sources (TheTVDB, fanart.tv) are left as they are.
 @visibleForTesting
 String sizedImageUrl(String url, int width) {
+  final cover = RegExp(r'(coverartarchive\.org/.+)-(250|500|1200)\.jpg$');
+  if (cover.hasMatch(url)) {
+    final size = width <= 250 ? 250 : width <= 500 ? 500 : 1200;
+    return url.replaceFirstMapped(cover, (m) => '${m[1]}-$size.jpg');
+  }
   const original = '/t/p/original/';
   if (!url.contains('image.tmdb.org') || !url.contains(original)) return url;
   final size = width <= 185
@@ -481,6 +542,27 @@ String sizedImageUrl(String url, int width) {
       ? 'w780'
       : 'w1280';
   return url.replaceFirst(original, '/t/p/$size/');
+}
+
+/// The apps keep their copy of a picture at full size and, beside it,
+/// smaller ones their own pages ask for: posters at 250 and 500 pixels,
+/// backdrops at 180 and 360, banners at 35 and 70. The smallest that's wide
+/// enough, or the full one when none is.
+@visibleForTesting
+String sizedLocalImageUrl(String url, String type, int width) {
+  final sizes = switch (type) {
+    'poster' => const [250, 500],
+    'fanart' => const [180, 360],
+    'banner' => const [35, 70],
+    _ => const <int>[],
+  };
+  final size = sizes.where((s) => s >= width).firstOrNull;
+  if (size == null) return url;
+  // /MediaCover/12/poster.jpg?lastWrite=... -> /MediaCover/12/poster-500.jpg?...
+  return url.replaceFirstMapped(
+    RegExp('/$type(\\.[a-z]+)(\\?|\$)'),
+    (m) => '/$type-$size${m[1]}${m[2]}',
+  );
 }
 
 /// What to tell the user when the app answers with an error. Sonarr and Radarr
@@ -776,6 +858,22 @@ class SonarrClient extends ArrClient {
         'monitoringOptions': {'monitor': monitor},
       });
 
+  @override
+  Future<Map<String, dynamic>> titleRaw(int id) => seriesRaw(id);
+
+  @override
+  Future<void> updateTitle(
+    Map<String, dynamic> raw, {
+    bool moveFiles = false,
+  }) => updateSeries(raw, moveFiles: moveFiles);
+
+  @override
+  Future<void> deleteTitle(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => deleteSeries(id, deleteFiles: deleteFiles, addExclusion: addExclusion);
+
   Future<void> deleteSeries(
     int id, {
     required bool deleteFiles,
@@ -1025,6 +1123,22 @@ class RadarrClient extends ArrClient {
   Future<void> searchMany(List<int> ids) =>
       command('MoviesSearch', {'movieIds': ids});
 
+  @override
+  Future<Map<String, dynamic>> titleRaw(int id) => movieRaw(id);
+
+  @override
+  Future<void> updateTitle(
+    Map<String, dynamic> raw, {
+    bool moveFiles = false,
+  }) => updateMovie(raw, moveFiles: moveFiles);
+
+  @override
+  Future<void> deleteTitle(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => deleteMovie(id, deleteFiles: deleteFiles, addExclusion: addExclusion);
+
   Future<void> deleteMovie(
     int id, {
     required bool deleteFiles,
@@ -1141,4 +1255,249 @@ class RadarrClient extends ArrClient {
           ),
     ];
   }
+}
+
+/// Lidarr: artists, their albums and the albums' tracks, over its v1 API.
+class LidarrClient extends ArrClient {
+  LidarrClient(String baseUrl, String apiKey, {super.dio})
+    : super(ArrKind.lidarr, baseUrl, apiKey);
+
+  Future<List<ArrArtist>> artists() async {
+    final data = await _get('artist');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrArtist.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  Future<ArrArtist> artist(int id) async => ArrArtist.fromJson(
+    Map<String, dynamic>.from(await _get('artist/$id') as Map),
+  );
+
+  /// The artist Lidarr has for this MusicBrainz id, if it has it.
+  Future<ArrArtist?> artistByMbId(String mbId) async {
+    final data = await _get('artist', {'mbId': mbId});
+    for (final m in (data as List?) ?? const []) {
+      if (m is! Map) continue;
+      // By its id, not just the first: a server that didn't take the
+      // filter answers with every artist it has.
+      final a = ArrArtist.fromJson(Map<String, dynamic>.from(m));
+      if (a.foreignArtistId?.toLowerCase() == mbId.toLowerCase()) return a;
+    }
+    return null;
+  }
+
+  /// The artist's albums (as its metadata profile keeps them).
+  Future<List<ArrAlbum>> albums(int artistId) async {
+    final data = await _get('album', {'artistId': artistId});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrAlbum.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// One album, with its artist's name.
+  Future<ArrAlbum> album(int id) async => ArrAlbum.fromJson(
+    Map<String, dynamic>.from(await _get('album/$id') as Map),
+  );
+
+  /// An album's tracks, of the edition Lidarr is set to.
+  Future<List<ArrTrack>> tracks(int albumId) async {
+    final data = await _get('track', {'albumId': albumId});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrTrack.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// Every track file of the artist, by id.
+  Future<List<ArrFile>> trackFiles(int artistId) async {
+    final data = await _get('trackfile', {'artistId': artistId});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrFile.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// The artist's latest events, newest first. From the whole history,
+  /// filtered to the artist: Lidarr's own per-artist list leaves out the
+  /// track and album each event was about (checked on Lidarr 3.1.6).
+  Future<List<ArrHistoryItem>> history(int artistId) async {
+    final data = await _get('history', {
+      'page': 1,
+      'pageSize': 100,
+      'sortKey': 'date',
+      'sortDirection': 'descending',
+      'artistIds': artistId,
+      'includeAlbum': true,
+      'includeTrack': true,
+    });
+    return _page(data, (m) => ArrHistoryItem.fromJson(m, kind)).items;
+  }
+
+  Future<List<ArrMetadataProfile>> metadataProfiles() async {
+    final data = await _get('metadataprofile');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrMetadataProfile.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  @override
+  Future<Map<String, dynamic>> titleRaw(int id) async =>
+      Map<String, dynamic>.from(await _get('artist/$id') as Map);
+
+  @override
+  Future<void> updateTitle(
+    Map<String, dynamic> raw, {
+    bool moveFiles = false,
+  }) async {
+    final id = _int(raw['id']);
+    await _send(
+      'PUT',
+      'artist/$id',
+      body: raw,
+      query: moveFiles ? {'moveFiles': true} : null,
+    );
+  }
+
+  @override
+  Future<void> deleteTitle(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _delete('artist/$id', {
+    'deleteFiles': deleteFiles,
+    'addImportListExclusion': addExclusion,
+  });
+
+  /// Takes one album out of Lidarr (an artist's later refresh may bring it
+  /// back unless [addExclusion]).
+  Future<void> deleteAlbum(
+    int id, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _delete('album/$id', {
+    'deleteFiles': deleteFiles,
+    'addImportListExclusion': addExclusion,
+  });
+
+  /// Changes which albums are monitored, the way Lidarr's Monitoring options
+  /// do: [monitor] is all, future, missing, existing, latest, first or none,
+  /// or null to leave the albums as they are. [monitored] is the artist's
+  /// own switch (none turns it off whatever it says), and [newItems] which
+  /// albums added later are monitored: all, none or new. One call: Lidarr
+  /// saves the artist and its albums together.
+  Future<void> applyMonitoring(
+    int id, {
+    required String? monitor,
+    required bool monitored,
+    String? newItems,
+  }) => _post('albumstudio', {
+    'artist': [
+      {'id': id, 'monitored': monitored},
+    ],
+    if (monitor != null) 'monitoringOptions': {'monitor': monitor},
+    'monitorNewItems': ?newItems,
+  });
+
+  Future<void> setAlbumsMonitored(List<int> ids, bool monitored) =>
+      _put('album/monitor', {'albumIds': ids, 'monitored': monitored});
+
+  Future<void> searchArtist(int id) =>
+      command('ArtistSearch', {'artistId': id});
+  Future<void> searchAlbums(List<int> ids) =>
+      command('AlbumSearch', {'albumIds': ids});
+  Future<void> refreshArtist(int id) =>
+      command('RefreshArtist', {'artistId': id});
+
+  Future<List<ArrSearchResult>> releasesForAlbum(int albumId) =>
+      _releases({'albumId': albumId});
+
+  Future<void> deleteTrackFiles(List<int> ids) =>
+      _send('DELETE', 'trackfile/bulk', body: {'trackFileIds': ids});
+
+  @override
+  Future<List<ArrRename>> renamePreview(int id) async {
+    final data = await _get('rename', {'artistId': id});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrRename.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  @override
+  Future<void> rename(int id, List<int> fileIds) =>
+      command('RenameFiles', {'artistId': id, 'files': fileIds});
+
+  @override
+  Future<void> editMany(List<int> ids, Map<String, dynamic> changes) =>
+      _put('artist/editor', {'artistIds': ids, ...changes});
+
+  @override
+  Future<void> deleteMany(
+    List<int> ids, {
+    required bool deleteFiles,
+    required bool addExclusion,
+  }) => _send(
+    'DELETE',
+    'artist/editor',
+    body: {
+      'artistIds': ids,
+      'deleteFiles': deleteFiles,
+      'addImportListExclusion': addExclusion,
+    },
+  );
+
+  @override
+  Future<void> refreshMany(List<int> ids) =>
+      command('RefreshArtist', {'artistIds': ids});
+
+  @override
+  Future<void> renameMany(List<int> ids) =>
+      command('RenameArtist', {'artistIds': ids});
+
+  /// Lidarr's search takes one artist at a time. One that fails doesn't
+  /// stop the others; the first failure is passed on after.
+  @override
+  Future<void> searchMany(List<int> ids) async {
+    Object? failed;
+    for (final id in ids) {
+      try {
+        await searchArtist(id);
+      } catch (e) {
+        failed ??= e;
+      }
+    }
+    if (failed != null) throw failed;
+  }
+
+  // Lidarr's albums aren't in the section's merged lists yet: nothing asks
+  // these of it.
+  @override
+  Future<List<ArrCalendarEntry>> calendar(
+    DateTime start,
+    DateTime end, {
+    bool unmonitored = false,
+  }) => throw UnsupportedError('Lidarr calendar');
+
+  @override
+  Future<ArrPage<ArrWantedItem>> missing({
+    int pageSize = 50,
+    bool monitored = true,
+  }) => throw UnsupportedError('Lidarr wanted');
+
+  @override
+  Future<ArrPage<ArrWantedItem>> cutoffUnmet({
+    int pageSize = 50,
+    bool monitored = true,
+  }) => throw UnsupportedError('Lidarr wanted');
+
+  @override
+  Future<void> searchAllMissing() =>
+      command('MissingAlbumSearch', {'monitored': true});
+
+  @override
+  Future<void> searchAllCutoffUnmet() =>
+      command('CutoffUnmetAlbumSearch', {'monitored': true});
 }

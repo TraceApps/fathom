@@ -2,11 +2,15 @@
 /// still serve /api/v3). Field names follow their OpenAPI specs.
 library;
 
-enum ArrKind { sonarr, radarr }
+enum ArrKind { sonarr, radarr, lidarr }
 
 extension ArrKindName on ArrKind {
   /// The app's own name, never translated.
-  String get appName => this == ArrKind.sonarr ? 'Sonarr' : 'Radarr';
+  String get appName => switch (this) {
+    ArrKind.sonarr => 'Sonarr',
+    ArrKind.radarr => 'Radarr',
+    ArrKind.lidarr => 'Lidarr',
+  };
 }
 
 DateTime? _date(Object? v) =>
@@ -26,6 +30,12 @@ List<Map<String, dynamic>> _maps(Object? v) => [
   for (final e in (v as List?) ?? const [])
     if (e is Map) Map<String, dynamic>.from(e),
 ];
+/// A value as words, numbers included; null when there's nothing to say.
+String? _text(Object? v) => switch (v) {
+  final String s when s.trim().isNotEmpty => s.trim(),
+  final num n => '$n',
+  _ => null,
+};
 List<String> _strings(Object? v) => [
   for (final e in (v as List?) ?? const [])
     if (e is String) e,
@@ -68,6 +78,11 @@ class ArrMediaInfo {
   final String? subtitles;
   final String? runTime;
 
+  /// Lidarr's, as it words them: "1411 kbps", "24bit", "96kHz".
+  final String? audioBitRate;
+  final String? audioBits;
+  final String? audioSampleRate;
+
   const ArrMediaInfo({
     this.videoCodec,
     this.resolution,
@@ -78,6 +93,9 @@ class ArrMediaInfo {
     this.audioLanguages,
     this.subtitles,
     this.runTime,
+    this.audioBitRate,
+    this.audioBits,
+    this.audioSampleRate,
   });
 
   factory ArrMediaInfo.fromJson(Map<String, dynamic> j) => ArrMediaInfo(
@@ -90,6 +108,9 @@ class ArrMediaInfo {
     audioLanguages: j['audioLanguages'] as String?,
     subtitles: j['subtitles'] as String?,
     runTime: j['runTime'] as String?,
+    audioBitRate: _text(j['audioBitRate']),
+    audioBits: _text(j['audioBits']),
+    audioSampleRate: _text(j['audioSampleRate']),
   );
 
   /// "5.1", "7.1", "2.0": how the apps show channel counts.
@@ -114,6 +135,9 @@ class ArrFile {
   final bool qualityCutoffNotMet;
   final int? seasonNumber;
 
+  /// Lidarr: the album the track file belongs to.
+  final int? albumId;
+
   /// The quality as the app keeps it, and the languages with their ids: what
   /// an edit sends back.
   final Map<String, dynamic>? qualityModel;
@@ -133,6 +157,7 @@ class ArrFile {
     this.mediaInfo,
     this.qualityCutoffNotMet = false,
     this.seasonNumber,
+    this.albumId,
     this.qualityModel,
     this.languageItems = const [],
     this.indexerFlags = 0,
@@ -156,6 +181,7 @@ class ArrFile {
         : null,
     qualityCutoffNotMet: j['qualityCutoffNotMet'] == true,
     seasonNumber: _intOrNull(j['seasonNumber']),
+    albumId: _intOrNull(j['albumId']),
     qualityModel: j['quality'] is Map
         ? Map<String, dynamic>.from(j['quality'] as Map)
         : null,
@@ -774,6 +800,9 @@ class ArrHistoryItem {
   final String? title; // the show or movie, when the app sent it along
   final String? episodeCode;
   final String? episodeTitle;
+
+  /// Lidarr: the track the event was about, where it sent it along.
+  final String? trackTitle;
   final List<ArrImage> images;
   final Map<String, dynamic> data;
 
@@ -790,6 +819,7 @@ class ArrHistoryItem {
     this.title,
     this.episodeCode,
     this.episodeTitle,
+    this.trackTitle,
     this.images = const [],
     this.data = const {},
   });
@@ -820,6 +850,7 @@ class ArrHistoryItem {
       title: series?.title ?? movie?.title,
       episodeCode: episode?.code,
       episodeTitle: episode?.title,
+      trackTitle: _text((j['track'] as Map?)?['title']),
       images: series?.images ?? movie?.images ?? const [],
       data: j['data'] is Map ? Map<String, dynamic>.from(j['data']) : const {},
     );
@@ -1613,7 +1644,7 @@ class ArrRename {
   });
 
   factory ArrRename.fromJson(Map<String, dynamic> j) => ArrRename(
-    fileId: _int(j['episodeFileId'] ?? j['movieFileId']),
+    fileId: _int(j['episodeFileId'] ?? j['movieFileId'] ?? j['trackFileId']),
     existingPath: j['existingPath'] as String? ?? '',
     newPath: j['newPath'] as String? ?? '',
   );
@@ -1962,3 +1993,254 @@ String arrUnescape(String s) => !s.contains('&')
           .replaceAll('&lt;', '<')
           .replaceAll('&gt;', '>')
           .replaceAll('&amp;', '&');
+
+// -------------------------------------------------------------------- Music
+
+/// A Lidarr metadata profile: which kinds of release (albums, EPs, singles,
+/// live, compilations) it keeps of an artist. Named and numbered like a
+/// quality profile.
+typedef ArrMetadataProfile = ArrQualityProfile;
+
+/// An album as an artist's next or last one: its name and when it's out.
+typedef ArrAlbumBrief = ({String title, DateTime? releaseDate});
+
+ArrAlbumBrief? _albumBrief(Object? v) => v is Map && v['title'] is String
+    ? (title: v['title'] as String, releaseDate: _day(v['releaseDate']))
+    : null;
+
+/// An artist in Lidarr.
+class ArrArtist {
+  final int id;
+  final String name;
+  final String? sortName;
+  final String? disambiguation;
+  final String? overview;
+
+  /// MusicBrainz's id of the artist: what Lidarr and Jellyfin share.
+  final String? foreignArtistId;
+  final String? artistType; // Group, Person, Orchestra, Choir...
+  final bool ended;
+  final bool monitored;
+
+  /// Which albums Lidarr monitors as they're added: all, none, or new (only
+  /// those released after now).
+  final String? monitorNewItems;
+  final int? qualityProfileId;
+  final int? metadataProfileId;
+  final String? path;
+  final List<int> tags;
+  final List<ArrImage> images;
+  final List<String> genres;
+  final DateTime? added;
+  final int albumCount;
+  final int trackFileCount;
+
+  /// Tracks of the monitored albums that are out: what Lidarr counts as
+  /// wanted.
+  final int trackCount;
+  final int totalTrackCount;
+  final int sizeOnDisk;
+  final ArrAlbumBrief? nextAlbum;
+  final ArrAlbumBrief? lastAlbum;
+  final double? rating;
+
+  const ArrArtist({
+    required this.id,
+    required this.name,
+    this.sortName,
+    this.disambiguation,
+    this.overview,
+    this.foreignArtistId,
+    this.artistType,
+    this.ended = false,
+    this.monitored = false,
+    this.monitorNewItems,
+    this.qualityProfileId,
+    this.metadataProfileId,
+    this.path,
+    this.tags = const [],
+    this.images = const [],
+    this.genres = const [],
+    this.added,
+    this.albumCount = 0,
+    this.trackFileCount = 0,
+    this.trackCount = 0,
+    this.totalTrackCount = 0,
+    this.sizeOnDisk = 0,
+    this.nextAlbum,
+    this.lastAlbum,
+    this.rating,
+  });
+
+  factory ArrArtist.fromJson(Map<String, dynamic> j) {
+    final s = (j['statistics'] as Map?) ?? const {};
+    return ArrArtist(
+      id: _int(j['id']),
+      name: j['artistName'] as String? ?? '',
+      sortName: j['sortName'] as String?,
+      disambiguation: _text(j['disambiguation']),
+      overview: _text(j['overview']),
+      foreignArtistId: _text(j['foreignArtistId']),
+      artistType: _text(j['artistType']),
+      ended: j['ended'] == true || j['status'] == 'ended',
+      monitored: j['monitored'] == true,
+      monitorNewItems: j['monitorNewItems'] as String?,
+      qualityProfileId: _intOrNull(j['qualityProfileId']),
+      metadataProfileId: _intOrNull(j['metadataProfileId']),
+      path: j['path'] as String?,
+      tags: [
+        for (final t in (j['tags'] as List?) ?? const [])
+          if (t is num) t.toInt(),
+      ],
+      images: _images(j['images']),
+      genres: _strings(j['genres']),
+      added: _date(j['added']),
+      albumCount: _int(s['albumCount']),
+      trackFileCount: _int(s['trackFileCount']),
+      trackCount: _int(s['trackCount']),
+      totalTrackCount: _int(s['totalTrackCount']),
+      sizeOnDisk: _int(s['sizeOnDisk']),
+      nextAlbum: _albumBrief(j['nextAlbum']),
+      lastAlbum: _albumBrief(j['lastAlbum']),
+      rating: ((j['ratings'] as Map?)?['value'] as num?)?.toDouble(),
+    );
+  }
+
+  /// Share of the wanted tracks that have a file (0 to 1), as on Lidarr's
+  /// poster bar.
+  double get progress => trackCount == 0
+      ? (trackFileCount > 0 ? 1 : 0)
+      : (trackFileCount / trackCount).clamp(0, 1).toDouble();
+
+  int get missingTracks => (trackCount - trackFileCount).clamp(0, trackCount);
+}
+
+/// An album (or EP, single...) of an artist in Lidarr.
+class ArrAlbum {
+  final int id;
+  final int artistId;
+  final String title;
+  final String? disambiguation;
+
+  /// MusicBrainz's id of the release group: the album, whatever edition.
+  final String? foreignAlbumId;
+  final String albumType; // Album, EP, Single, Broadcast, Other
+  final List<String> secondaryTypes; // Live, Compilation, Remix...
+  final DateTime? releaseDate;
+  final bool monitored;
+  final String? overview;
+  final List<ArrImage> images;
+  final List<String> genres;
+  final Duration? duration;
+  final int trackFileCount;
+
+  /// Every track on the album, wanted or not.
+  final int totalTrackCount;
+  final int sizeOnDisk;
+
+  /// The artist's name, where Lidarr sent the artist along.
+  final String? artistName;
+
+  const ArrAlbum({
+    required this.id,
+    required this.artistId,
+    required this.title,
+    this.disambiguation,
+    this.foreignAlbumId,
+    this.albumType = 'Album',
+    this.secondaryTypes = const [],
+    this.releaseDate,
+    this.monitored = false,
+    this.overview,
+    this.images = const [],
+    this.genres = const [],
+    this.duration,
+    this.trackFileCount = 0,
+    this.totalTrackCount = 0,
+    this.sizeOnDisk = 0,
+    this.artistName,
+  });
+
+  factory ArrAlbum.fromJson(Map<String, dynamic> j) {
+    final s = (j['statistics'] as Map?) ?? const {};
+    final ms = _intOrNull(j['duration']);
+    return ArrAlbum(
+      id: _int(j['id']),
+      artistId: _int(j['artistId']),
+      title: j['title'] as String? ?? '',
+      disambiguation: _text(j['disambiguation']),
+      foreignAlbumId: _text(j['foreignAlbumId']),
+      albumType: _text(j['albumType']) ?? 'Album',
+      secondaryTypes: _strings(j['secondaryTypes']),
+      releaseDate: _day(j['releaseDate']),
+      monitored: j['monitored'] == true,
+      overview: _text(j['overview']),
+      images: _images(j['images']),
+      genres: _strings(j['genres']),
+      duration: ms == null || ms <= 0 ? null : Duration(milliseconds: ms),
+      trackFileCount: _int(s['trackFileCount']),
+      totalTrackCount: _int(s['totalTrackCount']),
+      sizeOnDisk: _int(s['sizeOnDisk']),
+      artistName: (j['artist'] as Map?)?['artistName'] as String?,
+    );
+  }
+
+  /// Out by [now]: a release date of today counts.
+  bool released(DateTime now) {
+    final d = releaseDate;
+    return d != null && !d.isAfter(DateTime(now.year, now.month, now.day));
+  }
+
+  /// Share of the album's tracks that have a file (0 to 1).
+  double get progress => totalTrackCount == 0
+      ? (trackFileCount > 0 ? 1 : 0)
+      : (trackFileCount / totalTrackCount).clamp(0, 1).toDouble();
+
+  bool get complete => totalTrackCount > 0 && trackFileCount >= totalTrackCount;
+}
+
+/// A track of an album in Lidarr.
+class ArrTrack {
+  final int id;
+  final int albumId;
+
+  /// As the release numbers it: "3", or a side and place on vinyl ("A1").
+  final String trackNumber;
+  final int absoluteTrackNumber;
+  final int mediumNumber;
+  final String title;
+  final Duration? duration;
+  final bool hasFile;
+  final int? trackFileId;
+  final bool explicit;
+
+  const ArrTrack({
+    required this.id,
+    required this.albumId,
+    required this.title,
+    this.trackNumber = '',
+    this.absoluteTrackNumber = 0,
+    this.mediumNumber = 1,
+    this.duration,
+    this.hasFile = false,
+    this.trackFileId,
+    this.explicit = false,
+  });
+
+  factory ArrTrack.fromJson(Map<String, dynamic> j) {
+    final ms = _intOrNull(j['duration']);
+    final file = _intOrNull(j['trackFileId']);
+    return ArrTrack(
+      id: _int(j['id']),
+      albumId: _int(j['albumId']),
+      title: j['title'] as String? ?? '',
+      trackNumber: _text(j['trackNumber']) ?? '',
+      absoluteTrackNumber: _int(j['absoluteTrackNumber']),
+      mediumNumber: _intOrNull(j['mediumNumber']) ?? 1,
+      duration: ms == null || ms <= 0 ? null : Duration(milliseconds: ms),
+      hasFile: j['hasFile'] == true,
+      trackFileId: file == null || file <= 0 ? null : file,
+      explicit: j['explicit'] == true,
+    );
+  }
+}

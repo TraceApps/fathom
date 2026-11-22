@@ -55,8 +55,18 @@ class ArrSelection extends ChangeNotifier {
   }
 }
 
+/// How many titles are picked, in the words of their app: shows, movies or
+/// artists.
+String arrCountTitles(AppLocalizations l, ArrKind kind, int n) =>
+    switch (kind) {
+      ArrKind.sonarr => l.arrCountShows(n),
+      ArrKind.radarr => l.arrCountMovies(n),
+      ArrKind.lidarr => l.arrCountArtists(n),
+    };
+
 /// The bar above the grid while picking: how many, Select All, and what the
 /// apps' select mode can do to them all at once.
+
 class ArrBulkBar extends ConsumerStatefulWidget {
   final ArrClient client;
   final ArrSelection selection;
@@ -90,7 +100,7 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
   List<int> get _picked => widget.selection.ids.toList();
 
   String _count(AppLocalizations l, int n) =>
-      _shows ? l.arrCountShows(n) : l.arrCountMovies(n);
+      arrCountTitles(l, widget.client.kind, n);
 
   /// Runs one call for the picked titles and says how it went. Changes end
   /// the picking and refresh the library; a search or refresh doesn't
@@ -217,7 +227,9 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
       (icon: Icons.sell_rounded, label: l.arrTags, run: enabled ? _tags : null, danger: false),
       (
         icon: Icons.search_rounded,
-        label: _shows ? l.arrSearchMonitored : l.arrSearchMoviesBulk,
+        label: widget.client.kind == ArrKind.radarr
+            ? l.arrSearchMoviesBulk
+            : l.arrSearchMonitored,
         run: enabled
             ? () => _run(
                 widget.client.searchMany,
@@ -451,8 +463,12 @@ class _BulkEditDialogState extends ConsumerState<_BulkEditDialog> {
   String _seasonFolder = _keep;
   String _newSeasons = _keep;
   String _availability = _keep;
+  String _metadata = _keep;
+  String _newAlbums = _keep;
 
   bool get _shows => widget.client is SonarrClient;
+  bool get _movies => widget.client.kind == ArrKind.radarr;
+  bool get _music => widget.client.kind == ArrKind.lidarr;
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
@@ -462,7 +478,9 @@ class _BulkEditDialogState extends ConsumerState<_BulkEditDialog> {
       if (_shows && _seriesType != _keep) 'seriesType': _seriesType,
       if (_shows && _seasonFolder != _keep) 'seasonFolder': _seasonFolder == 'yes',
       if (_shows && _newSeasons != _keep) 'monitorNewItems': _newSeasons,
-      if (!_shows && _availability != _keep) 'minimumAvailability': _availability,
+      if (_movies && _availability != _keep) 'minimumAvailability': _availability,
+      if (_music && _metadata != _keep) 'metadataProfileId': int.parse(_metadata),
+      if (_music && _newAlbums != _keep) 'monitorNewItems': _newAlbums,
     };
     if (_root != _keep) {
       // As for one title: a new root folder asks whether to move the files.
@@ -508,13 +526,17 @@ class _BulkEditDialogState extends ConsumerState<_BulkEditDialog> {
     Map<String, String> keep(Map<String, String> m) => {_keep: l.arrNoChange, ...m};
     final changed = [
       _monitored, _profile, _root, _seriesType, _seasonFolder, _newSeasons,
-      _availability,
+      _availability, _metadata, _newAlbums,
     ].any((v) => v != _keep);
+    final metadataProfiles = !_music
+        ? const <ArrMetadataProfile>[]
+        : ref.watch(lidarrMetadataProfilesProvider).asData?.value ??
+              const <ArrMetadataProfile>[];
     return ArrDialogFrame(
       client: widget.client,
       images: const [],
       heading: l.arrEdit,
-      title: _shows ? l.arrCountShows(widget.count) : l.arrCountMovies(widget.count),
+      title: arrCountTitles(l, widget.client.kind, widget.count),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -556,7 +578,25 @@ class _BulkEditDialogState extends ConsumerState<_BulkEditDialog> {
               helper: l.arrMonitorNewSeasonsHint,
               onChanged: (v) => setState(() => _newSeasons = v ?? _keep),
             ),
-          ] else
+          ],
+          if (_music) ...[
+            ArrDropdownField<String>(
+              label: l.arrMetadataProfile,
+              value: _metadata,
+              options: keep({
+                for (final p in metadataProfiles) '${p.id}': p.name,
+              }),
+              onChanged: (v) => setState(() => _metadata = v ?? _keep),
+            ),
+            ArrDropdownField<String>(
+              label: l.arrMonitorNewAlbums,
+              value: _newAlbums,
+              options: keep(arrNewAlbumChoices(l)),
+              helper: l.arrMonitorNewAlbumsHint,
+              onChanged: (v) => setState(() => _newAlbums = v ?? _keep),
+            ),
+          ],
+          if (_movies)
             ArrDropdownField<String>(
               label: l.arrMinimumAvailability,
               value: _availability,
@@ -682,7 +722,6 @@ class _BulkTagsDialogState extends State<_BulkTagsDialog> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final shows = widget.client is SonarrClient;
     final hint = switch (_apply) {
       'remove' => l.arrTagsRemoveHint,
       'replace' => l.arrTagsReplaceHint,
@@ -695,7 +734,7 @@ class _BulkTagsDialogState extends State<_BulkTagsDialog> {
       client: widget.client,
       images: const [],
       heading: l.arrTags,
-      title: shows ? l.arrCountShows(widget.count) : l.arrCountMovies(widget.count),
+      title: arrCountTitles(l, widget.client.kind, widget.count),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -798,12 +837,11 @@ class _BulkDeleteDialogState extends State<_BulkDeleteDialog> {
     final scheme = Theme.of(context).colorScheme;
     final app = widget.client.kind.appName;
     final n = widget.ids.length;
-    final shows = widget.client is SonarrClient;
     return ArrDialogFrame(
       client: widget.client,
       images: const [],
       heading: l.commonDelete,
-      title: shows ? l.arrCountShows(n) : l.arrCountMovies(n),
+      title: arrCountTitles(l, widget.client.kind, n),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
