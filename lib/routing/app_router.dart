@@ -555,9 +555,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/arr/add/:kind',
               pageBuilder: (_, state) => _managePage(ArrAddScreen(
-                  kind: state.pathParameters['kind'] == 'series'
-                      ? ArrKind.sonarr
-                      : ArrKind.radarr,
+                  kind: switch (state.pathParameters['kind']) {
+                    'series' => ArrKind.sonarr,
+                    'artist' => ArrKind.lidarr,
+                    _ => ArrKind.radarr,
+                  },
                   term: state.uri.queryParameters['term'],
                   folder: state.uri.queryParameters['folder']))),
           GoRoute(

@@ -1498,6 +1498,8 @@ class ArrAddDefaults {
   final bool? search;
   final bool? monitorNewSeasons; // Sonarr
   final bool? searchCutoff; // Sonarr
+  final int? metadataProfileId; // Lidarr
+  final String? monitorNewItems; // Lidarr: all, new or none
   final List<int>? tags;
 
   const ArrAddDefaults({
@@ -1510,6 +1512,8 @@ class ArrAddDefaults {
     this.search,
     this.monitorNewSeasons,
     this.searchCutoff,
+    this.metadataProfileId,
+    this.monitorNewItems,
     this.tags,
   });
 
@@ -1523,6 +1527,8 @@ class ArrAddDefaults {
       search == null &&
       monitorNewSeasons == null &&
       searchCutoff == null &&
+      metadataProfileId == null &&
+      monitorNewItems == null &&
       tags == null;
 
   factory ArrAddDefaults.fromJson(Map<String, dynamic> j) => ArrAddDefaults(
@@ -1535,6 +1541,8 @@ class ArrAddDefaults {
     search: j['search'] as bool?,
     monitorNewSeasons: j['monitorNewSeasons'] as bool?,
     searchCutoff: j['searchCutoff'] as bool?,
+    metadataProfileId: _intOrNull(j['metadataProfileId']),
+    monitorNewItems: j['monitorNewItems'] as String?,
     tags: (j['tags'] as List?)?.whereType<num>().map((n) => n.toInt()).toList(),
   );
 
@@ -1550,6 +1558,8 @@ class ArrAddDefaults {
       other.search == search &&
       other.monitorNewSeasons == monitorNewSeasons &&
       other.searchCutoff == searchCutoff &&
+      other.metadataProfileId == metadataProfileId &&
+      other.monitorNewItems == monitorNewItems &&
       _sameInts(other.tags, tags);
 
   @override
@@ -1563,6 +1573,8 @@ class ArrAddDefaults {
     search,
     monitorNewSeasons,
     searchCutoff,
+    metadataProfileId,
+    monitorNewItems,
     tags == null ? null : Object.hashAll(tags!),
   );
 
@@ -1576,6 +1588,8 @@ class ArrAddDefaults {
     if (search != null) 'search': search,
     if (monitorNewSeasons != null) 'monitorNewSeasons': monitorNewSeasons,
     if (searchCutoff != null) 'searchCutoff': searchCutoff,
+    if (metadataProfileId != null) 'metadataProfileId': metadataProfileId,
+    if (monitorNewItems != null) 'monitorNewItems': monitorNewItems,
     if (tags != null) 'tags': tags,
   };
 }
@@ -1588,6 +1602,7 @@ typedef ArrAddedWith = ({
   String? minimumAvailability,
   String? seriesType,
   bool? seasonFolder,
+  int? metadataProfileId,
 });
 
 /// Where a starting choice came from.
@@ -1604,6 +1619,8 @@ class ArrAddChoice {
   final bool search;
   final bool monitorNewSeasons;
   final bool searchCutoff;
+  final int? metadataProfileId; // Lidarr
+  final String monitorNewItems; // Lidarr
   final List<int> tags;
 
   /// Where the quality profile came from, which is the choice people most
@@ -1621,6 +1638,8 @@ class ArrAddChoice {
     required this.profileSource,
     this.monitorNewSeasons = true,
     this.searchCutoff = false,
+    this.metadataProfileId,
+    this.monitorNewItems = 'all',
     this.tags = const [],
   });
 }
@@ -1665,8 +1684,22 @@ ArrAddChoice arrStartingChoice({
   required List<String> roots,
   required List<int> profiles,
   required List<ArrAddedWith> library,
+  List<int> metadataProfiles = const [],
 }) {
-  final shows = kind == ArrKind.sonarr;
+  // Lidarr: the metadata profile, by the same rule as the quality profile.
+  final metadata =
+      (saved.metadataProfileId != null &&
+              metadataProfiles.contains(saved.metadataProfileId)
+          ? saved.metadataProfileId
+          : null) ??
+      _mostCommon(
+        library.map(
+          (t) => metadataProfiles.contains(t.metadataProfileId)
+              ? t.metadataProfileId
+              : null,
+        ),
+      ) ??
+      (metadataProfiles.isEmpty ? null : metadataProfiles.first);
   final root =
       (saved.rootFolder != null && roots.contains(saved.rootFolder)
           ? saved.rootFolder
@@ -1690,7 +1723,12 @@ ArrAddChoice arrStartingChoice({
   return ArrAddChoice(
     rootFolder: root,
     qualityProfileId: profile,
-    monitor: saved.monitor ?? (shows ? 'all' : 'movieOnly'),
+    monitor:
+        saved.monitor ??
+        switch (kind) {
+          ArrKind.sonarr || ArrKind.lidarr => 'all',
+          ArrKind.radarr => 'movieOnly',
+        },
     minimumAvailability:
         saved.minimumAvailability ??
         _mostCommon(library.map((t) => t.minimumAvailability)) ??
@@ -1706,6 +1744,8 @@ ArrAddChoice arrStartingChoice({
     search: saved.search ?? true,
     monitorNewSeasons: saved.monitorNewSeasons ?? true,
     searchCutoff: saved.searchCutoff ?? false,
+    metadataProfileId: metadata,
+    monitorNewItems: saved.monitorNewItems ?? 'all',
     tags: saved.tags ?? const [],
     profileSource: savedProfile != null
         ? ArrChoiceSource.saved

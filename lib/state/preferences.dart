@@ -363,6 +363,7 @@ class Prefs {
   // What Add starts with for a new show / movie (ArrAddDefaults as JSON).
   final Map<String, dynamic> sonarrAddDefaults;
   final Map<String, dynamic> radarrAddDefaults;
+  final Map<String, dynamic> lidarrAddDefaults;
 
   /// Manual Import's last folders per app ("sonarr" / "radarr": newest
   /// first) and its Move or Copy choice ("mode").
@@ -509,6 +510,7 @@ class Prefs {
     this.lidarrApiKey = '',
     this.sonarrAddDefaults = const {},
     this.radarrAddDefaults = const {},
+    this.lidarrAddDefaults = const {},
     this.arrImport = const {},
     this.seerrRowOrder = kDefaultSeerrRows,
     this.seerrHiddenRows = const [],
@@ -647,6 +649,7 @@ class Prefs {
     String? lidarrApiKey,
     Map<String, dynamic>? sonarrAddDefaults,
     Map<String, dynamic>? radarrAddDefaults,
+    Map<String, dynamic>? lidarrAddDefaults,
     Map<String, dynamic>? arrImport,
     List<String>? seerrRowOrder,
     List<String>? seerrHiddenRows,
@@ -799,6 +802,7 @@ class Prefs {
         lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
         sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
         radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
+        lidarrAddDefaults: lidarrAddDefaults ?? this.lidarrAddDefaults,
         arrImport: arrImport ?? this.arrImport,
         seerrRowOrder: seerrRowOrder ?? this.seerrRowOrder,
         seerrHiddenRows: seerrHiddenRows ?? this.seerrHiddenRows,
@@ -937,6 +941,7 @@ class Prefs {
         'lidarrApiKey': lidarrApiKey,
         'sonarrAddDefaults': sonarrAddDefaults,
         'radarrAddDefaults': radarrAddDefaults,
+        'lidarrAddDefaults': lidarrAddDefaults,
         'arrImport': arrImport,
         'seerrRowOrder': seerrRowOrder,
         'seerrHiddenRows': seerrHiddenRows,
@@ -1106,6 +1111,9 @@ class Prefs {
             : const {},
         radarrAddDefaults: j['radarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['radarrAddDefaults'] as Map)
+            : const {},
+        lidarrAddDefaults: j['lidarrAddDefaults'] is Map
+            ? Map<String, dynamic>.from(j['lidarrAddDefaults'] as Map)
             : const {},
         seerrRowOrder: (j['seerrRowOrder'] as List?)?.cast<String>() ??
             kDefaultSeerrRows,

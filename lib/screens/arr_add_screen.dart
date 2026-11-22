@@ -13,6 +13,7 @@ import '../state/preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
+import '../widgets/arr_monitoring.dart';
 import '../widgets/arr_tags.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
@@ -44,22 +45,27 @@ class _Found {
 }
 
 /// Which apps a search goes to. TMDB numbers mean a different title in each
-/// app (tmdb:603 is The Matrix in Radarr, a sitcom in Sonarr), so with both
-/// asked, `tmdb:` goes to Radarr and `tvdb:` to Sonarr; a name or `imdb:`
-/// goes to both. One app on its own gets every search.
+/// app (tmdb:603 is The Matrix in Radarr, a sitcom in Sonarr), so with more
+/// than one asked, `tmdb:` goes to Radarr and `tvdb:` to Sonarr, `imdb:` to
+/// both of them, and `lidarr:` (a MusicBrainz id) to Lidarr; a name goes to
+/// every app asked. One app on its own gets every search.
 List<ArrKind> arrAddKindsFor(String term, List<ArrKind> asked) {
   if (asked.length < 2) return asked;
   final t = term.trim().toLowerCase();
+  bool takes(ArrKind k) => switch (k) {
+    ArrKind.sonarr => !t.startsWith('tmdb:') && !t.startsWith('lidarr:'),
+    ArrKind.radarr => !t.startsWith('tvdb:') && !t.startsWith('lidarr:'),
+    ArrKind.lidarr =>
+      !t.startsWith('tmdb:') && !t.startsWith('tvdb:') && !t.startsWith('imdb:'),
+  };
   return [
     for (final k in asked)
-      if (!(t.startsWith('tmdb:') && k == ArrKind.sonarr) &&
-          !(t.startsWith('tvdb:') && k == ArrKind.radarr))
-        k,
+      if (takes(k)) k,
   ];
 }
 
-/// Finds movies (Radarr) and shows (Sonarr) online and adds them. With no
-/// [kind] it searches every connected app at once.
+/// Finds movies (Radarr), shows (Sonarr) and artists (Lidarr) online and
+/// adds them. With no [kind] it searches every connected app at once.
 class ArrAddScreen extends ConsumerStatefulWidget {
   final ArrKind? kind;
 
@@ -86,7 +92,7 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
   Timer? _debounce;
   Map<ArrKind, Future<List<_Found>>> _results = const {};
   String _asked = '';
-  late ArrKind? _only = widget.kind; // null: both apps
+  late ArrKind? _only = widget.kind; // null: every app
   // Opening from a Jellyfin page goes straight to the form once, when the
   // lookup finds exactly that one title.
   bool _autoOpen = false;
@@ -94,6 +100,7 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
   List<ArrKind> get _connected => [
     if (ref.read(radarrClientProvider) != null) ArrKind.radarr,
     if (ref.read(sonarrClientProvider) != null) ArrKind.sonarr,
+    if (ref.read(lidarrClientProvider) != null) ArrKind.lidarr,
   ];
 
   List<ArrKind> get _kinds => _only == null ? _connected : [_only!];
@@ -110,7 +117,7 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
       _search.text = term;
       _autoOpen =
           widget.kind != null &&
-          RegExp(r'^(tmdb|tvdb|imdb):', caseSensitive: false).hasMatch(term);
+          RegExp(r'^(tmdb|tvdb|imdb|lidarr):', caseSensitive: false).hasMatch(term);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _run();
       });
@@ -159,6 +166,24 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
           ),
       ];
     }
+    if (c is LidarrClient) {
+      return [
+        for (final x in await c.lookup(term))
+          _Found(
+            kind: kind,
+            title: x.item.name,
+            year: null,
+            overview: x.item.overview,
+            // "Group · English rock band", to tell artists of one name apart.
+            byline: [
+              ?x.item.artistType,
+              ?x.item.disambiguation,
+            ].join(' · '),
+            images: x.item.images,
+            lookup: x,
+          ),
+      ];
+    }
     return const [];
   }
 
@@ -189,7 +214,11 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
   }
 
   Future<void> _pick(_Found f) async {
-    final kindPath = f.kind == ArrKind.sonarr ? 'series' : 'movie';
+    final kindPath = switch (f.kind) {
+      ArrKind.sonarr => 'series',
+      ArrKind.radarr => 'movie',
+      ArrKind.lidarr => 'artist',
+    };
     if (f.lookup.inLibrary) {
       context.push('/arr/$kindPath/${f.lookup.existingId}');
       return;
@@ -201,10 +230,13 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
       builder: (_) => _AddDialog(client: client, found: f, folderHint: _hint),
     );
     if (id == null || !mounted) return;
-    if (f.kind == ArrKind.sonarr) {
-      ref.invalidate(sonarrSeriesListProvider);
-    } else {
-      ref.invalidate(radarrMoviesProvider);
+    switch (f.kind) {
+      case ArrKind.sonarr:
+        ref.invalidate(sonarrSeriesListProvider);
+      case ArrKind.radarr:
+        ref.invalidate(radarrMoviesProvider);
+      case ArrKind.lidarr:
+        ref.invalidate(lidarrArtistsProvider);
     }
     ref.invalidate(arrRootFoldersProvider(f.kind));
     ref.invalidate(arrCalendarProvider);
@@ -215,21 +247,30 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final both = _connected.length > 1;
-    final title = switch (_only) {
+    final connected = _connected;
+    final both = connected.length > 1;
+    // With every app asked, Add is for any of them; with one, for its own.
+    final only = _only ?? (both ? null : connected.firstOrNull);
+    final title = switch (only) {
       ArrKind.radarr => l.arrAddMovie,
       ArrKind.sonarr => l.arrAddShow,
-      ArrKind.lidarr || null => l.arrAddTitle,
+      ArrKind.lidarr => l.arrAddArtist,
+      null when connected.contains(ArrKind.lidarr) => l.arrAddAnything,
+      null => l.arrAddTitle,
     };
-    final hint = switch (_only) {
+    final hint = switch (only) {
       ArrKind.radarr => l.arrAddMovieHint,
       ArrKind.sonarr => l.arrAddShowHint,
-      ArrKind.lidarr || null => l.arrAddAnyHint,
+      ArrKind.lidarr => l.arrAddArtistHint,
+      null when connected.contains(ArrKind.lidarr) => l.arrAddAnythingHint,
+      null => l.arrAddAnyHint,
     };
-    final tip = switch (_only) {
+    final tip = switch (only) {
       ArrKind.radarr => l.arrAddMovieTip,
       ArrKind.sonarr => l.arrAddShowTip,
-      ArrKind.lidarr || null => l.arrAddAnyTip,
+      ArrKind.lidarr => l.arrAddArtistTip,
+      null when connected.contains(ArrKind.lidarr) => l.arrAddAnythingTip,
+      null => l.arrAddAnyTip,
     };
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -260,16 +301,12 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
                   showSelectedIcon: false,
                   segments: [
                     ButtonSegment(value: null, label: Text(l.browseAll)),
-                    ButtonSegment(
-                      value: ArrKind.radarr,
-                      icon: const Icon(Icons.movie_rounded),
-                      label: Text(l.arrMovies),
-                    ),
-                    ButtonSegment(
-                      value: ArrKind.sonarr,
-                      icon: const Icon(Icons.live_tv_rounded),
-                      label: Text(l.arrShows),
-                    ),
+                    for (final k in connected)
+                      ButtonSegment(
+                        value: k,
+                        icon: Icon(arrKindIcon(k)),
+                        label: Text(arrKindName(l, k)),
+                      ),
                   ],
                   selected: {_only},
                   onSelectionChanged: (s) => _setOnly(s.first),
@@ -279,11 +316,9 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
           Expanded(
             child: _results.isEmpty
                 ? EmptyState(
-                    icon: switch (_only) {
-                      ArrKind.sonarr => Icons.live_tv_rounded,
-                      ArrKind.radarr => Icons.movie_rounded,
-                      ArrKind.lidarr || null => Icons.add_circle_outline_rounded,
-                    },
+                    icon: only == null
+                        ? Icons.add_circle_outline_rounded
+                        : arrKindIcon(only),
                     title: title,
                     message: tip,
                   )
@@ -331,7 +366,6 @@ class _ResultSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final shows = kind == ArrKind.sonarr;
     final roots =
         ref.watch(arrRootFoldersProvider(kind)).asData?.value ??
         const <ArrRootFolder>[];
@@ -345,13 +379,13 @@ class _ResultSection extends ConsumerWidget {
                 child: Row(
                   children: [
                     Icon(
-                      shows ? Icons.live_tv_rounded : Icons.movie_rounded,
+                      arrKindIcon(kind),
                       size: 18,
                       color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      shows ? l.arrShows : l.arrMovies,
+                      arrKindName(l, kind),
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -445,7 +479,6 @@ class _ResultCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final f = found;
-    final shows = f.kind == ArrKind.sonarr;
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -465,9 +498,7 @@ class _ResultCard extends StatelessWidget {
                     client: client,
                     images: f.images,
                     width: 185,
-                    placeholderIcon: shows
-                        ? Icons.live_tv_rounded
-                        : Icons.movie_rounded,
+                    placeholderIcon: arrKindIcon(f.kind),
                   ),
                 ),
               ),
@@ -595,7 +626,18 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
     setState(() => _busy = true);
     var id = 0;
     final ok = await arrRun(context, () async {
-      if (c is SonarrClient) {
+      if (c is LidarrClient) {
+        id = (await c.addArtist(
+          widget.found.lookup.raw,
+          qualityProfileId: d.qualityProfileId!,
+          metadataProfileId: d.metadataProfileId!,
+          rootFolderPath: root,
+          monitor: d.monitor,
+          monitorNewItems: d.monitorNewItems,
+          search: d.search,
+          tags: tags,
+        )).id;
+      } else if (c is SonarrClient) {
         id = (await c.addSeries(
           widget.found.lookup.raw,
           qualityProfileId: d.qualityProfileId!,
@@ -711,7 +753,11 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
     return ArrDialogFrame(
       client: widget.client,
       images: f.images,
-      heading: _shows ? l.arrAddShow : l.arrAddMovie,
+      heading: switch (_kind) {
+        ArrKind.sonarr => l.arrAddShow,
+        ArrKind.radarr => l.arrAddMovie,
+        ArrKind.lidarr => l.arrAddArtist,
+      },
       title: f.heading,
       body: body,
       actions: [
@@ -726,7 +772,8 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
                   setup == null ||
                   d == null ||
                   d.rootFolder == null ||
-                  d.qualityProfileId == null
+                  d.qualityProfileId == null ||
+                  (_kind == ArrKind.lidarr && d.metadataProfileId == null)
               ? null
               : () => _add(setup),
           child: _busy ? const AppSpinner.inline() : Text(l.arrAdd),
@@ -822,6 +869,8 @@ class ArrChoiceDraft {
   bool search;
   bool monitorNewSeasons;
   bool searchCutoff;
+  int? metadataProfileId; // Lidarr
+  String monitorNewItems; // Lidarr
   List<int> tags;
 
   /// The search setting Add started with, to go back to when "use the
@@ -839,6 +888,8 @@ class ArrChoiceDraft {
       search = c.search,
       monitorNewSeasons = c.monitorNewSeasons,
       searchCutoff = c.searchCutoff,
+      metadataProfileId = c.metadataProfileId,
+      monitorNewItems = c.monitorNewItems,
       tags = [...c.tags],
       searchDefault = c.search,
       profileSource = c.profileSource;
@@ -849,11 +900,14 @@ class ArrChoiceDraft {
   /// whether to search.
   ArrAddDefaults toDefaults({required ArrKind kind, ArrAddDefaults? keep}) {
     final shows = kind == ArrKind.sonarr;
+    final music = kind == ArrKind.lidarr;
     return ArrAddDefaults(
       rootFolder: keep != null ? keep.rootFolder : rootFolder,
       qualityProfileId: qualityProfileId,
       monitor: monitor,
-      minimumAvailability: shows ? null : minimumAvailability,
+      minimumAvailability: kind == ArrKind.radarr ? minimumAvailability : null,
+      metadataProfileId: music ? metadataProfileId : null,
+      monitorNewItems: music ? monitorNewItems : null,
       seriesType: shows ? seriesType : null,
       seasonFolder: shows ? seasonFolder : null,
       search: keep != null ? keep.search : search,
@@ -896,6 +950,7 @@ class ArrChoiceFields extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final shows = kind == ArrKind.sonarr;
+    final music = kind == ArrKind.lidarr;
     final d = draft;
     void set(VoidCallback f) {
       f();
@@ -906,8 +961,11 @@ class ArrChoiceFields extends StatelessWidget {
         ? null
         : switch (d.profileSource) {
             ArrChoiceSource.saved => l.arrProfileFromDefaults,
-            ArrChoiceSource.library =>
-              shows ? l.arrProfileFromShows : l.arrProfileFromMovies,
+            ArrChoiceSource.library => switch (kind) {
+              ArrKind.sonarr => l.arrProfileFromShows,
+              ArrKind.radarr => l.arrProfileFromMovies,
+              ArrKind.lidarr => l.arrProfileFromArtists,
+            },
             ArrChoiceSource.first => null,
           };
     return Column(
@@ -932,14 +990,38 @@ class ArrChoiceFields extends StatelessWidget {
           helper: profileHelper,
           onChanged: enabled ? (v) => set(() => d.qualityProfileId = v) : null,
         ),
+        if (music)
+          ArrDropdownField<int>(
+            label: l.arrMetadataProfile,
+            value: d.metadataProfileId,
+            options: {for (final p in setup.metadataProfiles) p.id: p.name},
+            helper: l.arrMetadataProfileHint,
+            onChanged: enabled
+                ? (v) => set(() => d.metadataProfileId = v)
+                : null,
+          ),
         ArrDropdownField<String>(
-          label: l.arrMonitor,
+          label: music ? l.arrMonitorAlbums : l.arrMonitor,
           value: d.monitor,
-          options: shows ? arrMonitorOptions(l) : arrMovieMonitorOptions(l),
+          options: switch (kind) {
+            ArrKind.sonarr => arrMonitorOptions(l),
+            ArrKind.radarr => arrMovieMonitorOptions(l),
+            ArrKind.lidarr => arrArtistMonitorOptions(l),
+          },
           onChanged: enabled
               ? (v) => set(() => d.monitor = v ?? d.monitor)
               : null,
         ),
+        if (music)
+          ArrDropdownField<String>(
+            label: l.arrMonitorNewAlbums,
+            value: d.monitorNewItems,
+            options: arrNewAlbumChoices(l),
+            helper: arrNewAlbumHint(l, d.monitorNewItems),
+            onChanged: enabled
+                ? (v) => set(() => d.monitorNewItems = v ?? d.monitorNewItems)
+                : null,
+          ),
         if (shows) ...[
           ArrDropdownField<String>(
             label: l.arrSeriesType,
@@ -962,7 +1044,7 @@ class ArrChoiceFields extends StatelessWidget {
                 ? (v) => set(() => d.monitorNewSeasons = v)
                 : null,
           ),
-        ] else
+        ] else if (!music)
           ArrDropdownField<String>(
             label: l.arrMinimumAvailability,
             value: d.minimumAvailability,
@@ -980,7 +1062,11 @@ class ArrChoiceFields extends StatelessWidget {
             onChanged: enabled ? (ids) => set(() => d.tags = ids) : null,
           ),
         ArrCheck(
-          label: shows ? l.arrSearchMissingNow : l.arrSearchMovieNow,
+          label: switch (kind) {
+            ArrKind.sonarr => l.arrSearchMissingNow,
+            ArrKind.radarr => l.arrSearchMovieNow,
+            ArrKind.lidarr => l.arrSearchAlbumsNow,
+          },
           value: d.search,
           onChanged: enabled ? (v) => set(() => d.search = v) : null,
         ),
@@ -1005,6 +1091,17 @@ Map<String, String> arrMonitorOptions(AppLocalizations l) => {
   'pilot': l.arrMonitorPilot,
   'firstSeason': l.arrMonitorFirstSeason,
   'lastSeason': l.arrMonitorLastSeason,
+  'none': l.arrMonitorNone,
+};
+
+/// Lidarr's choices for which albums of a new artist to monitor.
+Map<String, String> arrArtistMonitorOptions(AppLocalizations l) => {
+  'all': l.arrMonitorAllAlbums,
+  'future': l.arrMonitorFutureAlbums,
+  'missing': l.arrMonitorMissingAlbums,
+  'existing': l.arrMonitorExistingAlbums,
+  'latest': l.arrMonitorLatestAlbum,
+  'first': l.arrMonitorFirstAlbum,
   'none': l.arrMonitorNone,
 };
 

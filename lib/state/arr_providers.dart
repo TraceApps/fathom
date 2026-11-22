@@ -724,8 +724,7 @@ ArrAddDefaults arrSavedDefaults(Prefs p, ArrKind kind) =>
     ArrAddDefaults.fromJson(switch (kind) {
       ArrKind.sonarr => p.sonarrAddDefaults,
       ArrKind.radarr => p.radarrAddDefaults,
-      // Artists aren't added from Fathom yet: nothing is saved for them.
-      ArrKind.lidarr => const {},
+      ArrKind.lidarr => p.lidarrAddDefaults,
     });
 
 /// Saves what Add starts with next time in [kind].
@@ -739,16 +738,17 @@ Future<void> saveArrAddDefaults(
       (p) => switch (kind) {
         ArrKind.sonarr => p.copyWith(sonarrAddDefaults: d.toJson()),
         ArrKind.radarr => p.copyWith(radarrAddDefaults: d.toJson()),
-        ArrKind.lidarr => p,
+        ArrKind.lidarr => p.copyWith(lidarrAddDefaults: d.toJson()),
       },
     );
 
 /// Everything Add needs from one app before it can show its form: the root
-/// folders (with what's already on disk), the quality profiles, and the
-/// choices to start on.
+/// folders (with what's already on disk), the quality profiles (and
+/// Lidarr's metadata profiles), and the choices to start on.
 typedef ArrAddSetup = ({
   List<ArrRootFolder> roots,
   List<ArrQualityProfile> profiles,
+  List<ArrMetadataProfile> metadataProfiles,
   ArrAddChoice choice,
 });
 
@@ -761,11 +761,26 @@ final arrAddSetupProvider = FutureProvider.autoDispose
       );
       final rootsF = ref.watch(arrRootFoldersProvider(kind).future);
       final profilesF = ref.watch(arrQualityProfileListProvider(kind).future);
+      final metadataF = kind == ArrKind.lidarr
+          ? ref.watch(lidarrMetadataProfilesProvider.future)
+          : Future.value(const <ArrMetadataProfile>[]);
       // The library only tells us the usual choices; when it can't load,
       // Add still works from the saved ones or the app's first.
       Future<List<ArrAddedWith>> library() async {
         try {
-          if (kind == ArrKind.lidarr) return const [];
+          if (kind == ArrKind.lidarr) {
+            return [
+              for (final a in await ref.watch(lidarrArtistsProvider.future))
+                (
+                  path: a.path,
+                  qualityProfileId: a.qualityProfileId,
+                  minimumAvailability: null,
+                  seriesType: null,
+                  seasonFolder: null,
+                  metadataProfileId: a.metadataProfileId,
+                ),
+            ];
+          }
           if (kind == ArrKind.sonarr) {
             return [
               for (final s in await ref.watch(sonarrSeriesListProvider.future))
@@ -775,6 +790,7 @@ final arrAddSetupProvider = FutureProvider.autoDispose
                   minimumAvailability: null,
                   seriesType: s.seriesType,
                   seasonFolder: s.seasonFolder,
+                  metadataProfileId: null,
                 ),
             ];
           }
@@ -786,6 +802,7 @@ final arrAddSetupProvider = FutureProvider.autoDispose
                 minimumAvailability: m.minimumAvailability,
                 seriesType: null,
                 seasonFolder: null,
+                metadataProfileId: null,
               ),
           ];
         } catch (_) {
@@ -796,15 +813,18 @@ final arrAddSetupProvider = FutureProvider.autoDispose
       final lib = await library();
       final roots = await rootsF;
       final profiles = await profilesF;
+      final metadata = await metadataF;
       return (
         roots: roots,
         profiles: profiles,
+        metadataProfiles: metadata,
         choice: arrStartingChoice(
           kind: kind,
           saved: saved,
           roots: [for (final r in roots) r.path],
           profiles: [for (final p in profiles) p.id],
           library: lib,
+          metadataProfiles: [for (final p in metadata) p.id],
         ),
       );
     });
@@ -977,6 +997,21 @@ final arrMatchProvider = FutureProvider.autoDispose
         if (c == null) return null;
         final s = await c.seriesByTvdb(arg.providerId);
         return (kind: ArrKind.sonarr, id: s?.id);
+      } catch (_) {
+        return null;
+      }
+    });
+
+/// A Jellyfin music artist in Lidarr, by its MusicBrainz id: its id there,
+/// or null in the match when Lidarr hasn't got it. Null when Lidarr isn't
+/// connected or can't be reached (the link simply doesn't show).
+final lidarrMatchProvider = FutureProvider.autoDispose
+    .family<ArrMatch?, String>((ref, mbId) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null || mbId.isEmpty) return null;
+      try {
+        final a = await c.artistByMbId(mbId);
+        return (kind: ArrKind.lidarr, id: a?.id);
       } catch (_) {
         return null;
       }

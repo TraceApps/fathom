@@ -1,0 +1,86 @@
+[
+  {
+    "status": "continuing",
+    "ended": false,
+    "artistName": "Massive Attack",
+    "foreignArtistId": "10adbe5e-a2c0-4bf3-8249-2b4cbf6e6ca8",
+    "tadbId": 0,
+    "discogsId": 0,
+    "artistType": "Group",
+    "disambiguation": "",
+    "links": [
+      {
+        "url": "http://musicmoz.org/Bands_and_Artists/M/Massive_Attack/",
+        "name": "musicmoz"
+      }
+    ],
+    "nextAlbum": null,
+    "lastAlbum": null,
+    "images": [
+      {
+        "coverType": "clearlogo",
+        "url": "/MediaCoverProxy/7f0bc8cff0f10c77fb18686bd727272060a00c98694950c7f3bf2c3c100a2e85/massive-attack-5068eb29db8e3.png",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://assets.fanart.tv/fanart/massive-attack-5068eb29db8e3.png",
+        "extension": ".png"
+      },
+      {
+        "coverType": "poster",
+        "url": "/MediaCoverProxy/2793c26f2b1331709137fd2477c7965aeebf4ced57d2224d634abe2f88fbb5d7/massive-attack-5278d561a099a.jpg",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://assets.fanart.tv/fanart/massive-attack-5278d561a099a.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "banner",
+        "url": "/MediaCoverProxy/b4b113be8acbd393f2ff2eb44b8371a988c46e8d7f19345cabb9c2e04fddff20/massive-attack-503bb25816ed3.jpg",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://assets.fanart.tv/fanart/massive-attack-503bb25816ed3.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "fanart",
+        "url": "/MediaCoverProxy/9883ea870534a8e90971f6f57b5fb0a25c73a86739763507212d8699a19e89a9/massive-attack-4dde91e9e04c0.jpg",
+        "remoteUrl": "https://images.lidarr.audio/cache/https://assets.fanart.tv/fanart/massive-attack-4dde91e9e04c0.jpg",
+        "extension": ".jpg"
+      }
+    ],
+    "remotePoster": "https://images.lidarr.audio/cache/https://assets.fanart.tv/fanart/massive-attack-5278d561a099a.jpg",
+    "qualityProfileId": 0,
+    "metadataProfileId": 0,
+    "monitored": false,
+    "monitorNewItems": "all",
+    "folder": "Massive Attack",
+    "genres": [
+      "Trip Hop",
+      "Electronic",
+      "Downtempo",
+      "Ambient",
+      "Dub",
+      "Alternative Dance",
+      "Club",
+      "Electronica",
+      "Rock",
+      "Tech House",
+      "Techno",
+      "Trap",
+      "Future Bass",
+      "Edm",
+      "Melodic Techno",
+      "Uk Street Soul",
+      "Melodic House",
+      "Alternative Pop",
+      "Breakbeat",
+      "Breaks",
+      "Dance",
+      "Hip Hop",
+      "Pop",
+      "Progressive House"
+    ],
+    "cleanName": "massiveattack",
+    "sortName": "massive attack",
+    "tags": [],
+    "added": "0001-01-01T00:00:00Z",
+    "ratings": {
+      "votes": 27,
+      "value": 9.1
+    }
+  }
+]

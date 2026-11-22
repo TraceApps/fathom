@@ -745,6 +745,13 @@ class ArrListColumn extends StatelessWidget {
   );
 }
 
+/// A kind of title as the section names its library: Movies, Shows, Music.
+String arrKindName(AppLocalizations l, ArrKind kind) => switch (kind) {
+  ArrKind.radarr => l.arrMovies,
+  ArrKind.sonarr => l.arrShows,
+  ArrKind.lidarr => l.arrMusic,
+};
+
 /// What stands for a title of [kind] where it has no picture.
 IconData arrKindIcon(ArrKind kind) => switch (kind) {
   ArrKind.sonarr => Icons.live_tv_rounded,

@@ -1,0 +1,129 @@
+[
+  {
+    "status": "continuing",
+    "ended": false,
+    "artistName": "Portishead",
+    "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11",
+    "tadbId": 0,
+    "discogsId": 0,
+    "artistType": "Group",
+    "disambiguation": "",
+    "links": [
+      {
+        "url": "http://www.portishead.co.uk/",
+        "name": "portishead"
+      }
+    ],
+    "nextAlbum": null,
+    "lastAlbum": null,
+    "images": [
+      {
+        "coverType": "poster",
+        "url": "/MediaCover/1/poster.jpg?lastWrite=639309635338590035",
+        "remoteUrl": "/config/MediaCover/1/poster.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "fanart",
+        "url": "/MediaCover/1/fanart.jpg?lastWrite=639309635341162129",
+        "remoteUrl": "/config/MediaCover/1/fanart.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "banner",
+        "url": "/MediaCover/1/banner.jpg?lastWrite=639309635343162545",
+        "remoteUrl": "/config/MediaCover/1/banner.jpg",
+        "extension": ".jpg"
+      },
+      {
+        "coverType": "clearlogo",
+        "url": "/MediaCover/1/clearlogo.png?lastWrite=639309635344668368",
+        "remoteUrl": "/config/MediaCover/1/clearlogo.png",
+        "extension": ".png"
+      }
+    ],
+    "path": "/music/Portishead",
+    "qualityProfileId": 1,
+    "metadataProfileId": 1,
+    "monitored": true,
+    "monitorNewItems": "all",
+    "folder": "Portishead",
+    "genres": [
+      "Trip Hop",
+      "Electronic",
+      "Downtempo",
+      "Experimental Rock",
+      "Folktronica"
+    ],
+    "cleanName": "portishead",
+    "sortName": "portishead",
+    "tags": [],
+    "added": "2026-11-22T16:58:52Z",
+    "ratings": {
+      "votes": 22,
+      "value": 9.1
+    },
+    "id": 1
+  },
+  {
+    "status": "continuing",
+    "ended": false,
+    "artistName": "Mortishead",
+    "foreignArtistId": "b0d0a03a-1e25-443b-be11-d382e82ceb51",
+    "tadbId": 0,
+    "discogsId": 0,
+    "artistType": "Group",
+    "disambiguation": "Industrial, thrash, groove and sludge",
+    "links": [
+      {
+        "url": "https://www.facebook.com/Mortishead",
+        "name": "facebook"
+      }
+    ],
+    "nextAlbum": null,
+    "lastAlbum": null,
+    "images": [],
+    "qualityProfileId": 0,
+    "metadataProfileId": 0,
+    "monitored": false,
+    "monitorNewItems": "all",
+    "folder": "Mortishead",
+    "genres": [],
+    "tags": [],
+    "added": "0001-01-01T00:00:00Z",
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    }
+  },
+  {
+    "status": "continuing",
+    "ended": false,
+    "artistName": "Portishell",
+    "foreignArtistId": "4a2a5977-4bac-41d0-b939-bbcb095be8d7",
+    "tadbId": 0,
+    "discogsId": 0,
+    "disambiguation": "remixer",
+    "links": [
+      {
+        "url": "https://www.discogs.com/artist/252207",
+        "name": "discogs"
+      }
+    ],
+    "nextAlbum": null,
+    "lastAlbum": null,
+    "images": [],
+    "qualityProfileId": 0,
+    "metadataProfileId": 0,
+    "monitored": false,
+    "monitorNewItems": "all",
+    "folder": "Portishell",
+    "genres": [],
+    "tags": [],
+    "added": "0001-01-01T00:00:00Z",
+    "ratings": {
+      "votes": 0,
+      "value": 0
+    }
+  }
+]

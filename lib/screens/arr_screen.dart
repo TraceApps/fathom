@@ -266,11 +266,7 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                 ),
                 actions: [
                   // Add opens on the kind of library it's pressed from; from
-                  // the other tabs it searches movies and shows together.
-                  // Artists are added in Lidarr itself: with only Lidarr,
-                  // there's nothing for it to add to.
-                  if (kinds.contains(ArrKind.radarr) ||
-                      kinds.contains(ArrKind.sonarr))
+                  // the other tabs it searches every app together.
                   Builder(
                     builder: (context) {
                       void add() {
@@ -285,9 +281,8 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                         context.push(switch (kind) {
                           ArrKind.radarr => '/arr/add/movie',
                           ArrKind.sonarr => '/arr/add/series',
-                          // Artists are added in Lidarr itself for now: Add
-                          // offers movies and shows.
-                          ArrKind.lidarr || null => '/arr/add',
+                          ArrKind.lidarr => '/arr/add/artist',
+                          null => '/arr/add',
                         });
                       }
 
@@ -1653,8 +1648,7 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
     ]);
     return backEndsPicking(
       _LibraryFrame(
-        // Artists aren't added from Fathom yet.
-        addRow: false,
+        addRow: shown.asData?.value.isNotEmpty ?? false,
         switcher: widget.switcher,
         search: _search,
         searchFocus: widget.searchFocus,
@@ -1715,6 +1709,24 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
                 child: EmptyState(
                   icon: Icons.library_music_rounded,
                   title: all.isEmpty ? l.arrNoArtists : l.arrNoMatches,
+                  action: all.isEmpty
+                      ? FilledButton.icon(
+                          icon: const Icon(Icons.add_rounded),
+                          label: Text(l.arrAddArtist),
+                          onPressed: () => context.push('/arr/add/artist'),
+                        )
+                      : _search.text.trim().isEmpty
+                      ? null
+                      : FilledButton.icon(
+                          icon: const Icon(Icons.add_rounded),
+                          label: Text(l.arrAddTerm(_search.text.trim())),
+                          onPressed: () => context.push(
+                            Uri(
+                              path: '/arr/add/artist',
+                              queryParameters: {'term': _search.text.trim()},
+                            ).toString(),
+                          ),
+                        ),
                 ),
               );
             }
@@ -2034,7 +2046,11 @@ class _AddTermRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final path = kind == ArrKind.sonarr ? 'series' : 'movie';
+    final path = switch (kind) {
+      ArrKind.sonarr => 'series',
+      ArrKind.radarr => 'movie',
+      ArrKind.lidarr => 'artist',
+    };
     return Card(
       margin: EdgeInsets.zero,
       color: scheme.secondaryContainer.withValues(alpha: 0.5),

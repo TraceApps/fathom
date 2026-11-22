@@ -1296,6 +1296,50 @@ class LidarrClient extends ArrClient {
     ];
   }
 
+  /// Artists matching [term] (a name, or `lidarr:` and a MusicBrainz id), whether
+  /// or not Lidarr has them.
+  Future<List<ArrLookup<ArrArtist>>> lookup(String term) async {
+    final data = await _get('artist/lookup', {'term': term});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map)
+          ArrLookup(
+            ArrArtist.fromJson(Map<String, dynamic>.from(m)),
+            Map<String, dynamic>.from(m),
+          ),
+    ];
+  }
+
+  /// Adds an artist from a [lookup] entry. [monitor] is which of its albums
+  /// Lidarr looks for (all, future, missing, existing, latest, first or
+  /// none); [monitorNewItems] which ones added later (all, new or none).
+  Future<ArrArtist> addArtist(
+    Map<String, dynamic> lookupRaw, {
+    required int qualityProfileId,
+    required int metadataProfileId,
+    required String rootFolderPath,
+    required String monitor,
+    required String monitorNewItems,
+    required bool search,
+    List<int> tags = const [],
+  }) async {
+    final body = Map<String, dynamic>.from(lookupRaw)
+      ..remove('id')
+      ..['qualityProfileId'] = qualityProfileId
+      ..['metadataProfileId'] = metadataProfileId
+      ..['rootFolderPath'] = rootFolderPath
+      ..['monitored'] = monitor != 'none'
+      ..['monitorNewItems'] = monitorNewItems
+      ..['tags'] = tags
+      ..['addOptions'] = {
+        'monitor': monitor,
+        'searchForMissingAlbums': search,
+      };
+    return ArrArtist.fromJson(
+      Map<String, dynamic>.from(await _post('artist', body) as Map),
+    );
+  }
+
   /// One album, with its artist's name.
   Future<ArrAlbum> album(int id) async => ArrAlbum.fromJson(
     Map<String, dynamic>.from(await _get('album/$id') as Map),

@@ -249,8 +249,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                 ),
               ],
             ),
-            // Artists aren't added from Fathom yet: nothing to start with.
-            if (saved && _version != null && widget.kind != ArrKind.lidarr) ...[
+            if (saved && _version != null) ...[
               const SizedBox(height: 12),
               const Divider(height: 1),
               _DefaultsTile(kind: widget.kind),

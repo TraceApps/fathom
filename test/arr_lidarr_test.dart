@@ -793,8 +793,8 @@ void main() {
       expect(find.text('11 of 46 tracks'), findsOneWidget);
       expect(find.byType(ArrSwitch<ArrKind>), findsNothing);
       expect(find.text('Search your artists'), findsOneWidget);
-      // Nothing for Add to add to.
-      expect(find.byIcon(Icons.add_rounded), findsNothing);
+      // Add is for artists here.
+      expect(find.text('Add'), findsOneWidget);
     });
 
     testWidgets('by Lidarr\'s sort name, whatever order they come in', (t) async {
@@ -811,17 +811,6 @@ void main() {
       final p = t.getTopLeft(find.text('The Portishead'));
       final r = t.getTopLeft(find.text('Radiohead'));
       expect(p.dx < r.dx || p.dy < r.dy, isTrue);
-    });
-
-    testWidgets('a search offers no Add: artists are added in Lidarr', (t) async {
-      await _open(t, _app(home: const ArrScreen(), lidarr: _Lidarr()));
-      await t.enterText(find.byType(TextField).first, 'radio');
-      await _settle(t);
-      expect(find.text('Radiohead'), findsOneWidget);
-      expect(find.text('Portishead'), findsNothing);
-      // Where Movies and Shows offer to look the term up online.
-      expect(find.textContaining('Look it up in', skipOffstage: false), findsNothing);
-      expect(find.textContaining('radio”', skipOffstage: false), findsNothing);
     });
 
     testWidgets('several at once: Edit with the metadata profile', (t) async {

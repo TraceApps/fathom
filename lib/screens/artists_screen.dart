@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
+import '../state/arr_providers.dart';
+import '../widgets/arr_widgets.dart';
 import '../services/tv_mode.dart';
 import '../state/library_providers.dart';
 import '../widgets/empty_state.dart';
@@ -104,12 +106,56 @@ class ArtistAlbumsScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final async = ref.watch(artistAlbumsProvider(artistId));
     return Scaffold(
-      appBar: AppBar(title: Text(artistName)),
+      appBar: AppBar(
+        title: Text(artistName),
+        actions: [_LidarrLink(artistId: artistId, artistName: artistName)],
+      ),
       body: ItemGridBody(
         items: async,
         emptyTitle: l.browseNoAlbums,
         emptyIcon: Icons.album_rounded,
         onRefresh: () => ref.invalidate(artistAlbumsProvider(artistId)),
+      ),
+    );
+  }
+}
+
+/// With Lidarr connected: the artist's page in Manage, or adding it to
+/// Lidarr, found by the MusicBrainz id Jellyfin read from the files' tags.
+/// Nothing for an artist without one.
+class _LidarrLink extends ConsumerWidget {
+  final String artistId;
+  final String artistName;
+  const _LidarrLink({required this.artistId, required this.artistName});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Jellyfin is asked for the artist's ids only with Lidarr there to use
+    // them.
+    if (ref.watch(lidarrClientProvider) == null) return const SizedBox.shrink();
+    final mbId =
+        ref.watch(itemDetailProvider(artistId)).asData?.value.musicBrainzArtistId;
+    if (mbId == null) return const SizedBox.shrink();
+    // An empty id isn't looked up: no match, no link.
+    final match = ref.watch(lidarrMatchProvider(mbId)).asData?.value;
+    if (match == null) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    final id = match.id;
+    if (id != null) {
+      return IconButton(
+        tooltip: l.arrManageIn('Lidarr'),
+        icon: const Icon(kManageIcon),
+        onPressed: () => context.push('/arr/artist/$id'),
+      );
+    }
+    return IconButton(
+      tooltip: l.arrAddTo('Lidarr'),
+      icon: const Icon(Icons.add_rounded),
+      onPressed: () => context.push(
+        Uri(
+          path: '/arr/add/artist',
+          queryParameters: {'term': 'lidarr:$mbId'},
+        ).toString(),
       ),
     );
   }

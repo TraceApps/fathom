@@ -24,6 +24,7 @@ ArrAddedWith _movie(String path, int profile, [String avail = 'released']) => (
   minimumAvailability: avail,
   seriesType: null,
   seasonFolder: null,
+  metadataProfileId: null,
 );
 
 void main() {
@@ -262,6 +263,7 @@ void main() {
               minimumAvailability: null,
               seriesType: 'anime',
               seasonFolder: false,
+              metadataProfileId: null,
             ),
         ],
       );
