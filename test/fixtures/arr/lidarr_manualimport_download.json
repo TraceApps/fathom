@@ -1,0 +1,38 @@
+[
+  {
+    "path": "/downloads/watch-music/Portishead-Third-2008-WEB-MP3-V0-GRP/01 - Silence.mp3",
+    "name": "01 - Silence",
+    "size": 300000,
+    "artist": {
+      "id": 1,
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11"
+    },
+    "albumReleaseId": 0,
+    "tracks": [],
+    "quality": {
+      "quality": {
+        "id": 0,
+        "name": "Unknown"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 2,
+    "downloadId": "Blackhole_Portishead-Third-2008-WEB-MP3-V0-GRP_639309859101222853",
+    "indexerFlags": 0,
+    "rejections": [
+      {
+        "reason": "Couldn't find similar album for [/downloads/watch-music/Portishead-Third-2008-WEB-MP3-V0-GRP]",
+        "type": "permanent"
+      }
+    ],
+    "additionalFile": false,
+    "replaceExistingFiles": true,
+    "disableReleaseSwitching": false,
+    "id": 332057834
+  }
+]

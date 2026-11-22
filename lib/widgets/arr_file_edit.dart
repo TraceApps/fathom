@@ -18,9 +18,17 @@ class ArrFileChanges {
   final List<ArrLanguage>? languages;
   final String? releaseGroup;
 
+  // Lidarr: a file's artist, album and tracks.
+  final ArrArtist? artist;
+  final ArrAlbum? album;
+  final List<ArrTrack>? tracks;
+
   const ArrFileChanges({
     this.series,
     this.movie,
+    this.artist,
+    this.album,
+    this.tracks,
     this.seasonNumber,
     this.episodes,
     this.quality,
@@ -31,6 +39,9 @@ class ArrFileChanges {
   bool get isEmpty =>
       series == null &&
       movie == null &&
+      artist == null &&
+      album == null &&
+      tracks == null &&
       seasonNumber == null &&
       episodes == null &&
       quality == null &&
@@ -56,6 +67,27 @@ class ArrFileChanges {
         movieYear: movie!.year,
       );
     }
+    // A new artist starts over on its album and tracks, and a new album on
+    // its edition and tracks, for Lidarr to work out.
+    if (artist != null) {
+      i = i.copyWith(
+        artistId: artist!.id,
+        artistName: artist!.name,
+        albumId: null,
+        albumTitle: null,
+        albumReleaseId: null,
+        tracks: const [],
+      );
+    }
+    if (album != null) {
+      i = i.copyWith(
+        albumId: album!.id,
+        albumTitle: album!.title,
+        albumReleaseId: null,
+        tracks: const [],
+      );
+    }
+    if (tracks != null && tracks!.isNotEmpty) i = i.copyWith(tracks: tracks);
     if (seasonNumber != null) {
       i = i.copyWith(seasonNumber: seasonNumber, episodes: const []);
     }
@@ -807,6 +839,272 @@ class _TitlePickerState<T> extends State<_TitlePicker<T>> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(l.commonCancel),
+        ),
+      ],
+    );
+  }
+}
+
+/// Edits a Lidarr file in Manual Import, or several at once ([count] above
+/// 1: every field starts on No Change): the artist, the album, the tracks it
+/// is, and its quality. Null when cancelled.
+Future<ArrFileChanges?> showArrMusicFileEditDialog(
+  BuildContext context, {
+  required String subtitle,
+  int count = 1,
+  int? artistId,
+  int? albumId,
+  List<int> trackIds = const [],
+  int? qualityId,
+}) => showDialog<ArrFileChanges>(
+  context: context,
+  builder: (_) => _MusicFileEditDialog(
+    subtitle: subtitle,
+    count: count,
+    artistId: artistId,
+    albumId: albumId,
+    trackIds: trackIds,
+    qualityId: qualityId,
+  ),
+);
+
+class _MusicFileEditDialog extends ConsumerStatefulWidget {
+  final String subtitle;
+  final int count;
+  final int? artistId;
+  final int? albumId;
+  final List<int> trackIds;
+  final int? qualityId;
+  const _MusicFileEditDialog({
+    required this.subtitle,
+    required this.count,
+    required this.artistId,
+    required this.albumId,
+    required this.trackIds,
+    required this.qualityId,
+  });
+
+  @override
+  ConsumerState<_MusicFileEditDialog> createState() =>
+      _MusicFileEditDialogState();
+}
+
+class _MusicFileEditDialogState extends ConsumerState<_MusicFileEditDialog> {
+  late int? _artistId = widget.artistId;
+  late int? _albumId = widget.albumId;
+  late Set<int> _tracks = {...widget.trackIds};
+  late int? _quality = _bulk ? null : widget.qualityId;
+
+  bool get _bulk => widget.count > 1;
+
+  bool _sameTracks() =>
+      _tracks.length == widget.trackIds.length &&
+      _tracks.containsAll(widget.trackIds);
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final client = arrClient(ref, ArrKind.lidarr);
+    final artists =
+        ref.watch(lidarrArtistsProvider).asData?.value ?? const <ArrArtist>[];
+    final artist = artists.where((a) => a.id == _artistId).firstOrNull;
+    final albumsAsync = _artistId == null
+        ? null
+        : ref.watch(lidarrAlbumsProvider(_artistId!));
+    final albums = [...?albumsAsync?.asData?.value]
+      ..sort(
+        (a, b) => (b.releaseDate ?? DateTime(0)).compareTo(
+          a.releaseDate ?? DateTime(0),
+        ),
+      );
+    final album = albums.where((a) => a.id == _albumId).firstOrNull;
+    final tracksAsync = _albumId == null || _bulk
+        ? null
+        : ref.watch(lidarrTracksProvider(_albumId!));
+    final tracks = [...?tracksAsync?.asData?.value]
+      ..sort((a, b) {
+        final disc = a.mediumNumber.compareTo(b.mediumNumber);
+        return disc != 0
+            ? disc
+            : a.absoluteTrackNumber.compareTo(b.absoluteTrackNumber);
+      });
+    final qualities = ref.watch(arrQualitiesProvider(ArrKind.lidarr)).asData?.value ??
+        const <ArrQualityChoice>[];
+    final changes = ArrFileChanges(
+      artist: _artistId != widget.artistId ? artist : null,
+      album: _albumId != widget.albumId ? album : null,
+      tracks: !_bulk && _albumId != null && !_sameTracks()
+          ? [for (final t in tracks) if (_tracks.contains(t.id)) t]
+          : null,
+      quality: _quality != null && _quality != widget.qualityId
+          ? qualities.where((q) => q.id == _quality).firstOrNull
+          : null,
+    );
+    String albumLabel(ArrAlbum a) => [
+      a.title,
+      if (a.releaseDate != null) '(${a.releaseDate!.year})',
+    ].join(' ');
+    return ArrDialogFrame(
+      client: client,
+      images: artist?.images ?? const [],
+      heading: _bulk ? l.arrEdit : l.arrEditFile,
+      title: _bulk ? l.arrFilesCountShort(widget.count) : widget.subtitle,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PickerField(
+            label: l.arrArtist,
+            value: artist?.name,
+            empty: _bulk ? l.arrNoChange : l.arrChooseArtist,
+            onTap: () async {
+              final picked = await _pickTitle<ArrArtist>(
+                context,
+                hint: l.arrSearchArtists,
+                items: artists,
+                label: (a) => a.name,
+                year: (_) => null,
+                id: (a) => a.id,
+              );
+              if (picked == null || !mounted || picked == _artistId) return;
+              setState(() {
+                _artistId = picked;
+                // Lidarr works the album and tracks out again.
+                _albumId = null;
+                _tracks = {};
+              });
+            },
+          ),
+          if (_artistId != null)
+            ArrDropdownField<int>(
+              label: l.arrAlbum,
+              value: _albumId,
+              helper: !_bulk && _albumId == null
+                  ? l.arrAlbumAuto
+                  : null,
+              options: {for (final a in albums) a.id: albumLabel(a)},
+              onChanged: (v) => setState(() {
+                if (v != _albumId) {
+                  _albumId = v;
+                  _tracks = {};
+                }
+              }),
+            ),
+          if (!_bulk && _albumId != null)
+            _PickerField(
+              label: l.arrTracks,
+              value: tracks.isEmpty || _tracks.isEmpty
+                  ? null
+                  : [
+                      for (final t in tracks)
+                        if (_tracks.contains(t.id))
+                          t.trackNumber.isEmpty ? t.title : t.trackNumber,
+                    ].join(', '),
+              empty: l.arrChooseTracks,
+              onTap: tracksAsync == null || !tracksAsync.hasValue
+                  ? null
+                  : () async {
+                      final picked = await showDialog<Set<int>>(
+                        context: context,
+                        builder: (_) =>
+                            _TrackPicker(tracks: tracks, chosen: _tracks),
+                      );
+                      if (picked != null && mounted) {
+                        setState(() => _tracks = picked);
+                      }
+                    },
+            ),
+          ArrDropdownField<int>(
+            label: l.arrSortQuality,
+            value: _quality ?? (_bulk ? -1 : null),
+            options: {
+              if (_bulk) -1: l.arrNoChange,
+              for (final q in qualities) q.id: q.name,
+              if (_quality != null && !qualities.any((q) => q.id == _quality))
+                _quality!: '…',
+            },
+            onChanged: (v) => setState(() => _quality = v == -1 ? null : v),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          style: kInlineButtonStyle,
+          onPressed: changes.isEmpty
+              ? null
+              : () => Navigator.pop(context, changes),
+          child: Text(l.commonSave),
+        ),
+      ],
+    );
+  }
+}
+
+/// An album's tracks, to tick the ones a file is.
+class _TrackPicker extends StatefulWidget {
+  final List<ArrTrack> tracks;
+  final Set<int> chosen;
+  const _TrackPicker({required this.tracks, required this.chosen});
+
+  @override
+  State<_TrackPicker> createState() => _TrackPickerState();
+}
+
+class _TrackPickerState extends State<_TrackPicker> {
+  late final Set<int> _picked = {...widget.chosen};
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.arrTracks),
+      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      content: SizedBox(
+        width: 420,
+        height: 460,
+        child: widget.tracks.isEmpty
+            ? Center(child: Text(l.arrNoTracks))
+            : ListView(
+                children: [
+                  for (final t in widget.tracks)
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: _picked.contains(t.id),
+                      onChanged: (v) => setState(
+                        () => v == true
+                            ? _picked.add(t.id)
+                            : _picked.remove(t.id),
+                      ),
+                      title: Text(
+                        [
+                          if (t.trackNumber.isNotEmpty) t.trackNumber,
+                          t.title,
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // Taking a track that has a file replaces it.
+                      subtitle: t.hasFile ? Text(l.arrTrackHasFile) : null,
+                    ),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(
+          style: kInlineButtonStyle,
+          onPressed: _picked.isEmpty
+              ? null
+              : () => Navigator.pop(context, _picked),
+          child: Text(l.commonDone),
         ),
       ],
     );

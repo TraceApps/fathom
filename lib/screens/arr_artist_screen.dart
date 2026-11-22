@@ -352,6 +352,15 @@ Widget Function(bool header) _artistActions(
         }
       },
     ),
+    // Files dropped in the artist's folder that Lidarr hasn't taken in.
+    if (!isTvDevice && a.path != null && a.path!.isNotEmpty)
+      ArrAction(
+        icon: Icons.drive_folder_upload_rounded,
+        label: l.arrManualImport,
+        onTap: () => context.push(
+          ArrImportTarget.folder(ArrKind.lidarr, a.path!).location,
+        ),
+      ),
     // Renaming files is for a phone or a desktop, not a remote.
     if (!isTvDevice && a.trackFileCount > 0)
       ArrAction(

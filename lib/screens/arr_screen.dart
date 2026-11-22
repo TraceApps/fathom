@@ -808,13 +808,10 @@ class _QueueCard extends ConsumerWidget {
       ...item.messages,
     ];
     final titleId = item.titleId;
-    // Saying which show or movie a download is takes a keyboard and a
-    // pointer: not on a TV. Lidarr's downloads are imported in Lidarr.
+    // Saying which show, movie or album a download is takes a keyboard and
+    // a pointer: not on a TV.
     final importable =
-        !isTvDevice &&
-        client != null &&
-        item.kind != ArrKind.lidarr &&
-        item.canManualImport;
+        !isTvDevice && client != null && item.canManualImport;
     final held = item.status == 'delay';
     // What the card's buttons do, by name, on a right-click or a long press.
     void menu(Offset at) => showContextMenu(

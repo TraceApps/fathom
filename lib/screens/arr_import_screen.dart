@@ -46,7 +46,11 @@ class ArrImportTarget {
   ).toString();
 
   static ArrImportTarget? fromQuery(Map<String, String> q) {
-    final kind = q['app'] == 'radarr' ? ArrKind.radarr : ArrKind.sonarr;
+    final kind = switch (q['app']) {
+      'radarr' => ArrKind.radarr,
+      'lidarr' => ArrKind.lidarr,
+      _ => ArrKind.sonarr,
+    };
     if (q['download'] case final d? when d.isNotEmpty) {
       return ArrImportTarget.download(kind, d, title: q['title']);
     }
@@ -128,10 +132,10 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
   /// season, and its verdict on each.
   Future<void> _recheck(List<ArrImportItem> all) async {
     final c = _client;
-    // The apps can only check a file once it has a show or movie.
+    // The apps can only check a file once it has a show, movie or artist.
     final items = [
       for (final i in all)
-        if ((i.kind == ArrKind.sonarr ? i.seriesId : i.movieId) != null) i,
+        if (i.titleId != null) i,
     ];
     if (c == null || items.isEmpty) return;
     final ids = {for (final i in items) i.id};
@@ -155,7 +159,16 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
   }
 
   Future<void> _edit(ArrImportItem item) async {
-    final changes = await showArrFileEditDialog(
+    final changes = _t.kind == ArrKind.lidarr
+        ? await showArrMusicFileEditDialog(
+            context,
+            subtitle: item.fileName,
+            artistId: item.artistId,
+            albumId: item.albumId,
+            trackIds: [for (final t in item.tracks) t.id],
+            qualityId: arrQualityId(item.quality),
+          )
+        : await showArrFileEditDialog(
       context,
       kind: _t.kind,
       subtitle: item.fileName,
@@ -180,9 +193,18 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
   }
 
   Future<void> _editPicked(List<ArrImportItem> picked) async {
-    // One show for all of them: the season can change too.
+    // One show for all of them: the season can change too. One artist: the
+    // album.
     final shows = {for (final i in picked) i.seriesId};
-    final changes = await showArrFileEditDialog(
+    final artists = {for (final i in picked) i.artistId};
+    final changes = _t.kind == ArrKind.lidarr
+        ? await showArrMusicFileEditDialog(
+            context,
+            subtitle: '',
+            count: picked.length,
+            artistId: artists.length == 1 ? artists.first : null,
+          )
+        : await showArrFileEditDialog(
       context,
       kind: _t.kind,
       subtitle: '',
@@ -484,8 +506,16 @@ class _ImportCard extends StatelessWidget {
     final gap = item.gap;
     final shows = item.kind == ArrKind.sonarr;
 
-    // "Breaking Bad · S02E03 · Bit by a Dead Bee", or "Interstellar (2014)".
-    final known = shows
+    // "Breaking Bad · S02E03 · Bit by a Dead Bee", "Interstellar (2014)", or
+    // "Portishead · Dummy · A1".
+    final known = item.kind == ArrKind.lidarr
+        ? [
+            ?item.artistName,
+            ?item.albumTitle,
+            if (item.tracks.length == 1) item.tracks.single.title
+            else ?item.trackLabel,
+          ].join(' · ')
+        : shows
         ? [
             ?item.seriesTitle,
             ?item.episodeCode,
@@ -499,8 +529,14 @@ class _ImportCard extends StatelessWidget {
               '(${item.movieYear})',
           ].join(' ');
     final missing = switch (gap) {
-      ArrImportGap.title => shows ? l.arrChooseShow : l.arrChooseMovie,
+      ArrImportGap.title => switch (item.kind) {
+        ArrKind.sonarr => l.arrChooseShow,
+        ArrKind.radarr => l.arrChooseMovie,
+        ArrKind.lidarr => l.arrChooseArtist,
+      },
       ArrImportGap.season || ArrImportGap.episodes => l.arrChooseEpisodes,
+      ArrImportGap.album => l.arrChooseAlbum,
+      ArrImportGap.tracks => l.arrChooseTracks,
       ArrImportGap.quality => l.arrChooseQuality,
       ArrImportGap.languages => l.arrChooseLanguages,
       null => null,
@@ -677,7 +713,9 @@ class _FolderDialogState extends ConsumerState<_FolderDialog> {
         widget.kind ??
         (ref.read(sonarrClientProvider) != null
             ? ArrKind.sonarr
-            : ArrKind.radarr);
+            : ref.read(radarrClientProvider) != null
+            ? ArrKind.radarr
+            : ArrKind.lidarr);
     _browse(widget.folder ?? '');
   }
 
@@ -716,9 +754,7 @@ class _FolderDialogState extends ConsumerState<_FolderDialog> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final both =
-        ref.watch(sonarrClientProvider) != null &&
-        ref.watch(radarrClientProvider) != null;
+    final apps = ref.watch(arrLibraryKindsProvider);
     final recent = arrImportRecent(
       ref.watch(preferencesProvider).asData?.value ?? const Prefs(),
       _kind,
@@ -734,12 +770,14 @@ class _FolderDialogState extends ConsumerState<_FolderDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (both && widget.kind == null) ...[
+            if (apps.length > 1 && widget.kind == null) ...[
               SegmentedButton<ArrKind>(
                 showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(value: ArrKind.sonarr, label: Text('Sonarr')),
-                  ButtonSegment(value: ArrKind.radarr, label: Text('Radarr')),
+                segments: [
+                  // In the apps' usual order: Sonarr, Radarr, Lidarr.
+                  for (final k in [ArrKind.sonarr, ArrKind.radarr, ArrKind.lidarr])
+                    if (apps.contains(k))
+                      ButtonSegment(value: k, label: Text(k.appName)),
                 ],
                 selected: {_kind},
                 onSelectionChanged: (s) {

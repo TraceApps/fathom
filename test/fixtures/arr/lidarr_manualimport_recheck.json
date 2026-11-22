@@ -1,0 +1,68 @@
+[
+  {
+    "path": "/downloads/watch-music/Portishead-Third-2008-WEB-MP3-V0-GRP/01 - Silence.mp3",
+    "size": 300000,
+    "artist": {
+      "id": 1,
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11"
+    },
+    "album": {
+      "id": 3,
+      "title": "Third",
+      "artistId": 1,
+      "releaseDate": "2008-04-08T00:00:00Z",
+      "albumType": "Album"
+    },
+    "albumReleaseId": 37,
+    "tracks": [
+      {
+        "artistId": 1,
+        "foreignTrackId": "17a6530a-3103-32b8-859b-cea5aa5c1348",
+        "foreignRecordingId": "83b416db-4ee1-4560-a3b3-52fd453eb285",
+        "trackFileId": 0,
+        "albumId": 3,
+        "explicit": false,
+        "absoluteTrackNumber": 1,
+        "trackNumber": "1",
+        "title": "Silence",
+        "duration": 300773,
+        "mediumNumber": 1,
+        "hasFile": false,
+        "ratings": {
+          "votes": 0,
+          "value": 0
+        },
+        "id": 393
+      }
+    ],
+    "quality": {
+      "quality": {
+        "id": 0,
+        "name": "Unknown"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 0,
+    "downloadId": "Blackhole_Portishead-Third-2008-WEB-MP3-V0-GRP_639309859101222853",
+    "indexerFlags": 0,
+    "rejections": [
+      {
+        "reason": "Album match is not close enough: 9.2 % vs 80 % [artist, album, tracks, missing tracks]",
+        "type": "permanent"
+      },
+      {
+        "reason": "Has missing tracks",
+        "type": "permanent"
+      }
+    ],
+    "additionalFile": false,
+    "replaceExistingFiles": false,
+    "disableReleaseSwitching": false,
+    "id": 332057834
+  }
+]

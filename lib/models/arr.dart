@@ -1955,6 +1955,15 @@ class ArrImportItem {
   final String? downloadId;
   final List<String> rejections;
 
+  // Lidarr: the artist, the album and its edition, and the tracks a file is.
+  final int? artistId;
+  final String? artistName;
+  final int? albumId;
+  final String? albumTitle;
+  final int? albumReleaseId;
+  final List<ArrTrack> tracks;
+  final bool disableReleaseSwitching;
+
   const ArrImportItem({
     required this.kind,
     required this.id,
@@ -1977,11 +1986,20 @@ class ArrImportItem {
     this.releaseType,
     this.downloadId,
     this.rejections = const [],
+    this.artistId,
+    this.artistName,
+    this.albumId,
+    this.albumTitle,
+    this.albumReleaseId,
+    this.tracks = const [],
+    this.disableReleaseSwitching = false,
   });
 
   factory ArrImportItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
     final series = j['series'] as Map?;
     final movie = j['movie'] as Map?;
+    final artist = j['artist'] as Map?;
+    final album = j['album'] as Map?;
     final episodes = [
       for (final m in _maps(j['episodes'])) ArrEpisode.fromJson(m),
     ]..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
@@ -2013,6 +2031,21 @@ class ArrImportItem {
         for (final r in _maps(j['rejections']))
           if (r['reason'] is String) r['reason'] as String,
       ],
+      artistId: _intOrNull(artist?['id']) ?? _nonZero(j['artistId']),
+      artistName: artist?['artistName'] as String?,
+      albumId: _intOrNull(album?['id']) ?? _nonZero(j['albumId']),
+      albumTitle: album?['title'] as String?,
+      // Lidarr sends 0 for "no edition picked".
+      albumReleaseId: _nonZero(j['albumReleaseId']),
+      tracks: [
+        for (final m in _maps(j['tracks'])) ArrTrack.fromJson(m),
+      ]..sort((a, b) {
+          final disc = a.mediumNumber.compareTo(b.mediumNumber);
+          return disc != 0
+              ? disc
+              : a.absoluteTrackNumber.compareTo(b.absoluteTrackNumber);
+        }),
+      disableReleaseSwitching: j['disableReleaseSwitching'] == true,
     );
   }
 
@@ -2032,6 +2065,12 @@ class ArrImportItem {
     List<String>? rejections,
     Object? releaseType = _keep,
     int? indexerFlags,
+    Object? artistId = _keep,
+    Object? artistName = _keep,
+    Object? albumId = _keep,
+    Object? albumTitle = _keep,
+    Object? albumReleaseId = _keep,
+    List<ArrTrack>? tracks,
   }) => ArrImportItem(
     kind: kind,
     id: id,
@@ -2064,6 +2103,15 @@ class ArrImportItem {
         : releaseType as String?,
     downloadId: downloadId,
     rejections: rejections ?? this.rejections,
+    artistId: artistId == _keep ? this.artistId : artistId as int?,
+    artistName: artistName == _keep ? this.artistName : artistName as String?,
+    albumId: albumId == _keep ? this.albumId : albumId as int?,
+    albumTitle: albumTitle == _keep ? this.albumTitle : albumTitle as String?,
+    albumReleaseId: albumReleaseId == _keep
+        ? this.albumReleaseId
+        : albumReleaseId as int?,
+    tracks: tracks ?? this.tracks,
+    disableReleaseSwitching: disableReleaseSwitching,
   );
 
   /// The file's name, without the folders above it.
@@ -2076,6 +2124,16 @@ class ArrImportItem {
 
   /// What's still missing before the app can import it, or null when ready.
   ArrImportGap? get gap {
+    if (kind == ArrKind.lidarr) {
+      // Lidarr's files have no languages to choose.
+      if (artistId == null) return ArrImportGap.title;
+      if (albumId == null) return ArrImportGap.album;
+      if (tracks.isEmpty) return ArrImportGap.tracks;
+      if (quality == null || arrQualityId(quality) == null) {
+        return ArrImportGap.quality;
+      }
+      return null;
+    }
     if (kind == ArrKind.sonarr) {
       if (seriesId == null) return ArrImportGap.title;
       if (seasonNumber == null) return ArrImportGap.season;
@@ -2105,8 +2163,34 @@ class ArrImportItem {
     return '$first-E${episodes.last.episodeNumber.toString().padLeft(2, '0')}';
   }
 
+  /// The show, movie or artist the file is of, by its id in its app.
+  int? get titleId => switch (kind) {
+    ArrKind.sonarr => seriesId,
+    ArrKind.radarr => movieId,
+    ArrKind.lidarr => artistId,
+  };
+
+  /// "Track 3", "Tracks A1, A2": the tracks a file is, as numbered.
+  String? get trackLabel => tracks.isEmpty
+      ? null
+      : [for (final t in tracks) t.trackNumber].join(', ');
+
   /// What the app's "check again" (POST manualimport) takes.
-  Map<String, dynamic> toReprocessJson() => {
+  Map<String, dynamic> toReprocessJson() => kind == ArrKind.lidarr
+      ? {
+          'id': id,
+          'path': path,
+          'artistId': ?artistId,
+          'albumId': ?albumId,
+          'albumReleaseId': ?albumReleaseId,
+          'trackIds': [for (final t in tracks) t.id],
+          'quality': quality,
+          'releaseGroup': releaseGroup,
+          'indexerFlags': indexerFlags,
+          'downloadId': downloadId,
+          'disableReleaseSwitching': disableReleaseSwitching,
+        }
+      : {
     'id': id,
     'path': path,
     if (kind == ArrKind.sonarr) ...{
@@ -2124,7 +2208,21 @@ class ArrImportItem {
   };
 
   /// One file of the ManualImport command, as the apps' own pages send it.
-  Map<String, dynamic> toCommandJson() => {
+  /// Lidarr's takes the album's edition and the tracks (ManualImportFile).
+  Map<String, dynamic> toCommandJson() => kind == ArrKind.lidarr
+      ? {
+          'path': path,
+          'artistId': artistId,
+          'albumId': albumId,
+          'albumReleaseId': albumReleaseId,
+          'trackIds': [for (final t in tracks) t.id],
+          'quality': quality,
+          'releaseGroup': releaseGroup,
+          'indexerFlags': indexerFlags,
+          'downloadId': downloadId,
+          'disableReleaseSwitching': disableReleaseSwitching,
+        }
+      : {
     'path': path,
     'folderName': folderName,
     if (kind == ArrKind.sonarr) ...{
@@ -2158,6 +2256,10 @@ class ArrImportItem {
     releaseGroup: r.releaseGroup ?? releaseGroup,
     movieTitle: r.movieTitle ?? movieTitle,
     movieYear: r.movieYear ?? movieYear,
+    // Lidarr's: the edition it settled on and the tracks it matched.
+    albumReleaseId: r.albumReleaseId ?? albumReleaseId,
+    tracks: r.tracks.isEmpty ? tracks : r.tracks,
+    albumTitle: r.albumTitle ?? albumTitle,
   );
 }
 
@@ -2167,7 +2269,15 @@ int? _nonZero(Object? v) => switch (_intOrNull(v)) {
 };
 
 /// What a Manual Import file still needs before it can go in.
-enum ArrImportGap { title, season, episodes, quality, languages }
+enum ArrImportGap {
+  title,
+  season,
+  episodes,
+  album, // Lidarr
+  tracks, // Lidarr
+  quality,
+  languages,
+}
 
 /// One folder on the app's server, for picking where to import from.
 class ArrServerFolder {

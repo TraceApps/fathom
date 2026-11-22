@@ -1,0 +1,173 @@
+[
+  {
+    "path": "/downloads/Portishead - Portishead (1997) [FLAC]/01 - Cowboys.flac",
+    "name": "01 - Cowboys",
+    "size": 200734,
+    "artist": {
+      "id": 1,
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11"
+    },
+    "album": {
+      "id": 1,
+      "title": "Portishead",
+      "artistId": 1,
+      "releaseDate": "1997-09-29T00:00:00Z",
+      "albumType": "Album"
+    },
+    "albumReleaseId": 1,
+    "tracks": [
+      {
+        "artistId": 1,
+        "foreignTrackId": "5e28c289-d23b-34c6-9283-99568eb7c9e4",
+        "foreignRecordingId": "d2d7e3b5-c49e-49f3-b442-ccdc1430a262",
+        "trackFileId": 35,
+        "albumId": 1,
+        "explicit": false,
+        "absoluteTrackNumber": 1,
+        "trackNumber": "A1",
+        "title": "Cowboys",
+        "duration": 282000,
+        "mediumNumber": 1,
+        "hasFile": true,
+        "ratings": {
+          "votes": 0,
+          "value": 0
+        },
+        "id": 1
+      }
+    ],
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "indexerFlags": 0,
+    "rejections": [],
+    "additionalFile": false,
+    "replaceExistingFiles": true,
+    "disableReleaseSwitching": false,
+    "id": 1736786515
+  },
+  {
+    "path": "/downloads/Portishead - Portishead (1997) [FLAC]/02 - All Mine.flac",
+    "name": "02 - All Mine",
+    "size": 173423,
+    "artist": {
+      "id": 1,
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11"
+    },
+    "album": {
+      "id": 1,
+      "title": "Portishead",
+      "artistId": 1,
+      "releaseDate": "1997-09-29T00:00:00Z",
+      "albumType": "Album"
+    },
+    "albumReleaseId": 1,
+    "tracks": [
+      {
+        "artistId": 1,
+        "foreignTrackId": "e47e2f3f-b721-3af4-a5cb-39726e522692",
+        "foreignRecordingId": "4e22d68a-19a2-4fd4-a29f-36bc05fc81fe",
+        "trackFileId": 27,
+        "albumId": 1,
+        "explicit": false,
+        "absoluteTrackNumber": 2,
+        "trackNumber": "A2",
+        "title": "All Mine",
+        "duration": 242360,
+        "mediumNumber": 1,
+        "hasFile": true,
+        "ratings": {
+          "votes": 0,
+          "value": 0
+        },
+        "id": 2
+      }
+    ],
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "indexerFlags": 0,
+    "rejections": [],
+    "additionalFile": false,
+    "replaceExistingFiles": true,
+    "disableReleaseSwitching": false,
+    "id": 1451159436
+  },
+  {
+    "path": "/downloads/Portishead - Portishead (1997) [FLAC]/03 - Undenied.flac",
+    "name": "03 - Undenied",
+    "size": 188798,
+    "artist": {
+      "id": 1,
+      "artistName": "Portishead",
+      "foreignArtistId": "8f6bd1e4-fbe1-4f50-aa9b-94c450ec0f11"
+    },
+    "album": {
+      "id": 1,
+      "title": "Portishead",
+      "artistId": 1,
+      "releaseDate": "1997-09-29T00:00:00Z",
+      "albumType": "Album"
+    },
+    "albumReleaseId": 1,
+    "tracks": [
+      {
+        "artistId": 1,
+        "foreignTrackId": "d2a6b18c-d33d-3329-8562-e419895d10e1",
+        "foreignRecordingId": "54727d71-8789-407c-a622-3e1acf01e178",
+        "trackFileId": 28,
+        "albumId": 1,
+        "explicit": false,
+        "absoluteTrackNumber": 3,
+        "trackNumber": "B1",
+        "title": "Undenied",
+        "duration": 264666,
+        "mediumNumber": 1,
+        "hasFile": true,
+        "ratings": {
+          "votes": 0,
+          "value": 0
+        },
+        "id": 3
+      }
+    ],
+    "quality": {
+      "quality": {
+        "id": 6,
+        "name": "FLAC"
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "qualityWeight": 23,
+    "indexerFlags": 0,
+    "rejections": [],
+    "additionalFile": false,
+    "replaceExistingFiles": true,
+    "disableReleaseSwitching": false,
+    "id": 1518891225
+  }
+]

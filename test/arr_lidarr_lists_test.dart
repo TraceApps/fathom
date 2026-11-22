@@ -491,8 +491,8 @@ void main() {
       await _tab(t, 'Activity');
       expect(find.text('Portishead · Dummy'), findsOneWidget);
       expect(find.text('Import Failed'), findsOneWidget);
-      // Lidarr's downloads are imported in Lidarr.
-      expect(find.text('Manual Import'), findsNothing);
+      // It tried and couldn't: Manual Import finishes it.
+      expect(find.text('Manual Import'), findsOneWidget);
       // The tab counts it.
       expect(
         find.descendant(of: find.byType(TabBar), matching: find.text('1')),
