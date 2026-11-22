@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_snack.dart';
@@ -16,6 +17,7 @@ import '../widgets/arr_tags.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
+import '../widgets/tv_focus.dart';
 
 /// Radarr's collections (film series): which of their movies you have,
 /// monitoring one so Radarr adds the rest, and the settings it adds them
@@ -221,7 +223,7 @@ class _CollectionCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                if (client != null) ...[
+                if (client != null) ..._tvButtons([
                   IconButton(
                     tooltip: col.monitored ? l.arrUnmonitor : l.arrMonitor,
                     icon: Icon(
@@ -246,7 +248,7 @@ class _CollectionCard extends ConsumerWidget {
                       }
                     },
                   ),
-                ],
+                ]),
               ],
             ),
             const SizedBox(height: 12),
@@ -259,14 +261,18 @@ class _CollectionCard extends ConsumerWidget {
                     (theme.textTheme.bodySmall?.fontSize ?? 12) * 1.4 +
                         (theme.textTheme.labelSmall?.fontSize ?? 11) * 1.4,
                   ),
-              child: ListView.separated(
+              child: _tvStrip(ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: col.movies.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 10),
                 itemBuilder: (context, i) {
                   final m = col.movies[i];
                   final id = byTmdb[m.tmdbId];
-                  return _MoviePoster(
+                  // The InkWell's own tint is behind the poster: a TV needs
+                  // an outline to show which movie the remote is on.
+                  return TvFocusRing(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _MoviePoster(
                     client: client,
                     movie: m,
                     // In Radarr: open it (looked up if the library list
@@ -289,9 +295,9 @@ class _CollectionCard extends ConsumerWidget {
                               queryParameters: {'term': 'tmdb:${m.tmdbId}'},
                             ).toString(),
                           ),
-                  );
+                  ));
                 },
-              ),
+              )),
             ),
           ],
         ),
@@ -299,6 +305,26 @@ class _CollectionCard extends ConsumerWidget {
     );
   }
 }
+
+/// A collection's own buttons. On a TV they're a row for the remote, one UP
+/// from the collection's movies wherever along them it is: they sit at the
+/// card's far edge, with nothing straight under or over them to move from.
+/// A collection opens on its movies, not on these.
+List<Widget> _tvButtons(List<Widget> buttons) => !isTvDevice
+    ? buttons
+    : [
+        TvChrome(
+          child: TvFocusRow(
+            stacked: true,
+            child: Row(mainAxisSize: MainAxisSize.min, children: buttons),
+          ),
+        ),
+      ];
+
+/// A collection's movies: on a TV, a row LEFT and RIGHT walk along, between
+/// the collection's own buttons above and the next collection's below.
+Widget _tvStrip(Widget list) =>
+    isTvDevice ? TvFocusRow(stacked: true, child: list) : list;
 
 class _MoviePoster extends StatelessWidget {
   final ArrClient? client;

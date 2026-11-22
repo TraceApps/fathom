@@ -140,14 +140,12 @@ class _DetailBody extends ConsumerWidget {
     // Any title with a pending request (movie or TV) gets the View Request pill.
     final showViewRequest = canManage && d.pendingRequest != null;
     // Fathom's own Radarr or Sonarr, when it has the title: its page there,
-    // where the download is followed and fixed. Not on a TV yet.
-    final arrKey = isTvDevice
-        ? null
-        : arrKeyOfSeerr(
-            mediaType: d.mediaType,
-            tmdbId: d.tmdbId,
-            tvdbId: d.tvdbId,
-          );
+    // where the download is followed and fixed.
+    final arrKey = arrKeyOfSeerr(
+      mediaType: d.mediaType,
+      tmdbId: d.tmdbId,
+      tvdbId: d.tvdbId,
+    );
     final arr = arrKey == null
         ? null
         : ref.watch(arrMatchProvider(arrKey)).value;

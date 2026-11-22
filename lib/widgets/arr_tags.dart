@@ -7,6 +7,8 @@ import '../models/arr.dart';
 import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
 import 'app_snack.dart';
+import '../services/tv_mode.dart';
+import 'tv_keyboard.dart';
 
 /// A title's tags as chips: every tag the app has, ticked when the title has
 /// it, and New Tag to make one. Used by Edit and Add.
@@ -132,15 +134,23 @@ class _NewTagDialogState extends State<_NewTagDialog> {
     void done() => Navigator.pop(context, _text.text);
     return AlertDialog(
       title: Text(l.arrNewTag),
-      content: TextField(
-        controller: _text,
-        autofocus: true,
-        decoration: InputDecoration(
-          labelText: l.arrTagLabel,
-          border: const OutlineInputBorder(),
-        ),
-        onSubmitted: (_) => done(),
-      ),
+      // On a TV, a field the remote can open and leave, with the keyboard
+      // that's worked with a remote.
+      content: isTvDevice
+          ? TvTextField(
+              controller: _text,
+              label: l.arrTagLabel,
+              autofocus: true,
+            )
+          : TextField(
+              controller: _text,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l.arrTagLabel,
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => done(),
+            ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),

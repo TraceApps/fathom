@@ -13,6 +13,8 @@ import 'arr_widgets.dart';
 import 'context_menu.dart';
 import 'detail_header.dart';
 import 'hover_pill_button.dart';
+import 'tv_focus.dart';
+import '../services/tv_mode.dart';
 
 /// Runs a change against Sonarr or Radarr and says how it went: [done] on
 /// success, the app's own reason on failure. True when it worked.
@@ -193,7 +195,20 @@ class ArrDialogFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Dialog(
+    Widget buttons = Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          actions[i],
+        ],
+      ],
+    );
+    // On a TV the dialog opens with the remote on its first choice, so
+    // there's always something lit: its buttons are only where it starts when
+    // it has nothing else (or one of them asks for it, as a confirmation does).
+    if (isTvDevice) buttons = TvChrome(child: buttons);
+    final dialog = Dialog(
       clipBehavior: Clip.antiAlias,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -274,21 +289,14 @@ class ArrDialogFrame extends StatelessWidget {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    for (var i = 0; i < actions.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 8),
-                      actions[i],
-                    ],
-                  ],
-                ),
+                child: buttons,
               ),
             ),
           ],
         ),
       ),
     );
+    return isTvDevice ? TvPageLanding(child: dialog) : dialog;
   }
 }
 
@@ -696,22 +704,26 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
                   ? null
                   : (v) => v == null ? null : _set('minimumAvailability', v),
             ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              l.arrPath,
-              style: Theme.of(context).textTheme.labelLarge,
+          // Not on a TV: moving the files is for a phone or a computer, and a
+          // remote can't step out of a text field.
+          if (!isTvDevice) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                l.arrPath,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
             ),
-          ),
-          TextField(
-            controller: _path,
-            enabled: !_busy,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              helperText: l.arrPathHint,
+            TextField(
+              controller: _path,
+              enabled: !_busy,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                helperText: l.arrPathHint,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 14),
           ArrTagPicker(
             client: widget.client,

@@ -1384,15 +1384,23 @@ void main() {
       testWidgets('keeps every action a button to move to', (t) async {
         final radarr = _App(ArrKind.radarr, {27205: 5});
         await _open(t, '/requests', seerr: movie(status: 1), radarr: radarr);
-        for (final name in ['Edit', 'Approve', 'Decline', 'Delete Request']) {
+        for (final name in [
+          'Edit',
+          'Approve',
+          'Decline',
+          'Manage in Radarr',
+          'Delete Request',
+        ]) {
           expect(find.text(name), findsOneWidget, reason: name);
         }
         // No menu to open, and none of the card that has one.
         expect(find.byTooltip('More Options'), findsNothing);
         expect(_cardPoster(), findsNothing);
-        // The way to Radarr isn't on a TV yet: it isn't asked.
-        expect(radarr.asked, isEmpty);
-        expect(find.textContaining('Manage in'), findsNothing);
+        // The way to Radarr is one of the buttons, and opens the title there.
+        expect(radarr.asked, [27205]);
+        await t.tap(find.text('Manage in Radarr'));
+        await _move(t);
+        expect(find.text('page: movie 5'), findsOneWidget);
         expect(t.takeException(), isNull);
       });
     });
@@ -1486,6 +1494,23 @@ void main() {
         t.widget<HeaderActionButton>(_headerButton('Manage in Radarr')).primary,
         isFalse,
       );
+      await t.tap(_headerButton('Manage in Radarr'));
+      await _move(t);
+      expect(find.text('page: movie 5'), findsOneWidget);
+    });
+
+    testWidgets('and on a TV as well', (t) async {
+      isTvDevice = true;
+      addTearDown(() => isTvDevice = false);
+      final radarr = _App(ArrKind.radarr, {27205: 5});
+      await _open(
+        t,
+        '/seerr-detail',
+        extra: _result('movie', 27205, 'Inception'),
+        seerr: _Seerr(titles: [_movie(27205, 'Inception')]),
+        radarr: radarr,
+      );
+      expect(radarr.asked, [27205]);
       await t.tap(_headerButton('Manage in Radarr'));
       await _move(t);
       expect(find.text('page: movie 5'), findsOneWidget);

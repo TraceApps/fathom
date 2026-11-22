@@ -30,6 +30,53 @@ DioException _error(int? code, Object? body,
     );
 
 void main() {
+  // A season out all at once, and a movie the same night: the same order
+  // each time the Calendar is asked for, however many there are.
+  test('releases at the same time keep one order', () {
+    final at = DateTime.utc(2026, 11, 27, 8);
+    final all = [
+      for (var i = 1; i <= 40; i++)
+        ArrCalendarEntry(
+          kind: ArrKind.sonarr,
+          date: at,
+          title: 'Show',
+          episodeCode: 'S01E${i.toString().padLeft(2, '0')}',
+          seriesId: 1,
+          episodeId: i,
+        ),
+      ArrCalendarEntry(kind: ArrKind.radarr, date: at, title: 'Movie', movieId: 4),
+    ];
+    final want = [...all]..sort(arrCalendarOrder);
+    expect(want.first.kind, ArrKind.sonarr);
+    expect(want.first.episodeId, 1);
+    expect(want.last.kind, ArrKind.radarr);
+    for (final start in [all.reversed.toList(), [...all]..shuffle()]) {
+      expect([...start]..sort(arrCalendarOrder), want);
+    }
+  });
+
+  // Wanted, History and the Blocklist ask both apps for up to 50 each.
+  test('a merged list keeps one order for those alike', () {
+    final all = [
+      for (var i = 0; i < 60; i++) (id: i, at: i.isEven ? null : DateTime(2026, 11, 1)),
+    ];
+    final want = arrNewestFirst(all, (x) => x.at);
+    expect([for (final x in want.take(3)) x.id], [1, 3, 5]);
+    expect(want.last.id, 58);
+    for (final start in [all.reversed.toList(), [...all]..shuffle()]) {
+      final sorted = arrNewestFirst(start, (x) => x.at);
+      expect(
+        [for (final x in sorted) x.at],
+        [for (final x in want) x.at],
+      );
+    }
+    // Alike, they stay in the order they came: that's the fixed one.
+    expect([for (final x in want) x.id], [
+      for (var i = 1; i < 60; i += 2) i,
+      for (var i = 0; i < 60; i += 2) i,
+    ]);
+  });
+
   group('Sonarr', () {
     final series = [
       for (final m in _fixture('sonarr_series') as List) ArrSeries.fromJson(m)

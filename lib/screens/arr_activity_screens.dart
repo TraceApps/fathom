@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
@@ -20,6 +21,7 @@ import '../widgets/arr_widgets.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
+import '../widgets/tv_focus.dart';
 import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
 import 'discover_screen.dart' show SeerrRequestTile;
@@ -171,13 +173,18 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
           ),
         // Files on the server that never came through the queue, as
         // on the apps' Wanted page.
-        if (_picked == null)
+        // Not on a TV: going through folders, and picking several, take a
+        // keyboard and a pointer.
+        if (!isTvDevice && _picked == null)
           ArrTool(
             Icons.drive_folder_upload_rounded,
             l.arrManualImport,
             () => arrOpenFolderImport(context),
           ),
-        if (merged != null && merged.items.isNotEmpty && _picked == null)
+        if (!isTvDevice &&
+            merged != null &&
+            merged.items.isNotEmpty &&
+            _picked == null)
           ArrTool(
             Icons.checklist_rounded,
             l.arrSelect,
@@ -275,7 +282,9 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
                     if (!p.remove(k)) p.add(k);
                     _picked = p;
                   }),
-                  onSelect: () => setState(() => _picked = {k}),
+                  onSelect: isTvDevice
+                      ? null
+                      : () => setState(() => _picked = {k}),
                 );
               },
             ),
@@ -983,7 +992,12 @@ class _ArtRow extends ConsumerWidget {
                 ],
               ),
             ),
-            if (trailing != null) trailing! else const SizedBox(width: 10),
+            // On a TV the remote goes row to row, and RIGHT steps onto a
+            // row's own button.
+            if (trailing != null)
+              TvRowActions(child: trailing!)
+            else
+              const SizedBox(width: 10),
           ],
         ),
       ),
@@ -1197,11 +1211,13 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
       // Under More on a phone: the switch takes the row.
       tools: [
         if (items.isNotEmpty && picked == null) ...[
-          ArrTool(
-            Icons.checklist_rounded,
-            l.arrSelect,
-            () => setState(() => _picked = {}),
-          ),
+          // Picking several is for a phone or a desktop, not a remote.
+          if (!isTvDevice)
+            ArrTool(
+              Icons.checklist_rounded,
+              l.arrSelect,
+              () => setState(() => _picked = {}),
+            ),
           ArrTool(
             Icons.delete_sweep_rounded,
             l.arrClearBlocklist,
@@ -1281,11 +1297,15 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
                             title: title,
                             actions: [
                               ...arrOpenActions(context, b.kind, titleId),
-                              ContextMenuAction(
-                                icon: Icons.check_circle_outline_rounded,
-                                label: l.arrSelect,
-                                onTap: () => setState(() => _picked = {k}),
-                              ),
+                              // Picking several is for a phone or a desktop:
+                              // on a TV this menu is only reached with a
+                              // pointer plugged in.
+                              if (!isTvDevice)
+                                ContextMenuAction(
+                                  icon: Icons.check_circle_outline_rounded,
+                                  label: l.arrSelect,
+                                  onTap: () => setState(() => _picked = {k}),
+                                ),
                               if (!_busy)
                                 ContextMenuAction(
                                   icon: Icons.close_rounded,

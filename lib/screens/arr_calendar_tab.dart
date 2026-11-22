@@ -17,6 +17,7 @@ import '../widgets/arr_widgets.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
+import '../widgets/tv_focus.dart';
 
 /// What's coming up, and what just came out: the days one under another
 /// (Agenda), or on a window wide enough for seven columns, a month's grid.
@@ -76,7 +77,7 @@ class _ArrCalendarTabState extends ConsumerState<ArrCalendarTab> {
         final view = !canGrid
             ? ArrCalendarView.agenda
             : picked ?? ArrCalendarView.month;
-        final bar = Padding(
+        final row = Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -110,6 +111,8 @@ class _ArrCalendarTabState extends ConsumerState<ArrCalendarTab> {
             ],
           ),
         );
+        // A TV opens the Calendar on its first day, not on the switch.
+        final bar = TvChrome(child: row);
         // The tab itself outlives the month's cells (a narrower window
         // swaps them for the agenda): what a cell opens over the Calendar
         // acts from here.

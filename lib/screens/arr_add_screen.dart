@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../state/preferences.dart';
 import '../theme/app_theme.dart';
@@ -17,6 +18,7 @@ import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/search_field.dart';
+import '../widgets/tv_focus.dart';
 
 /// One search result to add: what the add form needs to know about it.
 class _Found {
@@ -74,6 +76,12 @@ class ArrAddScreen extends ConsumerStatefulWidget {
 }
 
 class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
+  /// A TV opens a search for something to type on its field, and leaves the
+  /// remote there; one that came with its words opens on the results.
+  Widget _tvLanding(Widget field) => isTvDevice && widget.term == null
+      ? TvLandingSpot(child: field)
+      : field;
+
   final _search = TextEditingController();
   Timer? _debounce;
   Map<ArrKind, Future<List<_Found>>> _results = const {};
@@ -229,19 +237,22 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: SearchField(
-              controller: _search,
-              hint: hint,
-              autofocus: widget.term == null,
-              onChanged: _changed,
-              onSubmitted: (_) {
-                _debounce?.cancel();
-                _run();
-              },
+            child: _tvLanding(
+              SearchField(
+                controller: _search,
+                hint: hint,
+                autofocus: widget.term == null,
+                onChanged: _changed,
+                onSubmitted: (_) {
+                  _debounce?.cancel();
+                  _run();
+                },
+              ),
             ),
           ),
           if (both)
-            Padding(
+            // A TV opens the results on the first of them, not on the switch.
+            TvChrome(child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -264,7 +275,7 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
                   onSelectionChanged: (s) => _setOnly(s.first),
                 ),
               ),
-            ),
+            )),
           Expanded(
             child: _results.isEmpty
                 ? EmptyState(

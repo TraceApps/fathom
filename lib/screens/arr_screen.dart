@@ -31,7 +31,16 @@ import '../widgets/error_view.dart';
 import '../widgets/media_cards.dart';
 import '../widgets/motion.dart';
 import '../widgets/search_field.dart';
+import '../widgets/tv_focus.dart';
 import '../widgets/window_frame.dart';
+
+/// [bar] as the furniture it is on a TV (see [TvChrome]); as it is elsewhere.
+PreferredSizeWidget _tvChromeTabs(TabBar bar) => isTvDevice
+    ? PreferredSize(
+        preferredSize: bar.preferredSize,
+        child: TvChrome(child: bar),
+      )
+    : bar;
 
 /// The Manage section: Sonarr and Radarr in one place. The Library they
 /// manage comes first, then what's coming up (Calendar), what's downloading
@@ -290,7 +299,8 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                     onPressed: () => context.push('/arr-settings'),
                   ),
                 ],
-                bottom: TabBar(
+                // A TV opens a tab on its list, not on the tabs above it.
+                bottom: _tvChromeTabs(TabBar(
                   isScrollable: !narrow,
                   tabAlignment: narrow ? TabAlignment.fill : TabAlignment.start,
                   // Four tabs share a phone's width: the usual side padding
@@ -314,9 +324,11 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                     ),
                     Tab(text: l.arrWanted),
                   ],
-                ),
+                )),
               ),
-              body: LayoutBuilder(builder: _body),
+              // On a TV the remote stays put when what it was on goes: a
+              // download that finished, a list swapped for another.
+              body: TvFocusKeeper(child: LayoutBuilder(builder: _body)),
             ),
           ),
         ),
@@ -610,7 +622,8 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
     final toolbar = ArrToolbar(
       lead: widget.lead,
       actions: [
-        if (items.isNotEmpty && picked == null)
+        // Picking several is for a phone or a desktop, not a remote.
+        if (!isTvDevice && items.isNotEmpty && picked == null)
           IconButton(
             tooltip: l.arrSelect,
             icon: const Icon(Icons.checklist_rounded),
@@ -670,7 +683,9 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
                       if (!p.remove(k)) p.add(k);
                       _picked = p;
                     }),
-                    onSelect: () => setState(() => _picked = {k}),
+                    onSelect: isTvDevice
+                        ? null
+                        : () => setState(() => _picked = {k}),
                   );
                 },
               ),
@@ -769,7 +784,10 @@ class _QueueCard extends ConsumerWidget {
       ...item.messages,
     ];
     final titleId = item.kind == ArrKind.sonarr ? item.seriesId : item.movieId;
-    final importable = client != null && item.canManualImport;
+    // Saying which show or movie a download is takes a keyboard and a
+    // pointer: not on a TV.
+    final importable =
+        !isTvDevice && client != null && item.canManualImport;
     final held = item.status == 'delay';
     // What the card's buttons do, by name, on a right-click or a long press.
     void menu(Offset at) => showContextMenu(
@@ -842,6 +860,9 @@ class _QueueCard extends ConsumerWidget {
                 // fixes it instead.
                 : titleId == null && importable
                 ? () => _manualImport(context, ref)
+                // On a TV, what can still be done with it.
+                : titleId == null && isTvDevice && client != null
+                ? () => menu(Offset.zero)
                 : () => arrOpenTitle(context, item.kind, titleId),
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -968,16 +989,20 @@ class _QueueCard extends ConsumerWidget {
                   ),
                   // Held back by a delay profile: send it now.
                   if (client != null && picked == null && held)
-                    IconButton(
-                      tooltip: l.arrGrabNow,
-                      icon: const Icon(Icons.file_download_rounded),
-                      onPressed: () => _grab(context, ref, client),
+                    TvRowActions(
+                      child: IconButton(
+                        tooltip: l.arrGrabNow,
+                        icon: const Icon(Icons.file_download_rounded),
+                        onPressed: () => _grab(context, ref, client),
+                      ),
                     ),
                   if (client != null && picked == null)
-                    IconButton(
-                      tooltip: l.arrRemoveFromQueue,
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => _remove(context, ref, client),
+                    TvRowActions(
+                      child: IconButton(
+                        tooltip: l.arrRemoveFromQueue,
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => _remove(context, ref, client),
+                      ),
                     ),
                 ],
               ),
@@ -1220,13 +1245,17 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
           l.arrCollections,
           () => context.push('/arr/collections'),
         ),
-        _LibraryTool(
-          Icons.library_add_rounded,
-          l.arrLibraryImport,
-          () => context.push('/arr/library-import?app=radarr'),
-        ),
+        // Folders to go through and match: not with a remote.
+        if (!isTvDevice)
+          _LibraryTool(
+            Icons.library_add_rounded,
+            l.arrLibraryImport,
+            () => context.push('/arr/library-import?app=radarr'),
+          ),
       ],
-      onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
+      onSelect: isTvDevice || shownIds.isEmpty || selection.active
+          ? null
+          : selection.start,
       bar: client == null || !selection.active
           ? null
           : ArrBulkBar(
@@ -1413,13 +1442,17 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
       onRefresh: () => ref.refresh(sonarrSeriesListProvider.future),
       tools: [
         // Sonarr's Library Import: shows already on disk, all at once.
-        _LibraryTool(
-          Icons.library_add_rounded,
-          l.arrLibraryImport,
-          () => context.push('/arr/library-import?app=sonarr'),
-        ),
+        // Folders to go through and match: not with a remote.
+        if (!isTvDevice)
+          _LibraryTool(
+            Icons.library_add_rounded,
+            l.arrLibraryImport,
+            () => context.push('/arr/library-import?app=sonarr'),
+          ),
       ],
-      onSelect: shownIds.isEmpty || selection.active ? null : selection.start,
+      onSelect: isTvDevice || shownIds.isEmpty || selection.active
+          ? null
+          : selection.start,
       bar: client == null || !selection.active
           ? null
           : ArrBulkBar(
@@ -1745,8 +1778,11 @@ class _LibraryFrame extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-              child: LayoutBuilder(
-                builder: (context, c) => _toolbar(context, c.maxWidth),
+              // A TV opens the library on its first poster.
+              child: TvChrome(
+                child: LayoutBuilder(
+                  builder: (context, c) => _toolbar(context, c.maxWidth),
+                ),
               ),
             ),
           ),

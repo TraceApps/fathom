@@ -1791,13 +1791,11 @@ class SeerrRequestTile extends ConsumerWidget {
     final profileName =
         r.profileId != null ? profileNames[r.profileId] : null;
     // Fathom's own Radarr or Sonarr, when it has the title: its page there,
-    // where the download is followed and fixed. Not on a TV yet.
-    final arrKey = isTvDevice
-        ? null
-        : arrKeyOfSeerr(
-            mediaType: r.mediaType,
-            tmdbId: r.tmdbId,
-            tvdbId: detail?.tvdbId ?? r.tvdbId);
+    // where the download is followed and fixed.
+    final arrKey = arrKeyOfSeerr(
+        mediaType: r.mediaType,
+        tmdbId: r.tmdbId,
+        tvdbId: detail?.tvdbId ?? r.tvdbId);
     final arr =
         arrKey == null ? null : ref.watch(arrMatchProvider(arrKey)).value;
     final arrId = arr?.id;

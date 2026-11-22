@@ -6,14 +6,22 @@ import 'package:fathom/api/arr_client.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
 import 'package:fathom/models/arr.dart';
 import 'package:fathom/routing/nav_destinations.dart';
+import 'package:fathom/screens/arr_add_screen.dart';
+import 'package:fathom/screens/arr_collections_screen.dart';
+import 'package:fathom/screens/arr_releases_screen.dart';
 import 'package:fathom/screens/arr_screen.dart';
+import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/theme/app_theme.dart';
 import 'package:fathom/widgets/arr_actions.dart';
+import 'package:fathom/widgets/arr_pane.dart';
 import 'package:fathom/widgets/arr_widgets.dart';
 import 'package:fathom/widgets/detail_header.dart';
 import 'package:fathom/widgets/hover_pill_button.dart';
+import 'package:fathom/widgets/search_field.dart';
 import 'package:fathom/widgets/seerr_icon.dart';
+import 'package:fathom/widgets/tv_focus.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -99,13 +107,19 @@ class _Rig {
   final _Server? sonarr;
   final _Server? radarr;
   late final GoRouter router;
-  _Rig({this.sonarr, this.radarr});
+
+  /// One page of the section by itself, in place of the section.
+  final Widget? alone;
+  _Rig({this.sonarr, this.radarr, this.alone});
 
   Widget app() {
     router = GoRouter(
       initialLocation: '/arr',
       routes: [
-        GoRoute(path: '/arr', builder: (_, _) => const ArrScreen()),
+        GoRoute(
+          path: '/arr',
+          builder: (_, _) => alone ?? const ArrScreen(),
+        ),
         GoRoute(
           path: '/arr/add',
           builder: (_, _) => const Scaffold(body: Text('add: both')),
@@ -161,6 +175,21 @@ Future<_Rig> _open(
   await t.pumpWidget(rig.app());
   await _settle(t);
   return rig;
+}
+
+/// One page of the section by itself, as its own address opens it.
+Future<void> _alone(
+  WidgetTester t,
+  Widget page, {
+  _Server? sonarr,
+  _Server? radarr,
+  Size size = const Size(1200, 900),
+}) async {
+  t.view.physicalSize = size;
+  t.view.devicePixelRatio = 1;
+  addTearDown(t.view.reset);
+  await t.pumpWidget(_Rig(sonarr: sonarr, radarr: radarr, alone: page).app());
+  await _settle(t);
 }
 
 /// Lets the answers arrive and the page draw them. Never pumpAndSettle: the
@@ -695,6 +724,395 @@ void main() {
         'Edit',
         'More',
       ]);
+    });
+  });
+
+  // On a TV the section keeps what a remote does well and leaves out what
+  // takes a keyboard and a pointer: picking many at once, bringing a library
+  // in and saying what a download is. Each is checked both ways on the same
+  // screen, so it's the TV and not the size that decides.
+  group('on a TV', () {
+    const tv = Size(960, 540);
+    tearDown(() => isTvDevice = false);
+
+    Object fixture(String name) =>
+        jsonDecode(File('test/fixtures/arr/$name.json').readAsStringSync())
+            as Object;
+
+    /// A Sonarr with the rig's three shows.
+    _Server sonarr() => _Server(
+      (path) => switch (path) {
+        'series' => fixture('sonarr_series'),
+        'queue' ||
+        'history' ||
+        'blocklist' ||
+        'wanted/missing' ||
+        'wanted/cutoff' => _page(const []),
+        'queue/status' => {'totalCount': 0, 'warnings': false, 'errors': false},
+        'system/status' => {'version': '1.0.0'},
+        _ => const [],
+      },
+    );
+
+    /// A Radarr with the rig's movies; [held] adds a download that a delay
+    /// profile is holding back.
+    _Server radarr({bool held = false}) {
+      final movies = fixture('radarr_movies');
+      // The second is one the app couldn't match: done downloading, and
+      // waiting to be told which movie it is.
+      final queue = [
+        _downloading,
+        {..._blocked, 'downloadId': 'abc'},
+        if (held) {'id': 3, 'title': 'Held.2021', 'status': 'delay'},
+      ];
+      return _Server(
+        (path) => switch (path) {
+          'movie' => movies,
+          'collection' => fixture('radarr_collections'),
+          'release' => fixture('radarr_releases'),
+          'queue' => _page(queue),
+          'queue/status' => {
+            'totalCount': queue.length,
+            'warnings': true,
+            'errors': false,
+          },
+          'wanted/missing' => _page([
+            {
+              'id': 5,
+              'title': 'Dune',
+              'year': 2021,
+              'monitored': true,
+              'hasFile': false,
+            },
+          ]),
+          'history' || 'blocklist' || 'wanted/cutoff' => _page(const []),
+          'system/status' => {'version': '1.0.0'},
+          _ => const [],
+        },
+      );
+    }
+
+    /// The names of the tools on show, as their tooltips give them.
+    Set<String> tools(WidgetTester t) => {
+      for (final w in t.widgetList<Tooltip>(find.byType(Tooltip)))
+        ?w.message,
+    };
+
+    /// The names of what the remote's focus passes through on its way to
+    /// [f]: 'tvChrome', 'tvRow', 'tvRowActions'.
+    Set<String?> labels(WidgetTester t, Finder f) => {
+      for (final w in t.widgetList<Focus>(
+        find.ancestor(of: f, matching: find.byType(Focus)),
+      ))
+        w.focusNode?.debugLabel ?? w.debugLabel,
+    };
+
+    /// Every focus node of that name.
+    List<FocusNode> nodes(String label) => [
+      for (final n in FocusManager.instance.rootScope.descendants)
+        if (n.debugLabel == label) n,
+    ];
+
+    /// The stops a row's own buttons make for a remote.
+    int rowButtonGroups() => FocusManager.instance.rootScope.descendants
+        .where((n) => n.debugLabel == 'tvRowActions')
+        .length;
+
+    for (final onTv in [false, true]) {
+      final where = onTv ? 'on a TV' : 'off a TV, on the same screen';
+
+      testWidgets('the library\'s tools, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: tv);
+        final names = tools(t);
+        // Nothing is tucked away at this width, either way.
+        expect(names, isNot(contains('More')));
+        expect(names, containsAll(['Filter', 'Sort', 'Collections']));
+        expect(names.contains('Select'), !onTv);
+        expect(names.contains('Import Library'), !onTv);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('the queue, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: tv);
+        await _tab(t, 'Activity');
+        expect(find.text('Movie.2020'), findsOneWidget);
+        final names = tools(t);
+        expect(names.contains('Select'), !onTv);
+        expect(find.text('Manual Import'), onTv ? findsNothing : findsOneWidget);
+        // Taking a download off the queue is one press either way, and on a
+        // TV each row's button is a stop of the row's own.
+        expect(find.byTooltip('Remove from Queue'), findsNWidgets(2));
+        expect(rowButtonGroups(), onTv ? 2 : 0);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('what\'s wanted, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: tv);
+        await _tab(t, 'Wanted');
+        expect(find.text('Dune'), findsOneWidget);
+        final names = tools(t);
+        expect(names, contains('Search Movie'));
+        expect(names.contains('Select'), !onTv);
+        expect(names.contains('Manual Import'), !onTv);
+        expect(rowButtonGroups(), onTv ? 1 : 0);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('the shows\' tools, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, sonarr: sonarr(), size: tv);
+        expect(find.text('Breaking Bad'), findsWidgets);
+        final names = tools(t);
+        expect(names, containsAll(['Filter', 'Sort']));
+        expect(names.contains('Select'), !onTv);
+        expect(names.contains('Import Library'), !onTv);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      // A page opens on what's under its toolbar, with the toolbar one UP
+      // away: each toolbar says so itself. And the section keeps the remote
+      // on something when a list is asked for again.
+      testWidgets('each tab\'s toolbar, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(held: true), size: tv);
+        Matcher has(String label) =>
+            onTv ? contains(label) : isNot(contains(label));
+        expect(nodes('tvKeeper'), onTv ? hasLength(1) : isEmpty);
+        expect(labels(t, find.byTooltip('Filter')), has('tvChrome'));
+        // The tabs too, and the one the remote is on shows from a couch.
+        final library = find.widgetWithText(Tab, 'Library');
+        expect(labels(t, library), has('tvChrome'));
+        final tint = Theme.of(t.element(library)).tabBarTheme.overlayColor
+            ?.resolve({WidgetState.focused});
+        expect(tint?.a, onTv ? closeTo(0.34, 0.01) : isNull);
+        // So do a switch's segments, the selected one too.
+        final switchTint = Theme.of(t.element(library))
+            .segmentedButtonTheme
+            .style
+            ?.overlayColor
+            ?.resolve({WidgetState.focused, WidgetState.selected});
+        expect(switchTint?.a, onTv ? closeTo(0.34, 0.01) : isNull);
+        await _tab(t, 'Calendar');
+        expect(labels(t, find.byType(FilterChip)), has('tvChrome'));
+        // A month's grid is for a pointer: a TV has the list of days.
+        expect(find.text('Month'), onTv ? findsNothing : findsOneWidget);
+        await _tab(t, 'Activity');
+        expect(labels(t, find.text('Blocklist')), has('tvChrome'));
+        // A download held back has a button to send it now: a step to the
+        // right of its row, like the one that takes it off the queue.
+        expect(find.byTooltip('Grab Now'), findsOneWidget);
+        expect(labels(t, find.byTooltip('Grab Now')), has('tvRowActions'));
+        await _tab(t, 'Wanted');
+        expect(labels(t, find.text('Cutoff Unmet')), has('tvChrome'));
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      // A pointer plugged into a TV still opens a row's menu: it has what a
+      // remote has, and no picking of several.
+      testWidgets('a download\'s menu, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: tv);
+        await _tab(t, 'Activity');
+        await t.tap(find.text('Show.S01E01'), buttons: kSecondaryButton);
+        await _settle(t);
+        await t.pump(const Duration(milliseconds: 400));
+        expect(find.text('Remove from Queue'), findsOneWidget);
+        expect(find.text('Select'), onTv ? findsNothing : findsOneWidget);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      // One the app couldn't match, still downloading: on a TV its menu,
+      // since there's no page to open; elsewhere nothing, with the menu a
+      // right-click away.
+      testWidgets('a download with no title of its own, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: tv);
+        await _tab(t, 'Activity');
+        await t.tap(find.text('Show.S01E01'));
+        await _settle(t);
+        await t.pump(const Duration(milliseconds: 400));
+        expect(
+          find.text('Remove from Queue'),
+          onTv ? findsOneWidget : findsNothing,
+        );
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      // A title opens in a pane beside the list on a wide window, and on its
+      // own page on a TV however wide.
+      testWidgets('a wide screen, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: const Size(1600, 900));
+        final scope = t.widget<ArrPaneScope>(find.byType(ArrPaneScope).first);
+        expect(scope.open == null, onTv);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('a wanted title\'s menu, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(t, radarr: radarr(), size: tv);
+        await _tab(t, 'Wanted');
+        await t.tap(find.text('Dune'), buttons: kSecondaryButton);
+        await _settle(t);
+        await t.pump(const Duration(milliseconds: 400));
+        expect(find.text('Interactive Search'), findsOneWidget);
+        expect(find.text('Select'), onTv ? findsNothing : findsOneWidget);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('the collections, $where', (t) async {
+        isTvDevice = onTv;
+        await _alone(
+          t,
+          const ArrCollectionsScreen(),
+          radarr: radarr(),
+          size: tv,
+        );
+        Matcher has(String label) =>
+            onTv ? contains(label) : isNot(contains(label));
+        // A collection's own buttons are a row of their own, passed by when
+        // the page opens; its movies are a row under them.
+        final monitor = find.byWidgetPredicate(
+          (w) =>
+              w is IconButton &&
+              (w.tooltip == 'Monitor' || w.tooltip == 'Unmonitor'),
+        );
+        expect(monitor, findsWidgets);
+        expect(labels(t, monitor.first), has('tvChrome'));
+        expect(labels(t, monitor.first), has('tvRow'));
+        // Each movie is outlined while the remote is on it.
+        final movies = find.byType(TvFocusRing);
+        expect(movies, findsWidgets);
+        expect(labels(t, movies.first), has('tvRow'));
+        expect(labels(t, movies.first), isNot(contains('tvChrome')));
+        // Both rows of a card are piled ones: UP and DOWN go to the row
+        // right above or below, wherever on it.
+        final rows = t.widgetList<TvFocusRow>(find.byType(TvFocusRow));
+        expect(rows.length, onTv ? greaterThanOrEqualTo(2) : 0);
+        expect(rows.every((r) => r.stacked), isTrue);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('a search\'s releases, $where', (t) async {
+        isTvDevice = onTv;
+        await _alone(
+          t,
+          const ArrReleasesScreen(target: ArrReleaseTarget.movie(5)),
+          radarr: radarr(),
+          size: tv,
+        );
+        // On a TV a release is one stop, and its download a step to the
+        // right of it.
+        final grab = find.byTooltip('Grab');
+        expect(grab, findsWidgets);
+        expect(
+          labels(t, grab.first),
+          onTv ? contains('tvRowActions') : isNot(contains('tvRowActions')),
+        );
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('adding a title, $where', (t) async {
+        isTvDevice = onTv;
+        await _alone(
+          t,
+          const ArrAddScreen(),
+          sonarr: sonarr(),
+          radarr: radarr(),
+          size: tv,
+        );
+        // Opened to type: a TV leaves the remote on the field.
+        Finder landing(Type field) => find.ancestor(
+          of: find.byType(field),
+          matching: find.byType(TvLandingSpot),
+        );
+        expect(landing(SearchField), onTv ? findsOneWidget : findsNothing);
+        // The Movies and Shows switch is passed by on the way to the results.
+        final only = find.byWidgetPredicate((w) => w is SegmentedButton);
+        expect(only, findsOneWidget);
+        expect(
+          labels(t, only),
+          onTv ? contains('tvChrome') : isNot(contains('tvChrome')),
+        );
+        await t.pump(const Duration(seconds: 4));
+
+        // Opened with its words, it's the results the remote is for.
+        await t.pumpWidget(const SizedBox());
+        await _alone(
+          t,
+          const ArrAddScreen(term: 'dune'),
+          sonarr: sonarr(),
+          radarr: radarr(),
+          size: tv,
+        );
+        expect(landing(SearchField), findsNothing);
+        await t.pump(const Duration(seconds: 4));
+      });
+    }
+
+    testWidgets('a download the app couldn\'t match opens what can still be '
+        'done with it', (t) async {
+      isTvDevice = true;
+      await _open(t, radarr: radarr(), size: tv);
+      await _tab(t, 'Activity');
+      await t.tap(find.text('Movie.2020'));
+      await _settle(t);
+      await t.pump(const Duration(milliseconds: 400));
+      // Its menu: taking it off the queue, and nothing that needs a pointer.
+      expect(find.text('Remove from Queue'), findsOneWidget);
+      expect(find.text('Manual Import'), findsNothing);
+      expect(find.text('Select'), findsNothing);
+      await t.pump(const Duration(seconds: 4));
+    });
+
+    testWidgets('a blocked release\'s menu has no Select', (t) async {
+      // The way to it on a TV is a pointer plugged in: a remote has none.
+      for (final onTv in [false, true]) {
+        isTvDevice = onTv;
+        final server = _Server(
+          (path) => switch (path) {
+            'blocklist' => _page([
+              {
+                'id': 3,
+                'movieId': 5,
+                'sourceTitle': 'Dune.2021.CAM',
+                'movie': {'id': 5, 'title': 'Dune', 'year': 2021},
+              },
+            ]),
+            'queue' || 'history' => _page(const []),
+            'wanted/missing' || 'wanted/cutoff' => _page(const []),
+            'queue/status' => {
+              'totalCount': 0,
+              'warnings': false,
+              'errors': false,
+            },
+            'system/status' => {'version': '1.0.0'},
+            _ => const [],
+          },
+        );
+        await _open(t, radarr: server, size: tv);
+        await _tab(t, 'Activity');
+        await t.tap(find.text('Blocklist'));
+        await _settle(t);
+        expect(find.byTooltip('Select').evaluate().isEmpty, onTv);
+        await t.tap(
+          find.text('Dune.2021.CAM').first,
+          buttons: kSecondaryButton,
+        );
+        await _settle(t);
+        await t.pump(const Duration(milliseconds: 400));
+        expect(find.text('Remove from Blocklist'), findsOneWidget);
+        expect(
+          find.text('Select'),
+          onTv ? findsNothing : findsOneWidget,
+          reason: 'on a TV: $onTv',
+        );
+        await t.pumpWidget(const SizedBox());
+        await t.pump(const Duration(seconds: 4));
+      }
     });
   });
 

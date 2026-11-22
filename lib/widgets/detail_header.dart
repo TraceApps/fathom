@@ -187,6 +187,9 @@ class DetailHeaderOverlay extends StatelessWidget {
   /// "Movie · 2026 · 1h 51m" — the type, year and runtime.
   final String metaLine;
 
+  /// How many lines [metaLine] may take before it's cut short.
+  final int metaMaxLines;
+
   /// Score pills (Rotten Tomatoes, IMDb, community).
   final List<Widget> ratings;
 
@@ -200,6 +203,7 @@ class DetailHeaderOverlay extends StatelessWidget {
     this.status,
     this.cert,
     this.metaLine = '',
+    this.metaMaxLines = 1,
     this.ratings = const [],
     this.actions,
   });
@@ -254,7 +258,7 @@ class DetailHeaderOverlay extends StatelessWidget {
                       Flexible(
                         child: Text(
                           metaLine,
-                          maxLines: 1,
+                          maxLines: metaMaxLines,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,

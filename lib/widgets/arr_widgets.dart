@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import 'arr_pane.dart';
 import 'cached_image.dart';
 import 'context_menu.dart';
+import 'tv_focus.dart';
 import 'window_frame.dart';
 
 /// The Manage section's icon, in the navigation and on its empty state.
@@ -603,8 +604,11 @@ class ArrToolbar extends StatelessWidget {
 
   static const _padding = EdgeInsets.fromLTRB(16, 12, 8, 4);
 
+  // A TV opens a list on its first row, not on the buttons above it.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => TvChrome(child: _bar(context));
+
+  Widget _bar(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Padding(

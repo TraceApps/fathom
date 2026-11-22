@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart' show mergeSort;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,14 +22,77 @@ FocusNode? tvLastContentFocus;
 final FocusScopeNode tvContentScope = FocusScopeNode(debugLabel: 'tvContent');
 
 /// The focusable content nodes in reading order (top-to-bottom, left-to-right).
-List<FocusNode> tvContentNodesInOrder() {
-  return tvContentScope.traversalDescendants
+List<FocusNode> tvContentNodesInOrder() => _tvNodesInOrder(_tvFrontPage());
+
+/// [page]'s stops in reading order.
+List<FocusNode> _tvNodesInOrder(FocusNode page) {
+  return page.traversalDescendants
       .where((n) => n.canRequestFocus && n.context != null)
       .toList()
     ..sort((a, b) {
       final dy = a.rect.top.compareTo(b.rect.top);
       return dy != 0 ? dy : a.rect.left.compareTo(b.rect.left);
     });
+}
+
+/// The page in front. A page that another was opened over stays built under
+/// it, its stops where they were on the screen: "the first stop on screen" out
+/// of everything built can then be one nobody sees, and the remote goes
+/// nowhere visible. Each page of the shell's navigator is a scope of its own,
+/// and the one in front is the one the content last gave the focus to.
+FocusNode _tvFrontPage() {
+  final front = tvContentScope.focusedChild;
+  return front is FocusScopeNode ? front : tvContentScope;
+}
+
+/// Whether [n] is somewhere a page may open on: under the header band and not
+/// a list's own toolbar, or a [TvLandingSpot].
+bool _tvLands(FocusNode n) =>
+    _tvLandingSpot(n) || (n.rect.top >= _tvHeaderCutoff && !_tvInChrome(n));
+
+bool _tvLandingSpot(FocusNode n) =>
+    n.context?.findAncestorWidgetOfExactType<TvLandingSpot>() != null;
+
+/// Where the remote is on [page] (or was, when it has gone to the rail), if
+/// that's a stop on the screen.
+FocusNode? _tvRemembered(FocusNode page) {
+  if (page is! FocusScopeNode) return null;
+  var n = page.focusedChild;
+  while (n is FocusScopeNode) {
+    n = n.focusedChild;
+  }
+  if (n == null || n.context == null || !n.canRequestFocus) return null;
+  return _tvOnScreen(n) ? n : null;
+}
+
+/// Scrolls [target]'s list up or down until it shows with [room] to spare:
+/// the edge of the card it's in, not only the stop itself.
+void _tvRevealVertically(FocusNode target, {double room = 16}) {
+  final at = target.context;
+  if (at == null) return;
+  var scrollable = Scrollable.maybeOf(at);
+  while (scrollable != null && scrollable.position.axis != Axis.vertical) {
+    scrollable = Scrollable.maybeOf(scrollable.context);
+  }
+  final box = scrollable?.context.findRenderObject();
+  if (scrollable == null || box is! RenderBox || !box.hasSize) return;
+  final position = scrollable.position;
+  final view = box.localToGlobal(Offset.zero) & box.size;
+  final r = target.rect;
+  final double by;
+  if (r.top - room < view.top) {
+    by = r.top - room - view.top;
+  } else if (r.bottom + room > view.bottom) {
+    by = r.bottom + room - view.bottom;
+  } else {
+    return;
+  }
+  position.animateTo(
+    (position.pixels + by)
+        .clamp(position.minScrollExtent, position.maxScrollExtent),
+    duration: const Duration(milliseconds: 200),
+    curve: Curves.easeOut,
+  );
 }
 
 /// The logical screen size, for on-screen visibility checks.
@@ -49,6 +115,11 @@ bool _tvOnScreen(FocusNode n) {
 /// header). Focus should start on the content BELOW it, not on the back button.
 double get _tvHeaderCutoff => _tvScreenSize().height * 0.16;
 
+/// The look (about 200 ms apart) from which an opening page with nothing but
+/// its toolbar under the header takes that as all there is: soon enough not
+/// to leave the remote waiting on an empty list.
+const _tvToolbarAfter = 4;
+
 /// The node a fresh screen should focus first: the first on-screen content item
 /// BELOW the top chrome, so the remote lands on the actual movie/show/album/track
 /// — not the back button.
@@ -59,17 +130,100 @@ double get _tvHeaderCutoff => _tvScreenSize().height * 0.16;
 /// appears rather than settling on the back button. Set it false as a last
 /// resort (short screens with no content below the header, e.g. an empty state)
 /// so there's always some landing spot.
-FocusNode? tvFirstVisibleContentNode({bool preferBelowHeader = false}) {
-  final nodes = tvContentNodesInOrder();
+///
+/// [allowToolbar] accepts a list's own toolbar ([TvChrome]) under the header
+/// when there's nothing else, even with [preferBelowHeader]: a list that has
+/// stayed empty for a moment is most likely empty, not loading.
+FocusNode? tvFirstVisibleContentNode({
+  bool preferBelowHeader = false,
+  bool allowToolbar = false,
+}) =>
+    _tvFirstVisibleIn(_tvFrontPage(),
+        preferBelowHeader: preferBelowHeader, allowToolbar: allowToolbar);
+
+FocusNode? _tvFirstVisibleIn(
+  FocusNode page, {
+  bool preferBelowHeader = false,
+  bool allowToolbar = false,
+}) {
+  final nodes = _tvNodesInOrder(page);
   final visible = [for (final n in nodes) if (_tvOnScreen(n)) n];
   if (visible.isEmpty) return null;
   final headerCutoff = _tvHeaderCutoff;
   for (final n in visible) {
-    if (n.rect.top >= headerCutoff) return n;
+    if (n.rect.top >= headerCutoff && !_tvInChrome(n)) return n;
   }
   // Nothing below the header yet: either still loading (retry) or a genuinely
-  // short screen (accept the top node).
-  return preferBelowHeader ? null : visible.first;
+  // short screen (accept a list's own toolbar, then the top node).
+  if (preferBelowHeader && !allowToolbar) return null;
+  for (final n in visible) {
+    if (n.rect.top >= headerCutoff) return n;
+  }
+  if (preferBelowHeader) return null;
+  return visible.first;
+}
+
+/// The focus node of a [TvChrome]: what's under it is a screen's furniture,
+/// not its content.
+class _TvChromeNode extends FocusNode {
+  _TvChromeNode()
+      : super(
+            debugLabel: 'tvChrome',
+            canRequestFocus: false,
+            skipTraversal: true);
+}
+
+/// Whether [node] is part of a screen's furniture (see [TvChrome]).
+bool _tvInChrome(FocusNode node) {
+  for (final a in node.ancestors) {
+    if (a is _TvChromeNode) return true;
+  }
+  return false;
+}
+
+/// Marks a toolbar that sits below the app bar (a list's switch, search field
+/// and filters) as furniture on TV: a screen that opens puts the remote on
+/// the first thing in the list under it, not on the toolbar, which stays one
+/// UP away. Off TV it's a pass-through.
+class TvChrome extends StatefulWidget {
+  const TvChrome({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<TvChrome> createState() => _TvChromeState();
+}
+
+class _TvChromeState extends State<TvChrome> {
+  final _TvChromeNode _node = _TvChromeNode();
+
+  @override
+  void dispose() {
+    _node.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return widget.child;
+    return Focus(
+      focusNode: _node,
+      canRequestFocus: false,
+      skipTraversal: true,
+      child: widget.child,
+    );
+  }
+}
+
+/// A stop up in the header band that a page opens on by choice: the search
+/// field of a page that's for searching. [TvAutofocus] leaves the remote
+/// there, where it otherwise moves it down onto the first thing under the
+/// header (or, with nothing there, onto a toolbar or the Back button).
+class TvLandingSpot extends StatelessWidget {
+  const TvLandingSpot({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
 }
 
 /// Focuses the content's first item when a screen opens on TV, so the remote
@@ -97,35 +251,190 @@ class _TvAutofocusState extends State<TvAutofocus> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryFocus(0));
   }
 
+  /// The toolbar this put the remote on while the list was still empty.
+  FocusNode? _parked;
+
   void _tryFocus(int attempt) {
     if (!mounted) return;
     // The last attempt accepts a header-band fallback, so a screen with nothing
     // below the header (empty state, a short settings page) still gets a landing
     // spot instead of never focusing.
     final lastTry = attempt >= 15;
+    void again() {
+      if (attempt < 16) {
+        Future.delayed(
+            const Duration(milliseconds: 200), () => _tryFocus(attempt + 1));
+      }
+    }
+
+    // Something over the whole shell (a dialog) has the remote: it stays there.
+    if (ModalRoute.of(context)?.isCurrent == false) return again();
+    final page = _tvFrontPage();
     final pf = FocusManager.instance.primaryFocus;
+    // Put on a toolbar to wait, and moved on from it since: it's the
+    // person's now.
+    if (_parked != null && pf != _parked) return;
     // "Settled" means focus is on a real content item BELOW the top chrome. Focus
     // sitting on the app bar back button (which is inside the content scope, and
     // is all that exists while a grid/detail loads async) does NOT count — keep
     // trying so it moves onto the movie/album once it appears.
     final onContent = pf != null &&
         pf.context != null &&
-        tvContentScope.traversalDescendants.contains(pf);
-    if (onContent && pf.rect.top >= _tvHeaderCutoff) return;
-    final node = tvFirstVisibleContentNode(preferBelowHeader: !lastTry);
+        page.traversalDescendants.contains(pf);
+    if (onContent && _tvLands(pf)) return;
+    final node = tvFirstVisibleContentNode(
+        preferBelowHeader: !lastTry, allowToolbar: attempt >= _tvToolbarAfter);
     if (node != null) {
       node.requestFocus();
-      if (!lastTry) return; // landed below the header — done
+      if (_tvInChrome(node) && !lastTry) {
+        // On a list's toolbar for now: down onto the list if it comes.
+        _parked = node;
+        return again();
+      }
+      if (!lastTry) return; // landed below the header: done
     }
-    // Nothing below the header yet (still loading) — retry for a few seconds.
-    if (attempt < 16) {
-      Future.delayed(
-          const Duration(milliseconds: 200), () => _tryFocus(attempt + 1));
-    }
+    // Nothing below the header yet (still loading): retry for a few seconds.
+    again();
   }
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Opens the page it wraps with the remote on its first stop under the header,
+/// on a TV. [TvAutofocus] only does that when the section changes: a page
+/// opened over another (a title out of a list) is no change of section, and
+/// without this it opens with nothing lit until a key is pressed.
+///
+/// It leaves the remote alone once it's somewhere on the page, by the page's
+/// own choice (an autofocus) or the person's, and when something has been
+/// opened over the page in the meantime. Coming back to the page needs nothing:
+/// the remote returns to where it was by itself.
+///
+/// A dialog can use it the same way, with its row of buttons in a [TvChrome]:
+/// it then opens on its first choice, and on a button only when it has no
+/// choices.
+///
+/// What a page is still loading can turn out to come first (a choice that
+/// has nothing to offer until its list arrives). For a few seconds, and only
+/// until a key is pressed, the remote moves up to it.
+class TvPageLanding extends StatefulWidget {
+  const TvPageLanding({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<TvPageLanding> createState() => _TvPageLandingState();
+}
+
+class _TvPageLandingState extends State<TvPageLanding> {
+  /// The stop this opened the page on, while it's still its to correct.
+  FocusNode? _chosen;
+
+  /// When that was, on the clock the frames run by.
+  Duration? _chosenAt;
+
+  /// A key was pressed on the page: where the remote is, is the person's.
+  bool _touched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!isTvDevice) return;
+    HardwareKeyboard.instance.addHandler(_onKey);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _try(0));
+  }
+
+  @override
+  void dispose() {
+    if (isTvDevice) HardwareKeyboard.instance.removeHandler(_onKey);
+    super.dispose();
+  }
+
+  // The press only: the page can open on a key that's still held, and its
+  // release comes after.
+  bool _onKey(KeyEvent event) {
+    if (event is KeyDownEvent) _touched = true;
+    return false;
+  }
+
+  /// Looks again after each frame for a stop that comes before the chosen
+  /// one, now that more of the page is there.
+  void _watch() {
+    WidgetsBinding.instance.addPostFrameCallback((now) {
+      final chosen = _chosen;
+      if (!mounted || _touched || chosen == null) return;
+      if (ModalRoute.of(context)?.isCurrent == false) return;
+      final since = _chosenAt ??= now;
+      if (now - since > const Duration(seconds: 3)) return;
+      final page = FocusScope.of(context);
+      if (!page.hasFocus || _tvRemembered(page) != chosen) return;
+      final first = _tvFirstVisibleIn(page, preferBelowHeader: true);
+      if (first != null && first != chosen) {
+        first.requestFocus();
+        _chosen = first;
+      }
+      _watch();
+    });
+  }
+
+  void _try(int attempt) {
+    if (!mounted) return;
+    // A page or a dialog over this one: the remote is theirs now.
+    if (ModalRoute.of(context)?.isCurrent == false) return;
+    final lastTry = attempt >= 15;
+    void again() {
+      if (attempt < 16) {
+        Future.delayed(
+            const Duration(milliseconds: 200), () => _try(attempt + 1));
+      }
+    }
+
+    final page = FocusScope.of(context);
+    // The remote is off the page (on the rail), or the page isn't given the
+    // focus yet: nothing to move, look again in a moment.
+    if (!page.hasFocus) return again();
+    if (_tvRemembered(page) != null) return;
+    final node = _tvFirstVisibleIn(page,
+        preferBelowHeader: !lastTry, allowToolbar: attempt >= _tvToolbarAfter);
+    if (node != null) {
+      node.requestFocus();
+      _chosen = node;
+      _watch();
+      if (!lastTry) return;
+    }
+    // Nothing under the header yet (still loading): look again.
+    again();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// The routed content of the shell on a TV: one scope for it all (the rail
+/// hands the remote back into it), LEFT off its edge going to the rail, and a
+/// landing for each section.
+class TvContent extends StatelessWidget {
+  const TvContent({super.key, required this.location, required this.child});
+
+  /// The section showing: the landing is made anew when it changes.
+  final String location;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => FocusScope(
+        node: tvContentScope,
+        // On TV, LEFT with no same-row neighbour escapes to the nav rail from
+        // ANY screen (grids, lists, detail pages), so the rail is never a dead
+        // end. Home's rows opt out via their own TvFocusRow groups. TvAutofocus
+        // (keyed by route) gives each fresh screen a focused landing spot.
+        child: FocusTraversalGroup(
+          policy: TvContentTraversalPolicy(),
+          child: TvAutofocus(
+            key: ValueKey(location),
+            child: Material(color: Colors.transparent, child: child),
+          ),
+        ),
+      );
 }
 
 /// A horizontal content row (poster/landscape strip) turned into a self-contained
@@ -134,8 +443,15 @@ class _TvAutofocusState extends State<TvAutofocus> {
 /// horizontal `ListView` in this ONLY on TV; elsewhere use the list directly so
 /// desktop/mouse traversal is unchanged.
 class TvFocusRow extends StatefulWidget {
-  const TvFocusRow({super.key, required this.child});
+  const TvFocusRow({super.key, this.stacked = false, required this.child});
   final Widget child;
+
+  /// For rows piled one over another that don't line up: a card's buttons at
+  /// its right edge, its strip of posters under them at the left. UP and DOWN
+  /// then go to the stacked row right above or below, wherever on it the
+  /// remote is, where a plain row only moves to what's straight above or
+  /// below the card it's on (and would step over the buttons).
+  final bool stacked;
 
   @override
   State<TvFocusRow> createState() => _TvFocusRowState();
@@ -145,8 +461,7 @@ class _TvFocusRowState extends State<TvFocusRow> {
   // A non-focusable anchor for the row: never a focus target itself, but its
   // geometry is the reference the policy uses to hand UP/DOWN to the row above
   // or below.
-  final FocusNode _groupNode =
-      FocusNode(debugLabel: 'tvRow', canRequestFocus: false, skipTraversal: true);
+  final _TvRowNode _groupNode = _TvRowNode();
 
   @override
   void dispose() {
@@ -156,6 +471,7 @@ class _TvFocusRowState extends State<TvFocusRow> {
 
   @override
   Widget build(BuildContext context) {
+    _groupNode.stacked = widget.stacked;
     return FocusTraversalGroup(
       policy: _TvRowPolicy(_groupNode),
       child: Focus(
@@ -168,14 +484,49 @@ class _TvFocusRowState extends State<TvFocusRow> {
   }
 }
 
+/// A [TvFocusRow]'s anchor.
+class _TvRowNode extends FocusNode {
+  _TvRowNode()
+      : super(
+            debugLabel: 'tvRow',
+            canRequestFocus: false,
+            skipTraversal: true);
+
+  /// See [TvFocusRow.stacked].
+  bool stacked = false;
+
+  /// What the remote was on when it last left this row upward or downward:
+  /// where it comes back to.
+  FocusNode? last;
+}
+
 class _TvRowPolicy extends WidgetOrderTraversalPolicy {
   _TvRowPolicy(this.groupNode);
-  final FocusNode groupNode;
+  final _TvRowNode groupNode;
 
-  List<FocusNode> _cards() => groupNode.descendants
-      .where((n) => n != groupNode && n.canRequestFocus && n.context != null)
+  static List<FocusNode> _cardsOf(FocusNode group) => group.descendants
+      .where((n) => n != group && n.canRequestFocus && n.context != null)
       .toList()
     ..sort((a, b) => a.rect.left.compareTo(b.rect.left));
+
+  List<FocusNode> _cards() => _cardsOf(groupNode);
+
+  /// The stacked row right above or below this one.
+  _TvRowNode? _stackedRow({required bool up}) {
+    final here = groupNode.rect.center.dy;
+    _TvRowNode? best;
+    for (final n in groupNode.nearestScope?.descendants ??
+        const <FocusNode>[]) {
+      if (n is! _TvRowNode || n == groupNode || !n.stacked) continue;
+      if (n.context == null) continue;
+      final y = n.rect.center.dy;
+      if (up ? y >= here : y <= here) continue;
+      final nearer = best == null ||
+          (up ? y > best.rect.center.dy : y < best.rect.center.dy);
+      if (nearer) best = n;
+    }
+    return best;
+  }
 
   // Scroll the row just enough to keep the newly-focused card on-screen at the
   // leading/trailing edge. This is what lets the remote walk PAST the cards that
@@ -200,6 +551,21 @@ class _TvRowPolicy extends WidgetOrderTraversalPolicy {
     switch (direction) {
       case TraversalDirection.up:
       case TraversalDirection.down:
+        if (groupNode.stacked) {
+          final up = direction == TraversalDirection.up;
+          groupNode.last = currentNode;
+          final to = _stackedRow(up: up);
+          final cards = to == null ? const <FocusNode>[] : _cardsOf(to);
+          if (to != null && cards.isNotEmpty) {
+            final last = to.last;
+            final target = last != null && cards.contains(last)
+                ? last
+                : cards.first;
+            target.requestFocus();
+            _tvRevealVertically(target);
+            return true;
+          }
+        }
         // Hand vertical moves up to the surrounding scope, anchored on the row
         // itself, so focus lands on the neighbouring row rather than the next
         // card in this one.
@@ -236,18 +602,138 @@ class _TvRowPolicy extends WidgetOrderTraversalPolicy {
   }
 }
 
-/// The content area's traversal policy on TV. Its whole job is to make the nav
-/// rail reachable from EVERY screen: when LEFT is pressed and there's no
-/// focusable on the same row to the left, focus jumps to the rail (instead of
-/// wrapping to the previous grid row or dead-ending). RIGHT/UP/DOWN fall back to
-/// normal reading-order traversal, which handles grids and lists fine.
+/// The focus node of a [TvRowActions]: the buttons under it belong to the
+/// row they sit in.
+class _TvRowActionsNode extends FocusNode {
+  _TvRowActionsNode()
+      : super(
+            debugLabel: 'tvRowActions',
+            canRequestFocus: false,
+            skipTraversal: true,
+            descendantsAreTraversable: false);
+}
+
+/// Marks the buttons inside a list row that is itself a button (a download's
+/// Remove, a missing episode's Search) on TV. The row is then one stop for UP
+/// and DOWN, which move from row to row without catching on a button of the
+/// next one; RIGHT steps from the row onto its buttons and along them, LEFT
+/// back to the row. [TvContentTraversalPolicy] does the moving. Off TV it's a
+/// pass-through.
+class TvRowActions extends StatefulWidget {
+  const TvRowActions({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<TvRowActions> createState() => _TvRowActionsState();
+}
+
+class _TvRowActionsState extends State<TvRowActions> {
+  final _TvRowActionsNode _node = _TvRowActionsNode();
+
+  @override
+  void dispose() {
+    _node.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return widget.child;
+    return Focus(
+      focusNode: _node,
+      canRequestFocus: false,
+      skipTraversal: true,
+      // Out of the page's own UP, DOWN, LEFT and RIGHT: a row's buttons are
+      // reached from their row.
+      descendantsAreTraversable: false,
+      child: widget.child,
+    );
+  }
+}
+
+/// The [TvRowActions] a button sits in, if it sits in one.
+FocusNode? _tvRowActionsOf(FocusNode node) {
+  for (final a in node.ancestors) {
+    if (a is _TvRowActionsNode) return a;
+    if (a is FocusScopeNode) return null;
+  }
+  return null;
+}
+
+/// The row a [TvRowActions] belongs to: the nearest thing around it that the
+/// remote can stop on.
+FocusNode? _tvRowOf(FocusNode actions) {
+  for (final a in actions.ancestors) {
+    if (a is FocusScopeNode) return null;
+    if (a.canRequestFocus && !a.skipTraversal && a.context != null) return a;
+  }
+  return null;
+}
+
+/// The buttons under [node] that are marked as a row's ([TvRowActions]),
+/// from the left.
+List<FocusNode> _tvRowButtons(FocusNode node) {
+  final buttons = [
+    for (final n in node.descendants)
+      if (n.canRequestFocus && n.context != null && _tvRowActionsOf(n) != null)
+        n,
+  ];
+  mergeSort<FocusNode>(buttons, compare: (a, b) {
+    final dx = a.rect.left.compareTo(b.rect.left);
+    return dx != 0 ? dx : a.rect.top.compareTo(b.rect.top);
+  });
+  return buttons;
+}
+
+/// The content area's traversal policy on TV. It makes the nav rail reachable
+/// from EVERY screen: when LEFT is pressed and there's no focusable on the same
+/// row to the left, focus jumps to the rail (instead of wrapping to the
+/// previous grid row or dead-ending). And it moves in and out of the buttons a
+/// list row holds ([TvRowActions]). Everything else falls back to normal
+/// reading-order traversal, which handles grids and lists fine.
 ///
 /// Home's rows opt out of this by being their own [TvFocusRow] groups (their
 /// policy handles LEFT-escape themselves); this policy governs every other
 /// screen whose cards sit directly in the content group (grids, lists, details).
 class TvContentTraversalPolicy extends ReadingOrderTraversalPolicy {
+  /// A move from one of a row's buttons: along them, back to the row, or (UP
+  /// and DOWN) on from the row as if the remote had been on it.
+  bool _fromRowButton(
+      FocusNode current, FocusNode actions, TraversalDirection direction) {
+    final row = _tvRowOf(actions);
+    if (row == null) return super.inDirection(current, direction);
+    final buttons = _tvRowButtons(row);
+    final at = buttons.indexOf(current);
+    switch (direction) {
+      case TraversalDirection.left:
+        (at > 0 ? buttons[at - 1] : row).requestFocus();
+      case TraversalDirection.right:
+        if (at >= 0 && at < buttons.length - 1) buttons[at + 1].requestFocus();
+      case TraversalDirection.up:
+      case TraversalDirection.down:
+        // The move is worked out from whatever the scope holds as focused:
+        // the row, from here on.
+        row.requestFocus();
+        super.inDirection(row, direction);
+    }
+    return true;
+  }
+
   @override
   bool inDirection(FocusNode currentNode, TraversalDirection direction) {
+    final actions = _tvRowActionsOf(currentNode);
+    if (actions != null) return _fromRowButton(currentNode, actions, direction);
+    // From a stop only: with nothing lit (the page itself holds the remote)
+    // every row's buttons are under it, wherever they are on the page.
+    if (direction == TraversalDirection.right &&
+        currentNode is! FocusScopeNode &&
+        !currentNode.skipTraversal) {
+      final buttons = _tvRowButtons(currentNode);
+      if (buttons.isNotEmpty) {
+        buttons.first.requestFocus();
+        return true;
+      }
+    }
     if (direction == TraversalDirection.left) {
       final cur = currentNode.rect;
       FocusNode? best;
@@ -304,10 +790,14 @@ class TvRailPolicy extends ReadingOrderTraversalPolicy {
         if (n == currentNode || !n.canRequestFocus || n.context == null) {
           continue;
         }
+        // The page's own stops, even one scrolled in under the rail.
+        if (n.ancestors.contains(tvContentScope)) continue;
         final r = n.rect;
-        // Same rail column: the candidate's horizontal centre falls within the
-        // current tile's span (the content area sits to the right, excluded).
-        if (r.center.dx < cur.left || r.center.dx > cur.right) continue;
+        // Same rail column: the candidate overlaps the current tile's span
+        // (the content area sits to the right, excluded). Overlap, not centre:
+        // the collapse button at the header's right is narrower than the
+        // tiles under it, whose centres fall outside it.
+        if (r.right <= cur.left || r.left >= cur.right) continue;
         final isBelow = direction == TraversalDirection.down
             ? r.top > cur.top + 1
             : r.top < cur.top - 1;
@@ -324,31 +814,37 @@ class TvRailPolicy extends ReadingOrderTraversalPolicy {
       }
       return true; // top/bottom of the rail: stay, don't fall into content
     }
-    final handled = super.inDirection(currentNode, direction);
-    if (!handled && direction == TraversalDirection.right) {
-      // Prefer returning to exactly where the remote left content — but only if
+    if (direction == TraversalDirection.right) {
+      // RIGHT is the way into the page, and the page decides where. Asking
+      // the framework first had it pick whatever stood nearest the tile, out
+      // of everything built: rarely where the remote had left, sometimes a
+      // header's button, and sometimes a stop of a page hidden under the one
+      // in front, where the remote then moved about unseen.
+      //
+      // Prefer returning to exactly where the remote left content, but only if
       // it's still on-screen (so RIGHT never lands on a scrolled-off "phantom")
       // AND below the top chrome (so it never returns to the app bar back/filter
-      // buttons, which read as "focus stuck at the top" — the exact complaint).
+      // buttons, which read as "focus stuck at the top": the exact complaint),
+      // unless that's where its page opens by choice.
       final target = tvLastContentFocus;
       if (target != null &&
           target.canRequestFocus &&
           target.context?.mounted == true &&
+          _tvFrontPage().traversalDescendants.contains(target) &&
           _tvOnScreen(target) &&
-          target.rect.top >= _tvHeaderCutoff) {
+          (target.rect.top >= _tvHeaderCutoff || _tvLandingSpot(target))) {
         target.requestFocus();
         return true;
       }
       // Otherwise land on the first VISIBLE content item below the header, so a
       // single RIGHT always shows an obvious highlight on real content (no
       // double-press, never the back button).
-      final first = tvFirstVisibleContentNode();
-      if (first != null) {
-        first.requestFocus();
-        return true;
-      }
+      tvFirstVisibleContentNode()?.requestFocus();
+      // With nothing to stop on yet (a page still loading), the remote stays
+      // on the rail.
+      return true;
     }
-    return handled;
+    return super.inDirection(currentNode, direction);
   }
 }
 
@@ -633,6 +1129,330 @@ class _TvFocusRingState extends State<TvFocusRing> {
           child: widget.child,
         ),
       ),
+    );
+  }
+}
+
+/// Keeps the remote somewhere on TV when what it was on goes away: a row that
+/// leaves its list, a switch whose list is swapped for another, a button that
+/// turns into a spinner. Flutter then hands focus to whatever held it earlier
+/// on the page, or to nothing, and the next press starts from the top. With
+/// this around a page, focus goes to what now stands nearest to where it was.
+/// Off TV it's a pass-through.
+class TvFocusKeeper extends StatefulWidget {
+  const TvFocusKeeper({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<TvFocusKeeper> createState() => _TvFocusKeeperState();
+}
+
+class _TvFocusKeeperState extends State<TvFocusKeeper> {
+  final FocusNode _node = FocusNode(
+      debugLabel: 'tvKeeper', canRequestFocus: false, skipTraversal: true);
+
+  /// What the remote was last on in here, and where on the screen it stood.
+  FocusNode? _last;
+  Rect? _lastRect;
+
+  @override
+  void initState() {
+    super.initState();
+    if (isTvDevice) FocusManager.instance.addListener(_onFocus);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeListener(_onFocus);
+    _node.dispose();
+    super.dispose();
+  }
+
+  static bool _gone(FocusNode n) =>
+      n.parent == null || n.context == null || !n.context!.mounted;
+
+  /// Where [_last] stands, as of the frame being drawn: a list that scrolls
+  /// moves it, and only lays it out in its new place with that frame.
+  void _sample() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final last = _last;
+      if (!mounted || last == null || _gone(last)) return;
+      final rect = last.rect;
+      if (!rect.isEmpty) _lastRect = rect;
+    });
+  }
+
+  void _onFocus() {
+    if (!mounted) return;
+    final pf = FocusManager.instance.primaryFocus;
+    if (pf == null || pf.context == null) return;
+    final inside = pf.ancestors.contains(_node);
+    final last = _last;
+    if (last != null && _gone(last)) {
+      // Only once focus is back in here, or on nothing (the page itself,
+      // or something around this that's no stop for a remote): a dialog
+      // over the page keeps the remote for as long as it's open.
+      final onNothing = (pf is FocusScopeNode || pf.skipTraversal) &&
+          _node.ancestors.contains(pf);
+      if (!inside && !onNothing) return;
+      final next = _nearest(_lastRect);
+      if (next == null) return;
+      _last = next;
+      _lastRect = next.rect;
+      if (next != pf) next.requestFocus();
+      return;
+    }
+    if (inside && pf is! FocusScopeNode) {
+      _last = pf;
+      final rect = pf.rect;
+      if (!rect.isEmpty) _lastRect = rect;
+      _sample();
+    }
+  }
+
+  /// What the remote can stop on in here that stands nearest to [rect]:
+  /// what's in its place first, then what's closest to it.
+  FocusNode? _nearest(Rect? rect) {
+    if (rect == null) return null;
+    FocusNode? best;
+    var bestGap = double.infinity;
+    var bestAway = double.infinity;
+    for (final n in _node.traversalDescendants) {
+      if (_gone(n) || !_tvOnScreen(n)) continue;
+      final r = n.rect;
+      final dx = (r.left > rect.right)
+          ? r.left - rect.right
+          : (rect.left > r.right ? rect.left - r.right : 0.0);
+      final dy = (r.top > rect.bottom)
+          ? r.top - rect.bottom
+          : (rect.top > r.bottom ? rect.top - r.bottom : 0.0);
+      final gap = dx * dx + dy * dy;
+      final away = (r.center - rect.center).distanceSquared;
+      if (gap < bestGap || (gap == bestGap && away < bestAway)) {
+        best = n;
+        bestGap = gap;
+        bestAway = away;
+      }
+    }
+    return best;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return widget.child;
+    return NotificationListener<ScrollNotification>(
+      onNotification: (_) {
+        _sample();
+        return false;
+      },
+      child: Focus(
+        focusNode: _node,
+        canRequestFocus: false,
+        skipTraversal: true,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// A stretch of a page that's only read (a paragraph, a list of facts), made
+/// a stop for the remote on TV. A remote scrolls a page by moving from one
+/// stop to the next: with nothing to stop on, what's below the last button
+/// could never be brought into view. Shows a quiet outline while the remote
+/// is on it. Off TV it's a pass-through.
+class TvReadStop extends StatefulWidget {
+  const TvReadStop({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<TvReadStop> createState() => _TvReadStopState();
+}
+
+class _TvReadStopState extends State<TvReadStop> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return widget.child;
+    final scheme = Theme.of(context).colorScheme;
+    return Focus(
+      debugLabel: 'tvReadStop',
+      onFocusChange: (v) => setState(() => _focused = v),
+      // The outline is drawn a little outside the words, so they don't touch
+      // its edge. That room is part of the stop: the page scrolls a stop
+      // into view edge to edge, and would cut the outline off otherwise.
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          if (_focused)
+            Positioned(
+              left: -8,
+              right: -8,
+              top: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: scheme.primary.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.7),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: widget.child,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The buttons over a page's collapsing header, on TV: a stop for the remote
+/// only while the header is fully open. Once the page scrolls, the header's
+/// picture is faded out and clipped but still laid out behind the page, and
+/// its buttons with it; left in, the remote would step onto buttons nobody
+/// can see. [TvPageEnds] opens the header again. Off TV it's a
+/// pass-through.
+class TvOpenHeaderOnly extends StatelessWidget {
+  const TvOpenHeaderOnly({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return child;
+    final bar =
+        context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    final open = bar == null || bar.currentExtent >= bar.maxExtent - 1;
+    return ExcludeFocus(excluding: !open, child: child);
+  }
+}
+
+/// The two ends of a scrolled page, on TV. UP from the page's first stop
+/// opens its header again and puts the remote on the header's first button;
+/// DOWN from its last stop scrolls on, so what's only read under it (a
+/// heading, a line saying there's nothing yet) can still be brought into
+/// view. In between, UP and DOWN move stop by stop as usual. Goes around the
+/// page's scroll view. Off TV it's a pass-through.
+class TvPageEnds extends StatefulWidget {
+  const TvPageEnds({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<TvPageEnds> createState() => _TvPageEndsState();
+}
+
+class _TvPageEndsState extends State<TvPageEnds> {
+  // The header is on its way open: a held UP waits for it rather than
+  // starting it over with every repeat.
+  bool _opening = false;
+
+  // A pinned bar stays at the top of a scrolled page: its own buttons (Back)
+  // aren't somewhere to go from the page's first stop.
+  static bool _inBar(FocusNode n) =>
+      n.context?.findAncestorWidgetOfExactType<AppBar>() != null;
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent && e is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    final up = e.logicalKey == LogicalKeyboardKey.arrowUp;
+    if (!up && e.logicalKey != LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.ignored;
+    }
+    if (_opening) return KeyEventResult.handled;
+    final pf = FocusManager.instance.primaryFocus;
+    final at = pf?.context;
+    if (pf == null || at == null) return KeyEventResult.ignored;
+    // The page's own scrolling, not a strip's inside it.
+    var scrollable = Scrollable.maybeOf(at);
+    while (scrollable != null &&
+        scrollable.position.axis != Axis.vertical) {
+      scrollable = Scrollable.maybeOf(scrollable.context);
+    }
+    final position = scrollable?.position;
+    if (position == null) return KeyEventResult.ignored;
+    // A button of a row counts as its row: UP and DOWN leave from the row.
+    final actions = _tvRowActionsOf(pf);
+    final from = (actions == null ? null : _tvRowOf(actions)) ?? pf;
+    if (_inBar(from)) return KeyEventResult.ignored;
+    final others = [
+      for (final n in node.traversalDescendants)
+        if (n != from && n.context != null && !_inBar(n)) n,
+    ];
+    if (!up) {
+      // A stop below this one: an ordinary move.
+      final middle = from.rect.center.dy;
+      if (others.any((n) => n.rect.center.dy > middle + 8)) {
+        return KeyEventResult.ignored;
+      }
+      // The end of the page: nowhere further. Kept here, since a stop that
+      // has scrolled off the top has the pinned bar's Back button "below" it.
+      if (position.pixels >= position.maxScrollExtent) {
+        return KeyEventResult.handled;
+      }
+      // No further than keeps the stop in sight under the pinned bar: OK
+      // must never press something scrolled away out of view.
+      // A stop taller than the screen still scrolls on to its own end.
+      final room = math.max(
+        pf.rect.top - (_tvHeaderCutoff + 8),
+        pf.rect.bottom - (_tvScreenSize().height - 16),
+      );
+      if (room <= 0) return KeyEventResult.handled;
+      position.animateTo(
+        math.min(
+          position.pixels +
+              math.min(position.viewportDimension * 0.6, room),
+          position.maxScrollExtent,
+        ),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+      return KeyEventResult.handled;
+    }
+    if (position.pixels <= position.minScrollExtent) {
+      return KeyEventResult.ignored;
+    }
+    // A stop above this one: an ordinary move.
+    final top = from.rect.top;
+    if (others.any((n) => n.rect.top < top - 8)) {
+      return KeyEventResult.ignored;
+    }
+    _opening = true;
+    position
+        .animateTo(
+          position.minScrollExtent,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        )
+        .whenComplete(() {
+          // The header's buttons take the remote again once it's laid out
+          // open: a frame after the scroll ends.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _opening = false;
+            if (!mounted) return;
+            if (FocusManager.instance.primaryFocus != pf) return;
+            tvFirstVisibleContentNode()?.requestFocus();
+          });
+          WidgetsBinding.instance.scheduleFrame();
+        });
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return widget.child;
+    return Focus(
+      debugLabel: 'tvPageEnds',
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: _onKey,
+      child: widget.child,
     );
   }
 }

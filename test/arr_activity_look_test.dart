@@ -310,6 +310,32 @@ void main() {
       }
     });
 
+    // Two alike (both stuck, as far along): the same order every time the
+    // queue is asked for, whichever app answers first, so a row doesn't
+    // swap places under the remote or the pointer.
+    test('keeps one order between downloads alike', () {
+      ArrQueueItem alike(ArrKind kind, int id) => ArrQueueItem(
+        kind: kind,
+        id: id,
+        title: 'Dune',
+        status: 'completed',
+        trackedDownloadState: 'importBlocked',
+        size: 100,
+        sizeleft: 0,
+      );
+      final a = alike(ArrKind.sonarr, 9);
+      final b = alike(ArrKind.radarr, 2);
+      final c = alike(ArrKind.radarr, 7);
+      for (final start in [
+        [a, b, c],
+        [c, b, a],
+        [b, c, a],
+      ]) {
+        final sorted = [...start]..sort(arrQueueOrder);
+        expect(sorted, [a, b, c], reason: '$start');
+      }
+    });
+
     test('comes first in the queue exactly when its card says it\'s stuck', () {
       // One of every reading above, the stuck ones nearly done and the rest
       // barely started, so only the state can put them where they belong.

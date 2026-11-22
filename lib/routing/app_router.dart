@@ -77,7 +77,15 @@ import '../screens/youtube_playlist_screen.dart';
 import '../screens/youtube_my_playlist_screen.dart';
 import '../state/preferences.dart';
 import '../state/session_controller.dart';
+import '../widgets/tv_focus.dart';
 import 'app_shell.dart';
+
+/// A page of the Manage section. On a TV it opens with the remote on its first
+/// stop under the header (see [TvPageLanding]): most of them are opened over
+/// another page, which the shell gives no landing. Elsewhere it's the page as
+/// it is.
+CustomTransitionPage<void> _managePage(Widget child) =>
+    _fadePage(isTvDevice ? TvPageLanding(child: child) : child);
 
 CustomTransitionPage<void> _fadePage(Widget child, {LocalKey? key}) {
   return CustomTransitionPage<void>(
@@ -531,22 +539,22 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, _) => _fadePage(const SeerrSettingsScreen())),
           GoRoute(
               path: '/arr',
-              pageBuilder: (_, state) => _fadePage(
+              pageBuilder: (_, state) => _managePage(
                   ArrScreen(tab: state.uri.queryParameters['tab']))),
           GoRoute(
               path: '/arr-settings',
-              pageBuilder: (_, _) => _fadePage(const ArrSettingsScreen())),
+              pageBuilder: (_, _) => _managePage(const ArrSettingsScreen())),
           GoRoute(
               path: '/arr/movie/:id',
-              pageBuilder: (_, state) => _fadePage(ArrMovieScreen(
+              pageBuilder: (_, state) => _managePage(ArrMovieScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
               path: '/arr/add',
-              pageBuilder: (_, state) => _fadePage(ArrAddScreen(
+              pageBuilder: (_, state) => _managePage(ArrAddScreen(
                   term: state.uri.queryParameters['term']))),
           GoRoute(
               path: '/arr/add/:kind',
-              pageBuilder: (_, state) => _fadePage(ArrAddScreen(
+              pageBuilder: (_, state) => _managePage(ArrAddScreen(
                   kind: state.pathParameters['kind'] == 'series'
                       ? ArrKind.sonarr
                       : ArrKind.radarr,
@@ -554,33 +562,33 @@ final routerProvider = Provider<GoRouter>((ref) {
                   folder: state.uri.queryParameters['folder']))),
           GoRoute(
               path: '/arr/collections',
-              pageBuilder: (_, _) => _fadePage(const ArrCollectionsScreen())),
+              pageBuilder: (_, _) => _managePage(const ArrCollectionsScreen())),
           GoRoute(
               path: '/arr/health',
-              pageBuilder: (_, _) => _fadePage(const ArrHealthScreen())),
+              pageBuilder: (_, _) => _managePage(const ArrHealthScreen())),
           GoRoute(
               path: '/arr/releases',
-              pageBuilder: (_, state) => _fadePage(ArrReleasesScreen(
+              pageBuilder: (_, state) => _managePage(ArrReleasesScreen(
                   target: ArrReleaseTarget.fromQuery(
                       state.uri.queryParameters)))),
           GoRoute(
               path: '/arr/library-import',
-              pageBuilder: (_, state) => _fadePage(ArrLibraryImportScreen(
+              pageBuilder: (_, state) => _managePage(ArrLibraryImportScreen(
                   kind: state.uri.queryParameters['app'] == 'radarr'
                       ? ArrKind.radarr
                       : ArrKind.sonarr))),
           GoRoute(
               path: '/arr/import',
-              pageBuilder: (_, state) => _fadePage(ArrImportScreen(
+              pageBuilder: (_, state) => _managePage(ArrImportScreen(
                   target: ArrImportTarget.fromQuery(
                       state.uri.queryParameters)))),
           GoRoute(
               path: '/arr/series/:id/files',
-              pageBuilder: (_, state) => _fadePage(ArrSeriesFilesScreen(
+              pageBuilder: (_, state) => _managePage(ArrSeriesFilesScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
               path: '/arr/series/:id',
-              pageBuilder: (_, state) => _fadePage(ArrSeriesScreen(
+              pageBuilder: (_, state) => _managePage(ArrSeriesScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
               path: '/updates',

@@ -717,6 +717,9 @@ class _TvFieldTileState extends State<_TvFieldTile> {
                     final shown =
                         widget.obscure ? '•' * value.text.length : value.text;
                     return Column(
+                      // As tall as its two lines: in a dialog there's height
+                      // to spare, and the tile would fill it.
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.label,

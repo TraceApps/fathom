@@ -10,6 +10,7 @@ import '../widgets/arr_actions.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
+import '../widgets/tv_focus.dart';
 import '../widgets/ui_common.dart';
 
 /// What an interactive search is for: a movie, a season, or one episode.
@@ -478,7 +479,8 @@ class _ReleaseCardState extends State<_ReleaseCard> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                SizedBox(
+                // On a TV, RIGHT steps from the release onto its download.
+                TvRowActions(child: SizedBox(
                   width: 48,
                   height: 48,
                   child: widget.busy
@@ -501,7 +503,7 @@ class _ReleaseCardState extends State<_ReleaseCard> {
                           ),
                           onPressed: r.downloadAllowed ? widget.onGrab : null,
                         ),
-                ),
+                )),
               ],
             ),
           ),

@@ -246,22 +246,7 @@ class AppShell extends ConsumerWidget {
                   right: 0,
                   bottom: 0,
                   child: isTvDevice
-                      ? FocusScope(
-                          node: tvContentScope,
-                          // On TV, LEFT with no same-row neighbour escapes to the
-                          // nav rail from ANY screen (grids, lists, detail pages),
-                          // so the rail is never a dead end. Home's rows opt out
-                          // via their own TvFocusRow groups. TvAutofocus (keyed by
-                          // route) gives each fresh screen a focused landing spot.
-                          child: FocusTraversalGroup(
-                            policy: TvContentTraversalPolicy(),
-                            child: TvAutofocus(
-                              key: ValueKey(location),
-                              child: Material(
-                                  color: Colors.transparent, child: child),
-                            ),
-                          ),
-                        )
+                      ? TvContent(location: location, child: child)
                       : FocusTraversalGroup(
                           child: Material(
                               color: Colors.transparent, child: child),
@@ -992,6 +977,17 @@ class _NavTileState extends State<_NavTile> {
   bool get _active => _hover || _focused;
 
   @override
+  void didUpdateWidget(_NavTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // On a TV the rail's landing node moves to the tile of the section that
+    // opened: the node this tile was lit by is no longer the one it hears
+    // from, so it would stay lit once the remote has gone into the page.
+    if (oldWidget.focusNode != widget.focusNode) {
+      _focused = widget.focusNode?.hasFocus ?? false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final selected = widget.selected;
@@ -1016,6 +1012,9 @@ class _NavTileState extends State<_NavTile> {
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: FocusableActionDetector(
+        // A new detector with a new node: the old one never heard its node
+        // lose the remote, and would take the next focus as no change.
+        key: ObjectKey(widget.focusNode),
         focusNode: widget.focusNode,
         // TV needs real focus (D-pad) to light the tile; off TV keep the original
         // keyboard-highlight-only behaviour so desktop is unchanged.
@@ -1172,15 +1171,20 @@ class _BrowseNav extends ConsumerWidget {
               child: Align(
                 alignment: Alignment.topCenter,
                 heightFactor: expanded ? 1 : 0,
-                child: Column(
-                  children: [
-                    for (final i in items)
-                      _NavSubTile(
-                        label: i.$1,
-                        icon: i.$3,
-                        onTap: () => openBrowse(i.$2),
-                      ),
-                  ],
+                // Folded away, its entries are no stops for a remote or the
+                // Tab key (they sit unseen under the tiles that follow).
+                child: ExcludeFocus(
+                  excluding: !expanded,
+                  child: Column(
+                    children: [
+                      for (final i in items)
+                        _NavSubTile(
+                          label: i.$1,
+                          icon: i.$3,
+                          onTap: () => openBrowse(i.$2),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1244,15 +1248,20 @@ class _LibrariesNav extends ConsumerWidget {
               child: Align(
                 alignment: Alignment.topCenter,
                 heightFactor: expanded ? 1 : 0,
-                child: Column(
-                  children: [
-                    for (final v in views)
-                      _NavSubTile(
-                        label: v.name,
-                        icon: collectionTypeIcon(v.collectionType),
-                        onTap: () => context.push('/library', extra: v),
-                      ),
-                  ],
+                // Folded away, its entries are no stops for a remote or the
+                // Tab key (they sit unseen under the tiles that follow).
+                child: ExcludeFocus(
+                  excluding: !expanded,
+                  child: Column(
+                    children: [
+                      for (final v in views)
+                        _NavSubTile(
+                          label: v.name,
+                          icon: collectionTypeIcon(v.collectionType),
+                          onTap: () => context.push('/library', extra: v),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

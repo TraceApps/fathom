@@ -23,6 +23,7 @@ import '../widgets/error_view.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/meta_pill.dart';
 import '../widgets/shimmer.dart';
+import '../widgets/tv_focus.dart';
 import '../widgets/ui_common.dart';
 import 'arr_import_screen.dart';
 import 'arr_releases_screen.dart';
@@ -84,7 +85,7 @@ class ArrMovieScreen extends ConsumerWidget {
               _askMovieAgain(ref, id);
               await ref.read(radarrMovieProvider(id).future);
             },
-            child: CustomScrollView(
+            child: TvPageEnds(child: CustomScrollView(
               slivers: [
                 _Header(
                   client: client,
@@ -107,63 +108,71 @@ class ArrMovieScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!wide) actions(false),
-                        if (m.overview?.isNotEmpty ?? false) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            m.overview!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.5,
+                        SizedBox(
+                          height: (m.overview?.isNotEmpty ?? false) ? 16 : 20,
+                        ),
+                        // One stop for a TV's remote: the page moves on a
+                        // part at a time.
+                        ..._tvRead([
+                          if (m.overview?.isNotEmpty ?? false) ...[
+                            Text(
+                              m.overview!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.5,
+                              ),
                             ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        ArrFact(
-                          label: l.arrQualityProfile,
-                          value: profiles[m.qualityProfileId] ?? '-',
-                        ),
-                        ArrFact(
-                          label: l.arrMonitored,
-                          value: m.monitored ? l.arrYes : l.arrNo,
-                        ),
-                        if (m.path != null)
-                          ArrFact(label: l.arrPath, value: m.path!),
-                        ArrFact(
-                          label: l.arrSizeOnDisk,
-                          value: arrSize(m.sizeOnDisk),
-                        ),
-                        if (m.added != null && m.added!.year > 1)
+                            const SizedBox(height: 20),
+                          ],
                           ArrFact(
-                            label: l.arrAdded,
-                            value: arrDate(context, m.added!),
+                            label: l.arrQualityProfile,
+                            value: profiles[m.qualityProfileId] ?? '-',
                           ),
-                        if (m.inCinemas != null ||
-                            m.digitalRelease != null ||
-                            m.physicalRelease != null) ...[
-                          const SizedBox(height: 20),
-                          Text(l.arrReleases, style: arrSectionStyle(theme)),
-                          const SizedBox(height: 6),
-                          if (m.inCinemas != null)
+                          ArrFact(
+                            label: l.arrMonitored,
+                            value: m.monitored ? l.arrYes : l.arrNo,
+                          ),
+                          if (m.path != null)
+                            ArrFact(label: l.arrPath, value: m.path!),
+                          ArrFact(
+                            label: l.arrSizeOnDisk,
+                            value: arrSize(m.sizeOnDisk),
+                          ),
+                          if (m.added != null && m.added!.year > 1)
                             ArrFact(
-                              label: l.arrInCinemas,
-                              value: arrDate(context, m.inCinemas!),
+                              label: l.arrAdded,
+                              value: arrDate(context, m.added!),
                             ),
-                          if (m.digitalRelease != null)
-                            ArrFact(
-                              label: l.arrDigitalRelease,
-                              value: arrDate(context, m.digitalRelease!),
-                            ),
-                          if (m.physicalRelease != null)
-                            ArrFact(
-                              label: l.arrPhysicalRelease,
-                              value: arrDate(context, m.physicalRelease!),
-                            ),
-                        ],
+                          if (m.inCinemas != null ||
+                              m.digitalRelease != null ||
+                              m.physicalRelease != null) ...[
+                            const SizedBox(height: 20),
+                            Text(l.arrReleases, style: arrSectionStyle(theme)),
+                            const SizedBox(height: 6),
+                            if (m.inCinemas != null)
+                              ArrFact(
+                                label: l.arrInCinemas,
+                                value: arrDate(context, m.inCinemas!),
+                              ),
+                            if (m.digitalRelease != null)
+                              ArrFact(
+                                label: l.arrDigitalRelease,
+                                value: arrDate(context, m.digitalRelease!),
+                              ),
+                            if (m.physicalRelease != null)
+                              ArrFact(
+                                label: l.arrPhysicalRelease,
+                                value: arrDate(context, m.physicalRelease!),
+                              ),
+                          ],
+                        ]),
                         const SizedBox(height: 20),
                         Text(l.arrFile, style: arrSectionStyle(theme)),
                         const SizedBox(height: 8),
                         if (m.movieFile != null) ...[
-                          ArrFileCard(file: m.movieFile!),
-                          if (client != null)
+                          TvReadStop(child: ArrFileCard(file: m.movieFile!)),
+                          // Changing or deleting a file is for a phone or a
+                          // desktop, not a remote.
+                          if (client != null && !isTvDevice)
                             Wrap(
                               alignment: WrapAlignment.end,
                               spacing: 4,
@@ -200,7 +209,7 @@ class ArrMovieScreen extends ConsumerWidget {
                   ),
                 ),
               ],
-            ),
+            )),
           );
         },
       ),
@@ -270,7 +279,7 @@ class ArrSeriesScreen extends ConsumerWidget {
               _askSeriesAgain(ref, id);
               await ref.read(sonarrSeriesProvider(id).future);
             },
-            child: CustomScrollView(
+            child: TvPageEnds(child: CustomScrollView(
               slivers: [
                 _Header(
                   client: client,
@@ -310,42 +319,47 @@ class ArrSeriesScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!wide) actions(false),
-                        if (s.overview?.isNotEmpty ?? false) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            s.overview!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.5,
+                        SizedBox(
+                          height: (s.overview?.isNotEmpty ?? false) ? 16 : 20,
+                        ),
+                        // One stop for a TV's remote, before the seasons.
+                        ..._tvRead([
+                          if (s.overview?.isNotEmpty ?? false) ...[
+                            Text(
+                              s.overview!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                          ArrFact(
+                            label: l.arrQualityProfile,
+                            value: profiles[s.qualityProfileId] ?? '-',
+                          ),
+                          ArrFact(
+                            label: l.arrMonitored,
+                            value: s.monitored ? l.arrYes : l.arrNo,
+                          ),
+                          ArrFact(
+                            label: l.arrFiles,
+                            value: l.arrEpisodesOf(
+                              s.episodeFileCount,
+                              s.episodeCount,
                             ),
                           ),
-                        ],
-                        const SizedBox(height: 20),
-                        ArrFact(
-                          label: l.arrQualityProfile,
-                          value: profiles[s.qualityProfileId] ?? '-',
-                        ),
-                        ArrFact(
-                          label: l.arrMonitored,
-                          value: s.monitored ? l.arrYes : l.arrNo,
-                        ),
-                        ArrFact(
-                          label: l.arrFiles,
-                          value: l.arrEpisodesOf(
-                            s.episodeFileCount,
-                            s.episodeCount,
-                          ),
-                        ),
-                        if (s.path != null)
-                          ArrFact(label: l.arrPath, value: s.path!),
-                        ArrFact(
-                          label: l.arrSizeOnDisk,
-                          value: arrSize(s.sizeOnDisk),
-                        ),
-                        if (s.added != null && s.added!.year > 1)
+                          if (s.path != null)
+                            ArrFact(label: l.arrPath, value: s.path!),
                           ArrFact(
-                            label: l.arrAdded,
-                            value: arrDate(context, s.added!),
+                            label: l.arrSizeOnDisk,
+                            value: arrSize(s.sizeOnDisk),
                           ),
+                          if (s.added != null && s.added!.year > 1)
+                            ArrFact(
+                              label: l.arrAdded,
+                              value: arrDate(context, s.added!),
+                            ),
+                        ]),
                         const SizedBox(height: 12),
                       ],
                     ),
@@ -404,7 +418,7 @@ class ArrSeriesScreen extends ConsumerWidget {
                   ),
                 ),
               ],
-            ),
+            )),
           );
         },
       ),
@@ -501,6 +515,10 @@ class _Header extends StatelessWidget {
               status: status,
               title: Text(
                 title,
+                // Beside the buttons a TV keeps in the header, a long name
+                // would otherwise run down over the art.
+                maxLines: isTvDevice ? 3 : null,
+                overflow: isTvDevice ? TextOverflow.ellipsis : null,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -509,7 +527,14 @@ class _Header extends StatelessWidget {
               ),
               cert: (cert?.isNotEmpty ?? false) ? CertBadge(text: cert!) : null,
               metaLine: meta,
-              actions: actions,
+              // Beside the buttons there's too little room on a TV for the
+              // year, the length and the studio on one line.
+              metaMaxLines: isTvDevice ? 2 : 1,
+              // Scrolled shut, the header's buttons are still laid out under
+              // the page: a remote mustn't stop on what can't be seen.
+              actions: actions == null
+                  ? null
+                  : TvOpenHeaderOnly(child: actions!),
             ),
           ],
         ),
@@ -581,6 +606,23 @@ class _Body extends StatelessWidget {
     ),
   );
 }
+
+/// On a TV, a stretch of the page that's only read (the overview and the
+/// facts under it) is one stop for the remote, so UP and DOWN move the page a
+/// part at a time. Anywhere else the widgets are just themselves.
+List<Widget> _tvRead(List<Widget> children) => !isTvDevice
+    ? children
+    : [
+        TvReadStop(
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ),
+      ];
 
 /// A few blocks standing in for rows that are on their way.
 class _BlocksSkeleton extends StatelessWidget {
@@ -784,7 +826,7 @@ Widget Function(bool header) _movieActions(
       },
     ),
     // Files dropped in the movie's folder that Radarr hasn't taken in.
-    if (m.path != null && m.path!.isNotEmpty)
+    if (!isTvDevice && m.path != null && m.path!.isNotEmpty)
       ArrAction(
         icon: Icons.drive_folder_upload_rounded,
         label: l.arrManualImport,
@@ -792,7 +834,7 @@ Widget Function(bool header) _movieActions(
           ArrImportTarget.folder(ArrKind.radarr, m.path!).location,
         ),
       ),
-    if (m.hasFile)
+    if (!isTvDevice && m.hasFile)
       ArrAction(
         icon: Icons.drive_file_rename_outline_rounded,
         label: l.arrRenameFiles,
@@ -899,7 +941,9 @@ Widget Function(bool header) _seriesActions(
     ),
   ];
   final more = [
-    if (s.episodeFileCount > 0)
+    // Files, folders and renaming are for a phone or a desktop, not a
+    // remote.
+    if (!isTvDevice && s.episodeFileCount > 0)
       ArrAction(
         icon: Icons.folder_open_rounded,
         label: l.arrManageFiles,
@@ -918,7 +962,7 @@ Widget Function(bool header) _seriesActions(
         }
       },
     ),
-    if (s.path != null && s.path!.isNotEmpty)
+    if (!isTvDevice && s.path != null && s.path!.isNotEmpty)
       ArrAction(
         icon: Icons.drive_folder_upload_rounded,
         label: l.arrManualImport,
@@ -926,7 +970,7 @@ Widget Function(bool header) _seriesActions(
           ArrImportTarget.folder(ArrKind.sonarr, s.path!).location,
         ),
       ),
-    if (s.episodeFileCount > 0)
+    if (!isTvDevice && s.episodeFileCount > 0)
       ArrAction(
         icon: Icons.drive_file_rename_outline_rounded,
         label: l.arrRenameFiles,
@@ -1080,7 +1124,9 @@ class _SeasonTile extends ConsumerWidget {
         child: ExpansionTile(
           initiallyExpanded: initiallyExpanded,
           shape: const Border(),
-          leading: IconButton(
+          // On a TV the remote goes season to season, and RIGHT steps onto
+          // a season's own buttons.
+          leading: TvRowActions(child: IconButton(
             tooltip: season.monitored ? l.arrUnmonitor : l.arrMonitor,
             icon: Icon(
               season.monitored
@@ -1105,7 +1151,7 @@ class _SeasonTile extends ConsumerWidget {
                       arrSeriesChanged(ref, seriesId);
                     }
                   },
-          ),
+          )),
           title: Text(
             name,
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -1134,7 +1180,7 @@ class _SeasonTile extends ConsumerWidget {
                 ),
               ),
               if (c != null) ...[
-                IconButton(
+                TvRowActions(child: IconButton(
                   tooltip: l.arrSearchSeason,
                   icon: const Icon(Icons.search_rounded),
                   onPressed: () => arrRun(
@@ -1142,14 +1188,14 @@ class _SeasonTile extends ConsumerWidget {
                     () => c.searchSeason(seriesId, season.seasonNumber),
                     done: l.arrSearchStarted(c.kind.appName),
                   ),
-                ),
-                Builder(
+                )),
+                TvRowActions(child: Builder(
                   builder: (anchor) => IconButton(
                     tooltip: l.arrSeasonActions,
                     icon: const Icon(Icons.more_vert_rounded),
                     onPressed: () => _openMenu(context, ref, anchor, c, name),
                   ),
-                ),
+                )),
               ],
             ],
           ),
@@ -1204,7 +1250,7 @@ extension on _SeasonTile {
             ArrReleaseTarget.season(seriesId, season.seasonNumber).location,
           ),
         ),
-        if (seasonFiles.isNotEmpty)
+        if (!isTvDevice && seasonFiles.isNotEmpty)
           ContextMenuAction(
             icon: Icons.delete_sweep_rounded,
             label: l.arrDeleteSeasonFiles,
@@ -1294,7 +1340,9 @@ void _showEpisode(
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
+    // A remote has nothing to drag: on a TV the sheet opens tall, with the
+    // remote on its first button.
+    showDragHandle: !isTvDevice,
     builder: (context) => Consumer(
       builder: (context, ref, _) {
         final theme = Theme.of(context);
@@ -1302,11 +1350,11 @@ void _showEpisode(
         void changed() => arrSeriesChanged(ref, e.seriesId);
         return DraggableScrollableSheet(
           expand: false,
-          initialChildSize: 0.6,
+          initialChildSize: isTvDevice ? 0.92 : 0.6,
           maxChildSize: 0.92,
           builder: (context, controller) => ListView(
             controller: controller,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+            padding: EdgeInsets.fromLTRB(20, isTvDevice ? 24 : 0, 20, 28),
             children: [
               Text(
                 e.code,
@@ -1345,6 +1393,7 @@ void _showEpisode(
                   children: [
                     HoverPillButton(
                       primary: true,
+                      autofocus: isTvDevice,
                       icon: Icons.search_rounded,
                       label: l.arrSearchEpisode,
                       onTap: () => arrRun(
@@ -1398,8 +1447,9 @@ void _showEpisode(
               Text(l.arrFile, style: arrSectionStyle(theme)),
               const SizedBox(height: 8),
               if (file != null) ...[
-                ArrFileCard(file: file),
-                if (c != null)
+                TvReadStop(child: ArrFileCard(file: file)),
+                // Deleting a file is for a phone or a desktop.
+                if (c != null && !isTvDevice)
                   Align(
                     alignment: Alignment.centerRight,
                     child: _DeleteFileButton(
@@ -1533,7 +1583,10 @@ class _HistorySection extends StatelessWidget {
           )
         else
           for (final h in items.take(50))
-            _HistoryRow(item: h, episode: episodeLabel[h.episodeId]),
+            // Each a stop on a TV, so the remote can read down the list.
+            TvReadStop(
+              child: _HistoryRow(item: h, episode: episodeLabel[h.episodeId]),
+            ),
       ],
     );
   }

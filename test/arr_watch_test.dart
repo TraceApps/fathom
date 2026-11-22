@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:fathom/api/arr_client.dart';
@@ -9,6 +10,7 @@ import 'package:fathom/models/base_item.dart';
 import 'package:fathom/models/session.dart';
 import 'package:fathom/screens/arr_detail_screens.dart';
 import 'package:fathom/screens/arr_screen.dart';
+import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/providers.dart';
 import 'package:fathom/state/session_controller.dart';
@@ -17,6 +19,8 @@ import 'package:fathom/widgets/arr_actions.dart';
 import 'package:fathom/widgets/detail_header.dart';
 import 'package:fathom/widgets/hover_pill_button.dart';
 import 'package:fathom/widgets/media_cards.dart';
+import 'package:fathom/widgets/tv_focus.dart';
+import 'package:fathom/widgets/tv_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -153,7 +157,10 @@ int _askedFor(String what) => _appAsked.where((p) => p == what).length;
 /// An app that has one movie and one show, as their pages ask for them.
 class _App implements HttpClientAdapter {
   final Map<String, dynamic> title;
-  _App(this.title);
+
+  /// What else it has, by what's asked for: `episode`.
+  final Map<String, Object> more;
+  _App(this.title, {this.more = const {}});
 
   @override
   Future<ResponseBody> fetch(
@@ -163,7 +170,7 @@ class _App implements HttpClientAdapter {
   ) async {
     final path = o.uri.path.replaceFirst(RegExp(r'^.*/api/v3/'), '');
     _appAsked.add(path);
-    final Object reply = switch (path) {
+    final Object reply = more[path] ?? switch (path) {
       'movie/5' || 'series/7' => title,
       // The library's list, for the section itself.
       'movie' || 'series' => [title],
@@ -238,6 +245,7 @@ Future<void> _open(
   required _Library library,
   Map<String, dynamic>? movie,
   Map<String, dynamic>? series,
+  Map<String, Object> more = const {},
   Session? session = _session,
   Size size = _wide,
 }) async {
@@ -279,7 +287,7 @@ Future<void> _open(
               : SonarrClient(
                   'http://s',
                   'k',
-                  dio: Dio()..httpClientAdapter = _App(series),
+                  dio: Dio()..httpClientAdapter = _App(series, more: more),
                 ),
         ),
         radarrClientProvider.overrideWithValue(
@@ -288,7 +296,7 @@ Future<void> _open(
               : RadarrClient(
                   'http://r',
                   'k',
-                  dio: Dio()..httpClientAdapter = _App(movie),
+                  dio: Dio()..httpClientAdapter = _App(movie, more: more),
                 ),
         ),
       ],
@@ -321,6 +329,21 @@ List<(String, bool)> _header(WidgetTester t) => [
     find.byType(HeaderActionButton),
   ))
     (b.tooltip, b.primary),
+];
+
+/// The names of what the remote's focus passes through on its way to [f]:
+/// 'tvReadStop', 'tvRowActions'.
+Set<String?> _focusLabels(WidgetTester t, Finder f) => {
+  for (final w in t.widgetList<Focus>(
+    find.ancestor(of: f, matching: find.byType(Focus)),
+  ))
+    w.focusNode?.debugLabel ?? w.debugLabel,
+};
+
+/// Every focus node of that name.
+List<FocusNode> _focusNodes(String label) => [
+  for (final n in FocusManager.instance.rootScope.descendants)
+    if (n.debugLabel == label) n,
 ];
 
 /// One of the header's round buttons, by its name.
@@ -1206,5 +1229,395 @@ void main() {
       expect(_header(t).first, ('Watch', true));
       expect(t.takeException(), isNull);
     });
+  });
+
+  // What a title's page offers on a TV: searching, monitoring, editing and
+  // deleting the title. Its files (importing, renaming, editing and deleting
+  // them) and the way out to the app's own site stay on a phone and a
+  // computer. Each is checked both ways on the same screen, so it's the TV
+  // and not the size that decides.
+  group('a title\'s page on a TV', () {
+    const tv = Size(960, 540);
+    tearDown(() => isTvDevice = false);
+
+    Map<String, dynamic> movieOnDisk() => {
+      ..._movie(),
+      'titleSlug': 'inception-27205',
+      'path': '/movies/Inception (2010)',
+      'movieFile': {
+        'id': 9,
+        'relativePath': 'Inception.2010.1080p.mkv',
+        'size': 8000000000,
+        'quality': {
+          'quality': {'id': 7, 'name': 'Bluray-1080p'},
+        },
+      },
+    };
+
+    Map<String, dynamic> showOnDisk() => {
+      ..._series(),
+      'titleSlug': 'breaking-bad',
+      'path': '/tv/Breaking Bad',
+    };
+
+    Map<String, dynamic> showWithSeason() => {
+      ...showOnDisk(),
+      'seasons': [
+        {
+          'seasonNumber': 1,
+          'monitored': true,
+          'statistics': {
+            'episodeFileCount': 2,
+            'episodeCount': 7,
+            'totalEpisodeCount': 7,
+          },
+        },
+      ],
+    };
+
+    /// The season's episodes, two of them on disk.
+    Map<String, Object> episodes() => {
+      for (final (ask, file) in [
+        ('episode', 'sonarr_episodes'),
+        ('episodefile', 'sonarr_episodefiles'),
+      ])
+        ask:
+            jsonDecode(File('test/fixtures/arr/$file.json').readAsStringSync())
+                as Object,
+    };
+
+    /// Down the page to where its seasons are: under the header and what's
+    /// said about the show, and built only once they're near.
+    Future<void> toSeasons(WidgetTester t) async {
+      await t.drag(find.byType(CustomScrollView), const Offset(0, -260));
+      await _move(t);
+    }
+
+    /// Everything the open page's header offers, under More as well.
+    Future<Set<String>> offered(WidgetTester t) async {
+      final names = {for (final (name, _) in _header(t)) name};
+      if (names.remove('More')) {
+        await t.tap(_headerButton('More'));
+        await _move(t);
+        for (final text in t.widgetList<Text>(find.byType(Text))) {
+          if (text.data != null) names.add(text.data!);
+        }
+      }
+      return names;
+    }
+
+    for (final onTv in [false, true]) {
+      final where = onTv ? 'on a TV' : 'off a TV, on the same screen';
+
+      testWidgets('a movie\'s files and the way out, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(
+          t,
+          '/arr/movie/5',
+          library: _Library(_titles()),
+          movie: movieOnDisk(),
+          size: tv,
+        );
+        expect(find.byType(ArrFileCard), findsOneWidget);
+        expect(find.text('Edit File'), onTv ? findsNothing : findsOneWidget);
+        expect(find.text('Delete File'), onTv ? findsNothing : findsOneWidget);
+        // The file can be read with the remote: it's a stop of its own.
+        final stops = [
+          for (final n in FocusManager.instance.rootScope.descendants)
+            if (n.debugLabel == 'tvReadStop') n,
+        ];
+        expect(stops, onTv ? isNotEmpty : isEmpty);
+
+        final names = await offered(t);
+        for (final gone in ['Manual Import', 'Rename Files', 'Open in Radarr']) {
+          expect(names.contains(gone), !onTv, reason: gone);
+        }
+        // What a remote is for stays either way.
+        for (final kept in [
+          'Search Movie',
+          'Interactive Search',
+          'Edit',
+          'Refresh & Scan',
+          'Delete',
+        ]) {
+          expect(names, contains(kept), reason: kept);
+        }
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('Edit, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(
+          t,
+          '/arr/movie/5',
+          library: _Library(_titles()),
+          movie: movieOnDisk(),
+          size: tv,
+        );
+        await t.tap(_headerButton('Edit'));
+        await _move(t);
+        final frame = find.byType(ArrDialogFrame);
+        expect(frame, findsOneWidget);
+        Finder inFrame(Finder f) => find.descendant(of: frame, matching: f);
+        expect(inFrame(find.text('Minimum Availability')), findsOneWidget);
+        // Where the files are kept is typed, and moves them: not on a TV.
+        expect(
+          inFrame(find.text('Path')),
+          onTv ? findsNothing : findsOneWidget,
+        );
+        expect(inFrame(find.byType(TextField)), onTv ? findsNothing : findsOne);
+
+        // On a TV the dialog opens with the remote on its first choice, not
+        // on Cancel or Save.
+        final lit = FocusManager.instance.primaryFocus?.context;
+        if (onTv) {
+          expect(lit, isNotNull);
+          expect(
+            lit!.findAncestorWidgetOfExactType<ArrDialogFrame>(),
+            isNotNull,
+          );
+          expect(lit.findAncestorWidgetOfExactType<TvChrome>(), isNull);
+        }
+        expect(
+          inFrame(find.byType(TvPageLanding)),
+          onTv ? findsOneWidget : findsNothing,
+        );
+        expect(inFrame(find.byType(TvChrome)), onTv ? findsOne : findsNothing);
+
+        // A new tag's name: on a TV, a field the remote can open and leave,
+        // no taller than a line.
+        await t.ensureVisible(find.text('New Tag'));
+        await _move(t);
+        await t.tap(find.text('New Tag'));
+        await _move(t);
+        final field = find.byType(TvTextField);
+        expect(field, onTv ? findsOneWidget : findsNothing);
+        if (onTv) {
+          expect(t.getSize(field).height, lessThan(90));
+          expect(
+            find.descendant(of: field, matching: find.byType(EditableText)),
+            findsNothing,
+          );
+        } else {
+          expect(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.byType(TextField),
+            ),
+            findsOneWidget,
+          );
+        }
+        expect(t.takeException(), isNull);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('a show\'s files and the way out, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(
+          t,
+          '/arr/series/7',
+          library: _Library(_titles()),
+          series: showOnDisk(),
+          size: tv,
+        );
+        final names = await offered(t);
+        for (final gone in [
+          'Manage Files',
+          'Manual Import',
+          'Rename Files',
+          'Open in Sonarr',
+        ]) {
+          expect(names.contains(gone), !onTv, reason: gone);
+        }
+        for (final kept in [
+          'Search Monitored',
+          'Edit',
+          'Refresh & Scan',
+          'Delete',
+        ]) {
+          expect(names, contains(kept), reason: kept);
+        }
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      // What the page is made of for a remote: each part it can stop on, and
+      // what holds the header's buttons back once the page has moved on.
+      testWidgets('a movie\'s page, part by part, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(
+          t,
+          '/arr/movie/5',
+          library: _Library(_titles()),
+          movie: {...movieOnDisk(), 'overview': 'A thief who steals secrets.'},
+          more: {
+            'history/movie': [
+              {
+                'id': 1,
+                'movieId': 5,
+                'sourceTitle': 'Inception.2010.1080p.BluRay-GRP',
+                'eventType': 'grabbed',
+                'date': '2026-11-06T05:36:14Z',
+              },
+            ],
+          },
+          size: tv,
+        );
+        Matcher has(String label) =>
+            onTv ? contains(label) : isNot(contains(label));
+        expect(_focusNodes('tvPageEnds'), onTv ? hasLength(1) : isEmpty);
+        expect(_focusLabels(t, find.text('Quality Profile')), has('tvReadStop'));
+        expect(
+          _focusLabels(t, find.text('A thief who steals secrets.')),
+          has('tvReadStop'),
+        );
+        expect(_focusLabels(t, find.byType(ArrFileCard)), has('tvReadStop'));
+        final grab = find.textContaining('Inception.2010.1080p.BluRay-GRP');
+        expect(grab, findsOneWidget);
+        expect(_focusLabels(t, grab), has('tvReadStop'));
+
+        // A long name wraps to three lines on a TV and no further, and what's
+        // under it gets a second line.
+        final header = find.byType(DetailHeaderOverlay);
+        final name = t.widget<Text>(
+          find.descendant(of: header, matching: find.text('Inception')),
+        );
+        expect(name.maxLines, onTv ? 3 : null);
+        expect(name.overflow, onTv ? TextOverflow.ellipsis : null);
+        expect(
+          t.widget<DetailHeaderOverlay>(header).metaMaxLines,
+          onTv ? 2 : 1,
+        );
+        final meta = t
+            .widgetList<Text>(find.descendant(of: header, matching: find.byType(Text)))
+            .where((w) => w.style?.fontSize == 13.5);
+        expect(meta, isNotEmpty);
+        expect(meta.first.maxLines, onTv ? 2 : 1);
+
+        // The header's buttons are stops while the header is open, and on a
+        // TV no longer once the page has scrolled under it.
+        bool shut() => t
+            .widgetList<ExcludeFocus>(
+              find.ancestor(
+                of: _headerButton('Edit'),
+                matching: find.byType(ExcludeFocus),
+              ),
+            )
+            .any((e) => e.excluding);
+        expect(_headerButton('Edit'), findsOneWidget);
+        expect(shut(), isFalse);
+        await t.drag(find.byType(CustomScrollView), const Offset(0, -200));
+        await _move(t);
+        expect(_headerButton('Edit'), findsOneWidget);
+        expect(shut(), onTv);
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('a season\'s own buttons, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(
+          t,
+          '/arr/series/7',
+          library: _Library(_titles()),
+          series: showWithSeason(),
+          more: episodes(),
+          size: tv,
+        );
+        // The show's page is made like a movie's for a remote.
+        expect(_focusNodes('tvPageEnds'), onTv ? hasLength(1) : isEmpty);
+        expect(
+          _focusLabels(t, find.text('Quality Profile')),
+          onTv ? contains('tvReadStop') : isNot(contains('tvReadStop')),
+        );
+        await toSeasons(t);
+        final season = find.byType(ExpansionTile);
+        expect(season, findsOneWidget);
+        // On a TV the season is one stop, and its buttons are a step to the
+        // right of it.
+        for (final name in ['Unmonitor', 'Search Season', 'Season Actions']) {
+          final button = find.descendant(
+            of: season,
+            matching: find.byTooltip(name),
+          );
+          expect(button, findsOneWidget, reason: name);
+          expect(
+            _focusLabels(t, button),
+            onTv ? contains('tvRowActions') : isNot(contains('tvRowActions')),
+            reason: name,
+          );
+        }
+        // Its menu keeps the search and drops the deleting.
+        await t.ensureVisible(find.byTooltip('Season Actions'));
+        await _move(t);
+        await t.tap(find.byTooltip('Season Actions'));
+        await _move(t);
+        expect(find.text('Interactive Search'), findsOneWidget);
+        expect(
+          find.text('Delete Season Files'),
+          onTv ? findsNothing : findsOneWidget,
+        );
+        await t.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('an episode, $where', (t) async {
+        isTvDevice = onTv;
+        await _open(
+          t,
+          '/arr/series/7',
+          library: _Library(_titles()),
+          series: showWithSeason(),
+          more: episodes(),
+          size: tv,
+        );
+        await toSeasons(t);
+        await t.ensureVisible(find.text('Pilot'));
+        await _move(t);
+        await t.tap(find.text('Pilot'));
+        await _move(t);
+        final sheet = find.byType(BottomSheet);
+        expect(sheet, findsOneWidget);
+        Finder inSheet(Finder f) => find.descendant(of: sheet, matching: f);
+        // Nothing to drag with a remote: the sheet opens tall instead.
+        expect(
+          inSheet(find.bySemanticsLabel('Dismiss')),
+          onTv ? findsNothing : findsOneWidget,
+        );
+        expect(t.widget<BottomSheet>(sheet).showDragHandle, !onTv);
+        final space = t.getSize(find.byType(MaterialApp)).height;
+        final tall = t.getSize(inSheet(find.byType(ListView))).height;
+        if (onTv) {
+          expect(tall, greaterThan(space * 0.85));
+        } else {
+          expect(tall, lessThan(space * 0.7));
+        }
+        expect(
+          (t.widget<ListView>(inSheet(find.byType(ListView))).padding!
+                  as EdgeInsets)
+              .top,
+          onTv ? 24 : 0,
+        );
+        // The remote starts on the sheet's first button.
+        final lit = FocusManager.instance.primaryFocus?.context
+            ?.findAncestorWidgetOfExactType<HoverPillButton>();
+        expect(lit?.label, onTv ? 'Search Episode' : isNot('Search Episode'));
+        // The file can be read, and deleting it is for a phone or a desktop.
+        // (The sheet is pulled up to it first.)
+        for (var i = 0; i < 2; i++) {
+          await t.drag(inSheet(find.byType(ListView)), const Offset(0, -250));
+          await _move(t);
+        }
+        final file = inSheet(find.byType(ArrFileCard));
+        expect(file, findsOneWidget);
+        expect(
+          _focusLabels(t, file),
+          onTv ? contains('tvReadStop') : isNot(contains('tvReadStop')),
+        );
+        expect(
+          inSheet(find.text('Delete File', skipOffstage: false)),
+          onTv ? findsNothing : findsOneWidget,
+        );
+        expect(t.takeException(), isNull);
+        await t.pump(const Duration(seconds: 4));
+      });
+    }
   });
 }

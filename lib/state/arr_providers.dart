@@ -60,16 +60,18 @@ Future<ArrMerged<T>> _both<T>(
   RadarrClient? radarr,
   Future<List<T>> Function(ArrClient c) load,
 ) async {
-  final items = <T>[];
   final errors = <ArrKind, String>{};
-  await Future.wait([
+  // Sonarr's, then Radarr's, whichever answers first: what's alike in a list
+  // sorted after keeps its place from one asking to the next.
+  final lists = await Future.wait([
     for (final c in <ArrClient?>[sonarr, radarr])
       if (c != null)
-        load(c).then(items.addAll).catchError((Object e) {
+        load(c).catchError((Object e) {
           errors[c.kind] = e.toString();
+          return <T>[];
         }),
   ]);
-  return ArrMerged(items, errors);
+  return ArrMerged([for (final l in lists) ...l], errors);
 }
 
 /// What each app last said, for a Home row that mustn't blink when one
@@ -225,7 +227,7 @@ final arrCalendarProvider = FutureProvider.autoDispose
         ref.watch(radarrClientProvider),
         (c) => c.calendar(w.start, w.end, unmonitored: unmonitored),
       );
-      merged.items.sort((a, b) => a.date.compareTo(b.date));
+      merged.items.sort(arrCalendarOrder);
       return merged;
     });
 
@@ -241,12 +243,30 @@ final arrQueueProvider = FutureProvider.autoDispose<ArrMerged<ArrQueueItem>>((
   return merged;
 });
 
+/// The Calendar's order: the soonest first, and releases at the same time
+/// in one order every time (Sonarr's, by show and episode, then Radarr's).
+int arrCalendarOrder(ArrCalendarEntry a, ArrCalendarEntry b) {
+  final when = a.date.compareTo(b.date);
+  if (when != 0) return when;
+  final kind = a.kind.index.compareTo(b.kind.index);
+  if (kind != 0) return kind;
+  final title = a.title.compareTo(b.title);
+  if (title != 0) return title;
+  return (a.episodeId ?? a.movieId ?? 0).compareTo(b.episodeId ?? b.movieId ?? 0);
+}
+
 /// The queue's order: what's stuck first (the same ones a card says so of,
 /// in its color), then the closest to finishing.
+///
+/// Downloads alike keep one order (Sonarr's first, then by id), however the
+/// answers come in: a row mustn't swap places with each refresh.
 int arrQueueOrder(ArrQueueItem a, ArrQueueItem b) {
   final stuck = a.state.needsHelp;
   if (stuck != b.state.needsHelp) return stuck ? -1 : 1;
-  return b.progress.compareTo(a.progress);
+  final along = b.progress.compareTo(a.progress);
+  if (along != 0) return along;
+  final kind = a.kind.index.compareTo(b.kind.index);
+  return kind != 0 ? kind : a.id.compareTo(b.id);
 }
 
 /// A movie or a show on Home's Downloading Now row, with everything of it
@@ -355,7 +375,7 @@ List<ArrHomeRelease> arrHomeComingUp(
           !e.date.isBefore(week.start) &&
           e.date.isBefore(week.end))
         e,
-  ]..sort((a, b) => a.date.compareTo(b.date));
+  ]..sort(arrCalendarOrder);
   final first = <(ArrKind, int), ArrCalendarEntry>{};
   final count = <(ArrKind, int), int>{};
   for (final e in due) {
@@ -695,10 +715,10 @@ Future<ArrMerged<T>> _bothPaged<T>(
   DateTime? Function(T item) date,
   int limit,
 ) async {
-  final items = <T>[];
   final errors = <ArrKind, String>{};
   var total = 0;
-  await Future.wait([
+  // Sonarr's, then Radarr's, whichever answers first (see [_both]).
+  final pages = await Future.wait([
     for (final c in <ArrClient?>[
       ref.watch(sonarrClientProvider),
       ref.watch(radarrClientProvider),
@@ -706,17 +726,29 @@ Future<ArrMerged<T>> _bothPaged<T>(
       if (c != null)
         load(c)
             .then((p) {
-              items.addAll(p.items);
               total += p.total;
+              return p.items;
             })
             .catchError((Object e) {
               errors[c.kind] = e.toString();
+              return <T>[];
             }),
   ]);
-  final far = DateTime(0);
-  items.sort((a, b) => (date(b) ?? far).compareTo(date(a) ?? far));
+  final items = arrNewestFirst([for (final p in pages) ...p], date);
   final shown = items.take(limit).toList();
   return ArrMerged(shown, errors, total: total);
+}
+
+/// [items] newest first, those without a date last; those alike keep the
+/// order they came in, so a list doesn't reshuffle with each refresh.
+List<T> arrNewestFirst<T>(List<T> items, DateTime? Function(T item) date) {
+  final far = DateTime(0);
+  final sorted = [...items];
+  mergeSort<T>(
+    sorted,
+    compare: (a, b) => (date(b) ?? far).compareTo(date(a) ?? far),
+  );
+  return sorted;
 }
 
 /// How many Wanted or History items to show; Load More raises it.

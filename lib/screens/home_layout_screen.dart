@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
-import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../state/preferences.dart';
 import '../widgets/reorder.dart';
@@ -48,7 +47,7 @@ class HomeLayoutScreen extends ConsumerWidget {
     final c = ref.read(preferencesProvider.notifier);
     final l = AppLocalizations.of(context);
     final titles = _titles(l);
-    final arrRows = !isTvDevice && ref.watch(arrConfiguredProvider);
+    final arrRows = ref.watch(arrConfiguredProvider);
     // Every row, in the order Home shows them, and the ones listed here.
     // Moving one of these keeps the rest (a row that isn't listed) in place.
     final all = homeRowsInOrder(p.homeRowOrder);

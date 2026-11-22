@@ -40,9 +40,8 @@ class HomeScreen extends ConsumerWidget {
     final hero = ref.watch(heroItemsProvider);
     final views = ref.watch(userViewsProvider);
     final prefs = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
-    // Sonarr's and Radarr's rows, where one of the apps is connected. Not on
-    // a TV yet: the pages they open aren't laid out for a remote.
-    final arrRows = !isTvDevice && ref.watch(arrConfiguredProvider);
+    // Sonarr's and Radarr's rows, where one of the apps is connected.
+    final arrRows = ref.watch(arrConfiguredProvider);
 
     Future<void> refresh() async {
       ref.invalidate(resumeItemsProvider);

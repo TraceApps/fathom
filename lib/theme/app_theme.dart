@@ -116,7 +116,31 @@ class AppTheme {
               color: scheme.outlineVariant.withValues(alpha: 0.25)),
         ),
       ),
+      // TV ONLY: a switch's segment under the remote shows, the selected one
+      // too (its fill alone reads the same focused or not). Null elsewhere.
+      segmentedButtonTheme: isTvDevice
+          ? SegmentedButtonThemeData(
+              style: ButtonStyle(
+                overlayColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.focused)
+                      ? scheme.primary.withValues(alpha: 0.34)
+                      : null,
+                ),
+              ),
+            )
+          : null,
       tabBarTheme: TabBarThemeData(
+        // On a TV, a tab the remote is on shows as plainly as any other
+        // control does (the default tint is too faint to see from a couch).
+        overlayColor: isTvDevice
+            ? WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.focused)
+                    ? scheme.primary.withValues(alpha: 0.34)
+                    : states.contains(WidgetState.pressed)
+                        ? scheme.primary.withValues(alpha: 0.2)
+                        : null,
+              )
+            : null,
         indicatorSize: TabBarIndicatorSize.label,
         dividerColor: Colors.transparent,
         labelColor: scheme.primary,

@@ -11,6 +11,7 @@ import 'package:fathom/routing/app_router.dart';
 import 'package:fathom/screens/arr_screen.dart';
 import 'package:fathom/screens/home_layout_screen.dart';
 import 'package:fathom/screens/home_screen.dart';
+import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/library_providers.dart';
 import 'package:fathom/state/preferences.dart';
@@ -1321,6 +1322,14 @@ void main() {
       expect(comingUp, findsOneWidget);
     });
 
+    testWidgets('and on a TV as well', (t) async {
+      isTvDevice = true;
+      addTearDown(() => isTvDevice = false);
+      await open(t);
+      expect(downloading, findsOneWidget);
+      expect(comingUp, findsOneWidget);
+    });
+
     testWidgets('leaves out the one that\'s switched off', (t) async {
       await open(t, prefs: const Prefs(showArrDownloading: false));
       expect(downloading, findsNothing);
@@ -1406,6 +1415,13 @@ void main() {
         'Coming This Week',
         'My Media',
       ]);
+    });
+
+    testWidgets('and on a TV as well', (t) async {
+      isTvDevice = true;
+      addTearDown(() => isTvDevice = false);
+      await open(t, connected: true);
+      expect(listed(t), containsAll(['Downloading Now', 'Coming This Week']));
     });
 
     testWidgets('leaves them out with neither app connected', (t) async {
