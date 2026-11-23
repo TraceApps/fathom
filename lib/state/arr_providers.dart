@@ -601,6 +601,14 @@ final lidarrTracksProvider = FutureProvider.autoDispose
       return c.tracks(albumId);
     });
 
+/// One edition's tracks, for Manual Import when Lidarr matched a file to it.
+final lidarrReleaseTracksProvider = FutureProvider.autoDispose
+    .family<List<ArrTrack>, int>((ref, releaseId) async {
+      final c = ref.watch(lidarrClientProvider);
+      if (c == null) return const [];
+      return c.releaseTracks(releaseId);
+    });
+
 /// An artist's track files, by id.
 final lidarrTrackFilesProvider = FutureProvider.autoDispose
     .family<Map<int, ArrFile>, int>((ref, artistId) async {

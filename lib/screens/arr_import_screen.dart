@@ -130,7 +130,10 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
 
   /// Has the app look at [items] again: the episodes for a new show or
   /// season, and its verdict on each.
-  Future<void> _recheck(List<ArrImportItem> all) async {
+  Future<void> _recheck(
+    List<ArrImportItem> all, {
+    bool keepTracks = false,
+  }) async {
     final c = _client;
     // The apps can only check a file once it has a show, movie or artist.
     final items = [
@@ -146,7 +149,8 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
       setState(() {
         _replace([
           for (final i in _items!)
-            if (back[i.id] case final r?) i.mergeReprocessed(r),
+            if (back[i.id] case final r?)
+              i.mergeReprocessed(r, keepTracks: keepTracks),
         ]);
       });
     } catch (e) {
@@ -165,6 +169,7 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
             subtitle: item.fileName,
             artistId: item.artistId,
             albumId: item.albumId,
+            albumReleaseId: item.albumReleaseId,
             trackIds: [for (final t in item.tracks) t.id],
             qualityId: arrQualityId(item.quality),
           )
@@ -189,7 +194,15 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
       // Changing a file means bringing it in, as on the apps' pages.
       _picked.add(item.id);
     });
-    await _recheck([next]);
+    // Lidarr's check ignores tracks it's given and puts back its own: with
+    // the same artist and album there's nothing for it to work out, so the
+    // tracks and quality picked stand as they are.
+    if (_t.kind == ArrKind.lidarr &&
+        changes.artist == null &&
+        changes.album == null) {
+      return;
+    }
+    await _recheck([next], keepTracks: changes.tracks != null);
   }
 
   Future<void> _editPicked(List<ArrImportItem> picked) async {

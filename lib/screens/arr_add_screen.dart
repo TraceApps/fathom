@@ -58,10 +58,13 @@ List<ArrKind> arrAddKindsFor(String term, List<ArrKind> asked) {
     ArrKind.lidarr =>
       !t.startsWith('tmdb:') && !t.startsWith('tvdb:') && !t.startsWith('imdb:'),
   };
-  return [
+  final kinds = [
     for (final k in asked)
       if (takes(k)) k,
   ];
+  // An id none of them is meant for (tmdb: with Sonarr and Lidarr) goes to
+  // them all rather than nowhere: each app says itself what it makes of it.
+  return kinds.isEmpty ? asked : kinds;
 }
 
 /// Finds movies (Radarr), shows (Sonarr) and artists (Lidarr) online and
@@ -237,6 +240,8 @@ class _ArrAddScreenState extends ConsumerState<ArrAddScreen> {
         ref.invalidate(radarrMoviesProvider);
       case ArrKind.lidarr:
         ref.invalidate(lidarrArtistsProvider);
+        // A Jellyfin artist's page under this one now links to it.
+        ref.invalidate(lidarrMatchProvider);
     }
     ref.invalidate(arrRootFoldersProvider(f.kind));
     ref.invalidate(arrCalendarProvider);

@@ -67,6 +67,8 @@ class _Lidarr implements HttpClientAdapter {
             ('POST', 'manualimport') => _list('lidarr_manualimport_recheck'),
             ('GET', 'artist') => _list('lidarr_artists'),
             ('GET', 'album') => _list('lidarr_albums'),
+            ('GET', 'track') when q['albumReleaseId'] != null =>
+              _list('lidarr_tracks_album1'),
             ('GET', 'track') when q['albumId'] == '3' =>
               _list('lidarr_tracks_album3'),
             ('GET', 'track') => _list('lidarr_tracks_album1'),
@@ -230,7 +232,9 @@ void main() {
     });
 
     test('a file with an album and no tracks waits for them', () {
-      final i = _item('lidarr_manualimport_download').copyWith(albumId: 3);
+      final i = _item(
+        'lidarr_manualimport_download',
+      ).copyWith(albumId: 3, albumReleaseId: 37);
       expect(i.gap, ArrImportGap.tracks);
       expect(
         i.copyWith(artistId: null).gap,
@@ -276,6 +280,50 @@ void main() {
       expect(after.albumTitle, 'Third');
       expect(after.rejections, r.rejections);
       expect(after.gap, isNull);
+    });
+
+    test('left to Lidarr, the album it worked out is taken', () {
+      // Lidarr's answer to a file sent with only its artist (seen on the
+      // rig): the album as an object, no albumId of its own.
+      final asked = _item('lidarr_manualimport_folder', 2).copyWith(
+        albumId: null,
+        albumTitle: null,
+        albumReleaseId: null,
+        tracks: const [],
+      );
+      expect(asked.gap, ArrImportGap.album);
+      final r = ArrImportItem.fromJson(ArrKind.lidarr, {
+        ..._list('lidarr_manualimport_folder')[2],
+        'albumId': null,
+      });
+      final after = asked.mergeReprocessed(r);
+      expect(after.albumId, 1);
+      expect(after.albumReleaseId, 1);
+      expect(after.tracks, isNotEmpty);
+      expect(after.gap, isNull);
+    });
+
+    test('tracks picked by hand outlast Lidarr\'s check', () {
+      final i = _item('lidarr_manualimport_folder');
+      const mine = ArrTrack(id: 9, albumId: 1, title: 'Mine');
+      final picked = i.copyWith(tracks: const [mine]);
+      final r = _item('lidarr_manualimport_folder');
+      expect(picked.mergeReprocessed(r, keepTracks: true).tracks.single.id, 9);
+      expect(picked.mergeReprocessed(r).tracks.single.id, r.tracks.single.id);
+    });
+
+    test('no edition matched yet: not ready, as Lidarr couldn\'t import it', () {
+      final i = _item('lidarr_manualimport_folder');
+      expect(i.copyWith(albumReleaseId: null).gap, ArrImportGap.album);
+    });
+
+    test('the file\'s own replace setting goes back with a check', () {
+      final i = _item('lidarr_manualimport_folder');
+      expect(i.replaceExistingFiles, isNotNull);
+      expect(
+        i.toReprocessJson()['replaceExistingFiles'],
+        i.replaceExistingFiles,
+      );
     });
 
     test('a new artist or album starts the rest over', () {
@@ -344,7 +392,9 @@ void main() {
       expect(file['trackIds'], [393]);
     });
 
-    testWidgets('tracks are chosen from the album\'s', (t) async {
+    testWidgets('tracks are chosen from the matched edition\'s, and stand', (
+      t,
+    ) async {
       final s = _Lidarr();
       await _open(
         t,
@@ -358,6 +408,8 @@ void main() {
       await t.tap(find.byTooltip('Edit File').first);
       await _settle(t);
       expect(find.text('Tracks'), findsOneWidget);
+      // The edition Lidarr matched the file to, not the album's set one.
+      expect(s.sent('GET', 'track').single.query, {'albumReleaseId': '1'});
       // The field says the file's track now; pressing it opens the list.
       await t.tap(find.text('A1'));
       await _settle(t);
@@ -367,9 +419,15 @@ void main() {
       await _settle(t);
       await t.tap(find.text('Save'));
       await _settle(t);
-      final again = (s.sent('POST', 'manualimport').single.body! as List)
-          .single as Map;
-      expect((again['trackIds'] as List), hasLength(2));
+      // Lidarr's check would put its own tracks back: it isn't asked.
+      expect(s.sent('POST', 'manualimport'), isEmpty);
+      await t.tap(find.text('Copy Files'));
+      await _settle(t);
+      await t.tap(find.widgetWithText(FilledButton, 'Import'));
+      await _settle(t);
+      final cmd = s.sent('POST', 'command').single.body! as Map;
+      final first = (cmd['files'] as List).first as Map;
+      expect((first['trackIds'] as List), hasLength(2));
     });
 
     testWidgets('the queue offers Manual Import for Lidarr\'s stuck download', (
@@ -402,6 +460,15 @@ void main() {
         _visited.single,
         '/arr/import?app=lidarr&folder=%2Fmusic%2FPortishead',
       );
+      // Imported: the artist's page asks Lidarr again for what it has now.
+      final before = s.sent('GET', 'artist/1').length;
+      await t.tap(find.text('Copy Files'));
+      await _settle(t);
+      await t.tap(find.widgetWithText(FilledButton, 'Import'));
+      await _settle(t);
+      await t.pump(const Duration(milliseconds: 400));
+      await _settle(t);
+      expect(s.sent('GET', 'artist/1').length, greaterThan(before));
     });
 
     testWidgets('the folder dialog names Lidarr beside the others', (t) async {

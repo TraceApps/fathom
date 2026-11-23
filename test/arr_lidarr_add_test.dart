@@ -279,6 +279,13 @@ void main() {
         ArrKind.sonarr,
       ]);
     });
+    test('an id none of them takes goes to them all', () {
+      expect(arrAddKindsFor('tmdb:603', const [ArrKind.sonarr, ArrKind.lidarr]), [
+        ArrKind.sonarr,
+        ArrKind.lidarr,
+      ]);
+    });
+
     test('one app on its own gets every search', () {
       expect(arrAddKindsFor('tmdb:603', const [ArrKind.lidarr]), [
         ArrKind.lidarr,
@@ -653,6 +660,53 @@ void main() {
         _visited.first,
         '/arr/add/artist?term=lidarr%3A10adbe5e-a2c0-4bf3-8249-2b4cbf6e6ca8',
       );
+    });
+
+    testWidgets('once added, the page links to it in Lidarr', (t) async {
+      var added = false;
+      late final _Lidarr s;
+      s = _Lidarr({
+        'artist': () {
+          // Before the add Lidarr has no such artist; after, it has.
+          final mb = s.asked.last.query['mbId'];
+          if (s.asked.last.method == 'POST') {
+            added = true;
+            return {
+              ...Map<String, dynamic>.from(s.asked.last.body! as Map),
+              'id': 42,
+            };
+          }
+          if (mb == null) return _list('lidarr_artists');
+          return [
+            if (added)
+              {..._list('lidarr_lookup_mbid').single, 'id': 42},
+          ];
+        },
+      });
+      await _open(
+        t,
+        _app(
+          s,
+          home: const ArtistAlbumsScreen(
+            artistId: 'jf-artist',
+            artistName: 'Massive Attack',
+          ),
+          jellyfin: _Jellyfin('10adbe5e-a2c0-4bf3-8249-2b4cbf6e6ca8'),
+        ),
+      );
+      await t.tap(find.byTooltip('Add to Lidarr'));
+      await _settle(t);
+      await t.tap(find.widgetWithText(FilledButton, 'Add'));
+      await _settle(t);
+      expect(added, isTrue);
+      expect(_visited.last, '/arr/artist/42');
+      // Back on Jellyfin's page: it says the artist is in Lidarr now.
+      Navigator.of(t.element(find.text('artist 42'))).pop();
+      await _settle(t);
+      await t.pump(const Duration(milliseconds: 400));
+      await _settle(t);
+      expect(find.byTooltip('Manage in Lidarr'), findsOneWidget);
+      expect(find.byTooltip('Add to Lidarr'), findsNothing);
     });
 
     testWidgets('nothing, and nothing asked, without Lidarr', (t) async {

@@ -1354,6 +1354,16 @@ class LidarrClient extends ArrClient {
     ];
   }
 
+  /// The tracks of one edition of an album, which can differ from the
+  /// edition Lidarr is set to (a deluxe release, another country's).
+  Future<List<ArrTrack>> releaseTracks(int albumReleaseId) async {
+    final data = await _get('track', {'albumReleaseId': albumReleaseId});
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrTrack.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
   /// Every track file of the artist, by id.
   Future<List<ArrFile>> trackFiles(int artistId) async {
     final data = await _get('trackfile', {'artistId': artistId});

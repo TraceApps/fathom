@@ -1964,6 +1964,10 @@ class ArrImportItem {
   final List<ArrTrack> tracks;
   final bool disableReleaseSwitching;
 
+  /// Lidarr's own setting for the file, which its check reads to decide
+  /// whether files already in the library count; sent back as it came.
+  final bool? replaceExistingFiles;
+
   const ArrImportItem({
     required this.kind,
     required this.id,
@@ -1993,6 +1997,7 @@ class ArrImportItem {
     this.albumReleaseId,
     this.tracks = const [],
     this.disableReleaseSwitching = false,
+    this.replaceExistingFiles,
   });
 
   factory ArrImportItem.fromJson(ArrKind kind, Map<String, dynamic> j) {
@@ -2046,6 +2051,7 @@ class ArrImportItem {
               : a.absoluteTrackNumber.compareTo(b.absoluteTrackNumber);
         }),
       disableReleaseSwitching: j['disableReleaseSwitching'] == true,
+      replaceExistingFiles: j['replaceExistingFiles'] as bool?,
     );
   }
 
@@ -2112,6 +2118,7 @@ class ArrImportItem {
         : albumReleaseId as int?,
     tracks: tracks ?? this.tracks,
     disableReleaseSwitching: disableReleaseSwitching,
+    replaceExistingFiles: replaceExistingFiles,
   );
 
   /// The file's name, without the folders above it.
@@ -2127,7 +2134,11 @@ class ArrImportItem {
     if (kind == ArrKind.lidarr) {
       // Lidarr's files have no languages to choose.
       if (artistId == null) return ArrImportGap.title;
-      if (albumId == null) return ArrImportGap.album;
+      // No edition yet: Lidarr hasn't matched the album, and can't import
+      // into it.
+      if (albumId == null || albumReleaseId == null) {
+        return ArrImportGap.album;
+      }
       if (tracks.isEmpty) return ArrImportGap.tracks;
       if (quality == null || arrQualityId(quality) == null) {
         return ArrImportGap.quality;
@@ -2189,6 +2200,7 @@ class ArrImportItem {
           'indexerFlags': indexerFlags,
           'downloadId': downloadId,
           'disableReleaseSwitching': disableReleaseSwitching,
+          'replaceExistingFiles': ?replaceExistingFiles,
         }
       : {
     'id': id,
@@ -2245,7 +2257,12 @@ class ArrImportItem {
   /// found and its verdict; quality and languages only where they were
   /// unknown (the apps answer the same way). Sonarr leaves the season and
   /// episodes out when it found none, which keeps the ones chosen.
-  ArrImportItem mergeReprocessed(ArrImportItem r) => copyWith(
+  ///
+  /// Lidarr's: the artist and album it worked out when left to it, the
+  /// edition it settled on, and the tracks it matched. Its check ignores
+  /// tracks it's given, so with [keepTracks] (picked by hand) they stay.
+  ArrImportItem mergeReprocessed(ArrImportItem r, {bool keepTracks = false}) =>
+      copyWith(
     seasonNumber: r.seasonNumber ?? seasonNumber,
     episodes: r.episodes.isEmpty ? episodes : r.episodes,
     rejections: r.rejections,
@@ -2256,10 +2273,12 @@ class ArrImportItem {
     releaseGroup: r.releaseGroup ?? releaseGroup,
     movieTitle: r.movieTitle ?? movieTitle,
     movieYear: r.movieYear ?? movieYear,
-    // Lidarr's: the edition it settled on and the tracks it matched.
-    albumReleaseId: r.albumReleaseId ?? albumReleaseId,
-    tracks: r.tracks.isEmpty ? tracks : r.tracks,
+    artistId: r.artistId ?? artistId,
+    artistName: r.artistName ?? artistName,
+    albumId: r.albumId ?? albumId,
     albumTitle: r.albumTitle ?? albumTitle,
+    albumReleaseId: r.albumReleaseId ?? albumReleaseId,
+    tracks: keepTracks || r.tracks.isEmpty ? tracks : r.tracks,
   );
 }
 

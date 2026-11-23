@@ -357,9 +357,12 @@ Widget Function(bool header) _artistActions(
       ArrAction(
         icon: Icons.drive_folder_upload_rounded,
         label: l.arrManualImport,
-        onTap: () => context.push(
-          ArrImportTarget.folder(ArrKind.lidarr, a.path!).location,
-        ),
+        onTap: () async {
+          final imported = await context.push<bool>(
+            ArrImportTarget.folder(ArrKind.lidarr, a.path!).location,
+          );
+          if (imported == true) changed();
+        },
       ),
     // Renaming files is for a phone or a desktop, not a remote.
     if (!isTvDevice && a.trackFileCount > 0)

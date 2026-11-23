@@ -854,6 +854,7 @@ Future<ArrFileChanges?> showArrMusicFileEditDialog(
   int count = 1,
   int? artistId,
   int? albumId,
+  int? albumReleaseId,
   List<int> trackIds = const [],
   int? qualityId,
 }) => showDialog<ArrFileChanges>(
@@ -863,6 +864,7 @@ Future<ArrFileChanges?> showArrMusicFileEditDialog(
     count: count,
     artistId: artistId,
     albumId: albumId,
+    albumReleaseId: albumReleaseId,
     trackIds: trackIds,
     qualityId: qualityId,
   ),
@@ -873,6 +875,10 @@ class _MusicFileEditDialog extends ConsumerStatefulWidget {
   final int count;
   final int? artistId;
   final int? albumId;
+
+  /// The edition Lidarr matched the file to: its tracks are the ones to
+  /// choose from, while the album stays the same.
+  final int? albumReleaseId;
   final List<int> trackIds;
   final int? qualityId;
   const _MusicFileEditDialog({
@@ -880,6 +886,7 @@ class _MusicFileEditDialog extends ConsumerStatefulWidget {
     required this.count,
     required this.artistId,
     required this.albumId,
+    required this.albumReleaseId,
     required this.trackIds,
     required this.qualityId,
   });
@@ -918,8 +925,11 @@ class _MusicFileEditDialogState extends ConsumerState<_MusicFileEditDialog> {
         ),
       );
     final album = albums.where((a) => a.id == _albumId).firstOrNull;
+    final release = _albumId == widget.albumId ? widget.albumReleaseId : null;
     final tracksAsync = _albumId == null || _bulk
         ? null
+        : release != null
+        ? ref.watch(lidarrReleaseTracksProvider(release))
         : ref.watch(lidarrTracksProvider(_albumId!));
     final tracks = [...?tracksAsync?.asData?.value]
       ..sort((a, b) {
