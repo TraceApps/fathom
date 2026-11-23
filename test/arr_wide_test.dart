@@ -8,6 +8,7 @@ import 'package:fathom/screens/arr_detail_screens.dart';
 import 'package:fathom/screens/arr_screen.dart';
 import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/arr_providers.dart';
+import 'package:fathom/state/preferences.dart';
 import 'package:fathom/theme/app_theme.dart';
 import 'package:fathom/widgets/app_spinner.dart';
 import 'package:fathom/widgets/arr_pane.dart';
@@ -147,7 +148,25 @@ class _Radarr implements HttpClientAdapter {
 
 late GoRouter _router;
 
-Future<void> _open(WidgetTester t, _Radarr radarr, Size size) async {
+class _FakePrefs extends PreferencesController {
+  _FakePrefs(this.initial);
+  final Prefs initial;
+
+  @override
+  Future<Prefs> build() async => initial;
+
+  @override
+  Future<void> edit(Prefs Function(Prefs) change) async {
+    state = AsyncData(change(state.asData?.value ?? initial));
+  }
+}
+
+Future<void> _open(
+  WidgetTester t,
+  _Radarr radarr,
+  Size size, {
+  Prefs? prefs,
+}) async {
   t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
@@ -173,6 +192,8 @@ Future<void> _open(WidgetTester t, _Radarr radarr, Size size) async {
         radarrClientProvider.overrideWithValue(
           RadarrClient('http://r', 'k', dio: Dio()..httpClientAdapter = radarr),
         ),
+        if (prefs != null)
+          preferencesProvider.overrideWith(() => _FakePrefs(prefs)),
       ],
       child: MaterialApp.router(
         theme: AppTheme.dark(const Color(0xFF8AB4F8)),
@@ -306,6 +327,29 @@ void main() {
       await _move(t);
       expect(find.byType(ArrMovieScreen), findsNothing);
       expect(_pageOpen(t), isNull);
+    });
+
+    testWidgets('another server put in use closes the pane', (t) async {
+      final radarr = _Radarr(movies: [_movie(5, 'Dune'), _movie(6, 'Heat')]);
+      await _open(t, radarr, _wide, prefs: const Prefs());
+      await t.tap(_poster('Dune'));
+      await _move(t);
+      expect(find.byType(ArrMovieScreen), findsOneWidget);
+      // Its number means another movie (or none) on the other server.
+      final c = ProviderScope.containerOf(
+        t.element(find.byType(ArrScreen)),
+      );
+      await c
+          .read(preferencesProvider.notifier)
+          .edit(
+            (p) => p.copyWith(
+              arrActiveServers: {
+                'radarr': {'id': 'x', 'name': '4K'},
+              },
+            ),
+          );
+      await _move(t);
+      expect(find.byType(ArrMovieScreen), findsNothing);
     });
 
     testWidgets('the pane\'s title can open as a page too', (t) async {

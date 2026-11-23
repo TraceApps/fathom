@@ -7,12 +7,14 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../models/download_client.dart';
 import '../state/arr_providers.dart';
+import '../state/arr_servers.dart';
 import '../state/download_providers.dart';
 import '../state/preferences.dart';
 import '../theme/app_theme.dart';
 import 'arr_add_screen.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/arr_servers_ui.dart';
 import '../widgets/tv_keyboard.dart';
 
 /// Connect Sonarr, Radarr, Lidarr and Prowlarr (an address and an API key
@@ -161,22 +163,46 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     final address = url.contains('://') ? url : 'http://$url';
     _url.text = address;
     setState(() => _busy = true);
-    await ref
-        .read(preferencesProvider.notifier)
-        .edit((p) => _withSaved(p, address, key));
+    final kind = widget.kind;
+    await ref.read(preferencesProvider.notifier).edit((p) {
+      // The address of another saved server of the app: that one, put in
+      // use, rather than a second copy of it under this one's name.
+      final saved = kind == null
+          ? null
+          : arrServersOf(
+              p,
+              kind,
+            ).where((s) => !s.active && s.url == address).firstOrNull;
+      if (saved == null || kind == null) return _withSaved(p, address, key);
+      return arrSwitchServer(
+        arrEditServer(p, kind, saved.id, apiKey: key),
+        kind,
+        saved.id,
+      );
+    });
     await _check();
     if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _disconnect() async {
     final l = AppLocalizations.of(context);
+    final kind = widget.kind;
+    // Another saved server of the app takes the place of the one
+    // disconnected.
     await ref
         .read(preferencesProvider.notifier)
-        .edit((p) => _withSaved(p, '', ''));
+        .edit(
+          (p) => kind == null
+              ? _withSaved(p, '', '')
+              : arrDisconnectActive(p, kind),
+        );
     if (!mounted) return;
-    _url.clear();
-    _key.clear();
+    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
+    final (url, key) = _saved(p);
+    _url.text = url;
+    _key.text = key;
     setState(() => _version = null);
+    if (url.isNotEmpty) _check(quiet: true);
     showSnack(context, l.arrDisconnected(_app));
   }
 
@@ -185,6 +211,31 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final kind = widget.kind;
+    // Another server put in use (Manage's Switch Server, or the Servers
+    // dialog): the fields and the check follow it.
+    ref.listen(
+      preferencesProvider.select((p) {
+        final v = p.asData?.value;
+        return v == null ? ('', '') : _saved(v);
+      }),
+      (before, now) {
+        if (now.$1 == _url.text && now.$2 == _key.text) return;
+        _url.text = now.$1;
+        _key.text = now.$2;
+        setState(() => _version = null);
+        if (now.$1.isNotEmpty && now.$2.isNotEmpty) _check(quiet: true);
+      },
+    );
+    final servers = kind == null
+        ? const <ArrServer>[]
+        : ref.watch(arrServersProvider(kind));
+    final active = servers.where((s) => s.active).firstOrNull;
+    // Its name, once there's more than one or it was given one.
+    final title =
+        active != null && (servers.length > 1 || active.name.isNotEmpty)
+        ? '$_app: ${arrServerName(l, active)}'
+        : _app;
     final saved = ref.watch(
       preferencesProvider.select((p) {
         final v = p.asData?.value;
@@ -217,7 +268,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _app,
+                        title,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -284,6 +335,8 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                 null => null,
               },
             ],
+            // More servers of the app (a 4K one), once it's connected.
+            if (saved && kind != null) ArrServersTile(kind: kind),
           ],
         ),
       ),

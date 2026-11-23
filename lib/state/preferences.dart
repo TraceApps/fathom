@@ -374,6 +374,15 @@ class Prefs {
   final Map<String, dynamic> sonarrAddDefaults;
   final Map<String, dynamic> radarrAddDefaults;
   final Map<String, dynamic> lidarrAddDefaults;
+  // More servers of Sonarr, Radarr and Lidarr (a 4K Radarr, say). One of
+  // each app is in use at a time, in the fields above; the others wait
+  // here, each as {id, kind, name, url, addDefaults}. Their API keys are in
+  // arrServerKeys by id, which stays out of backups.
+  final List<Map<String, dynamic>> arrServers;
+  final Map<String, String> arrServerKeys;
+  // The server in use for each app, by kind name: {id, name}. None yet:
+  // the one server there has always been, unnamed.
+  final Map<String, dynamic> arrActiveServers;
 
   /// Manual Import's last folders per app ("sonarr" / "radarr": newest
   /// first) and its Move or Copy choice ("mode").
@@ -528,6 +537,9 @@ class Prefs {
     this.sonarrAddDefaults = const {},
     this.radarrAddDefaults = const {},
     this.lidarrAddDefaults = const {},
+    this.arrServers = const [],
+    this.arrServerKeys = const {},
+    this.arrActiveServers = const {},
     this.arrImport = const {},
     this.seerrRowOrder = kDefaultSeerrRows,
     this.seerrHiddenRows = const [],
@@ -674,6 +686,9 @@ class Prefs {
     Map<String, dynamic>? sonarrAddDefaults,
     Map<String, dynamic>? radarrAddDefaults,
     Map<String, dynamic>? lidarrAddDefaults,
+    List<Map<String, dynamic>>? arrServers,
+    Map<String, String>? arrServerKeys,
+    Map<String, dynamic>? arrActiveServers,
     Map<String, dynamic>? arrImport,
     List<String>? seerrRowOrder,
     List<String>? seerrHiddenRows,
@@ -834,6 +849,9 @@ class Prefs {
         sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
         radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
         lidarrAddDefaults: lidarrAddDefaults ?? this.lidarrAddDefaults,
+        arrServers: arrServers ?? this.arrServers,
+        arrServerKeys: arrServerKeys ?? this.arrServerKeys,
+        arrActiveServers: arrActiveServers ?? this.arrActiveServers,
         arrImport: arrImport ?? this.arrImport,
         seerrRowOrder: seerrRowOrder ?? this.seerrRowOrder,
         seerrHiddenRows: seerrHiddenRows ?? this.seerrHiddenRows,
@@ -980,6 +998,9 @@ class Prefs {
         'sonarrAddDefaults': sonarrAddDefaults,
         'radarrAddDefaults': radarrAddDefaults,
         'lidarrAddDefaults': lidarrAddDefaults,
+        'arrServers': arrServers,
+        'arrServerKeys': arrServerKeys,
+        'arrActiveServers': arrActiveServers,
         'arrImport': arrImport,
         'seerrRowOrder': seerrRowOrder,
         'seerrHiddenRows': seerrHiddenRows,
@@ -1159,6 +1180,18 @@ class Prefs {
             : const {},
         lidarrAddDefaults: j['lidarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['lidarrAddDefaults'] as Map)
+            : const {},
+        arrServers: [
+          for (final s in (j['arrServers'] as List?) ?? const [])
+            if (s is Map) Map<String, dynamic>.from(s),
+        ],
+        arrServerKeys: {
+          if (j['arrServerKeys'] is Map)
+            for (final e in (j['arrServerKeys'] as Map).entries)
+              if (e.value is String) '${e.key}': e.value as String,
+        },
+        arrActiveServers: j['arrActiveServers'] is Map
+            ? Map<String, dynamic>.from(j['arrActiveServers'] as Map)
             : const {},
         seerrRowOrder: (j['seerrRowOrder'] as List?)?.cast<String>() ??
             kDefaultSeerrRows,

@@ -12,10 +12,13 @@ import '../models/arr.dart';
 import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
+import '../state/arr_servers.dart';
 import '../state/download_providers.dart';
+import '../state/preferences.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/context_menu.dart';
+import '../widgets/arr_servers_ui.dart';
 import 'arr_activity_screens.dart';
 import 'download_clients_screen.dart';
 import 'prowlarr_screen.dart';
@@ -207,6 +210,26 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Another server put in use: a title open beside the list was the old
+    // one's, and its number means something else on the new one.
+    ref.listen(
+      preferencesProvider.select((p) {
+        final v = p.asData?.value;
+        if (v == null) return '';
+        // Which server of each app, by id and address (a renamed one is
+        // still the same server).
+        return [
+          for (final k in ArrKind.values)
+            '${(v.arrActiveServers[k.name] as Map?)?['id']}',
+          v.sonarrUrl,
+          v.radarrUrl,
+          v.lidarrUrl,
+        ].join('|');
+      }),
+      (before, now) {
+        if (before != now && _open != null) _close();
+      },
+    );
     final kinds = ref.watch(arrLibraryKindsProvider);
     // Prowlarr on its own: the section is its indexers (with a way to the
     // download clients); without it, the download clients alone.
@@ -330,6 +353,19 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                       tooltip: l.dlClients,
                       icon: const Icon(Icons.downloading_rounded),
                       onPressed: () => context.push('/arr/clients'),
+                    ),
+                  // Which server of each app is in use, once one has more.
+                  if (ref.watch(arrMultiServerKindsProvider).isNotEmpty)
+                    Builder(
+                      builder: (button) => IconButton(
+                        tooltip: l.arrServerSwitch,
+                        icon: const Icon(Icons.dns_rounded),
+                        onPressed: () => showArrServerSwitch(
+                          button,
+                          ref,
+                          at: contextMenuAnchor(button),
+                        ),
+                      ),
                     ),
                   ArrHealthButton(onTap: () => context.push('/arr/health')),
                   IconButton(

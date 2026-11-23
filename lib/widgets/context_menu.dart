@@ -191,3 +191,12 @@ class ContextMenuRow extends StatelessWidget {
     );
   }
 }
+
+/// The middle of what [context] draws, on the screen: where a menu opens
+/// when the thing itself is pressed rather than right-clicked.
+Offset contextMenuAnchor(BuildContext context) {
+  final box = context.findRenderObject();
+  return box is RenderBox && box.hasSize
+      ? box.localToGlobal(box.size.center(Offset.zero))
+      : Offset.zero;
+}

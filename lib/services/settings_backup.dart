@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/radio_station.dart';
+import '../state/arr_servers.dart';
 import '../state/preferences.dart';
 import '../state/radio.dart';
 import '../state/session_controller.dart';
@@ -37,6 +38,7 @@ const secretPrefKeys = <String>{
   'lidarrApiKey',
   'prowlarrApiKey',
   'qbitPassword',
+  'arrServerKeys',
   'sabApiKey',
 };
 
@@ -170,8 +172,8 @@ Future<ImportSummary> applySettingsImport(
   var prefsChanged = false;
   final prefsJson = data['preferences'];
   if (prefsJson is Map) {
-    final current =
-        (ref.read(preferencesProvider).asData?.value ?? const Prefs()).toJson();
+    final local = ref.read(preferencesProvider).asData?.value ?? const Prefs();
+    final current = local.toJson();
     for (final entry in Map<String, dynamic>.from(prefsJson).entries) {
       if (secretPrefKeys.contains(entry.key)) continue;
       if (selectedGroups.contains(_prefGroup(entry.key))) {
@@ -180,7 +182,9 @@ Future<ImportSummary> applySettingsImport(
       }
     }
     if (prefsChanged) {
-      final merged = Prefs.fromJson(current);
+      // Keys stay on this device: pair them with the restored servers by
+      // address.
+      final merged = arrReconcileRestore(local, Prefs.fromJson(current));
       await ref.read(preferencesProvider.notifier).edit((_) => merged);
     }
   }

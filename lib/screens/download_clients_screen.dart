@@ -517,7 +517,7 @@ class _ClientHeader extends ConsumerWidget {
     );
     return Builder(
       builder: (row) => ArrRowInk(
-        onTap: () => menu(_middleOf(row)),
+        onTap: () => menu(contextMenuAnchor(row)),
         onMenu: menu,
         child: _header(
           context,
@@ -653,15 +653,6 @@ class _ClientHeader extends ConsumerWidget {
   }
 }
 
-/// The middle of what [context] draws, on the screen: where a row's menu
-/// opens when the row itself is pressed.
-Offset _middleOf(BuildContext context) {
-  final box = context.findRenderObject();
-  return box is RenderBox && box.hasSize
-      ? box.localToGlobal(box.size.center(Offset.zero))
-      : Offset.zero;
-}
-
 /// SABnzbd's speed limits on offer, in MB a second (0: none).
 const sabSpeedLimits = [0, 1, 2, 5, 10, 25, 50];
 
@@ -740,7 +731,7 @@ class _DownloadRow extends StatelessWidget {
     return ArrListColumn(
       child: Builder(
         builder: (row) => ArrRowInk(
-          onTap: () => menu(_middleOf(row)),
+          onTap: () => menu(contextMenuAnchor(row)),
           onMenu: menu,
           child: _row(
             context,
@@ -1184,7 +1175,7 @@ class _HistoryState extends ConsumerState<_History> {
                     ],
                   );
                   return ArrRowInk(
-                    onTap: () => menu(_middleOf(row)),
+                    onTap: () => menu(contextMenuAnchor(row)),
                     onMenu: menu,
                     child: _historyRow(context, h),
                   );

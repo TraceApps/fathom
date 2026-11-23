@@ -156,6 +156,8 @@ If the title is already on the server's disk in a folder the app doesn't manage,
 - Pressing a download, a client or a finished job (or a right-click, or a long press) lists what can be done with it by name.
 - **Add Download** (the link button) takes a magnet link, or a link to a .torrent or an NZB, sends it to the client the link suits (or the one you pick), and puts it in a category.
 
+**Switch Server**, at the top of the Manage section once an app has [more than one server](setup.md#sonarr-radarr-and-lidarr) (a 4K Radarr, say), picks the one in use; every page then shows that server: its library, calendar, queue, wanted list and health.
+
 **Health**, the shield at the top of the Manage section, shows each app's version (Prowlarr's too) and what its own health check has found, such as an indexer that keeps failing or a missing root folder, with **Learn More** linking to the app's wiki page about it. A badge counts the warnings and errors.
 
 **From a Jellyfin movie or show**: when Radarr (movies) or Sonarr (shows) is connected, the **⋮** menu on the title's page finds it there by its TMDB or TVDB id. If the app has it, **Manage in Radarr** or **Manage in Sonarr** opens its page in the Manage section, and **Search Movie** (or **Search Monitored**, for missing episodes) and, for a movie, **Interactive Search**, for a better copy, start right there. If the app doesn't have it, **Add to Radarr** or **Add to Sonarr** opens straight into adding that title, using its folder on disk when the app can see it. Jellyfin titles without the id don't show these.
