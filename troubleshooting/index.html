@@ -843,6 +843,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#manage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#qbittorrent-refuses-the-sign-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        qBittorrent refuses the sign-in
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#diagnostics" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1090,6 +1118,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#manage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#qbittorrent-refuses-the-sign-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        qBittorrent refuses the sign-in
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#diagnostics" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1188,6 +1244,9 @@
 <li><strong>Picture tracks (PGS, VobSub)</strong> are drawn by the player over the video. If one still shows nothing, turn on Diagnostic Logging (below), select the track again, and include the log in a bug report.</li>
 <li><strong>No subtitles at all?</strong> If your server has a subtitle provider plugin such as OpenSubtitles, use <strong>Search Subtitles Online</strong> at the bottom of the subtitle menu.</li>
 </ul>
+<h2 id="manage">Manage<a class="headerlink" href="#manage" title="Permanent link">&para;</a></h2>
+<h3 id="qbittorrent-refuses-the-sign-in">qBittorrent refuses the sign-in<a class="headerlink" href="#qbittorrent-refuses-the-sign-in" title="Permanent link">&para;</a></h3>
+<p>Check the username and password first; they're the ones for qBittorrent's Web UI. If they're right, qBittorrent may be refusing the address Fathom used: it checks that the address matches its own, which fails behind a reverse proxy or when Docker maps its port to another number. Turn off <strong>Enable Host header validation</strong> in qBittorrent's <strong>Options → WebUI</strong>, or reach it at the address and port it expects. After too many failed sign-ins in a row, qBittorrent also blocks the device for a while (an hour, by default); wait, then try again. Fathom tries a refused sign-in only once until you change the username or password, so it doesn't run into that block on its own.</p>
 <h2 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p>For anything harder to pin down, open <strong>Settings → System → Diagnostics</strong>, turn on <strong>Diagnostic Logging</strong>, reproduce the problem, then tap <strong>Copy Diagnostics</strong>. It captures app errors and playback details in one place, with credentials removed, which is the best thing to attach to a bug report.</p>
 <h2 id="still-stuck">Still stuck?<a class="headerlink" href="#still-stuck" title="Permanent link">&para;</a></h2>
@@ -1212,7 +1271,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 17, 2026 01:30:35 UTC">October 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 23, 2026 06:42:30 UTC">November 23, 2026</span>
   </span>
 
     
