@@ -1,0 +1,196 @@
+{
+  "data": [
+    {
+      "dont_matches": [
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "release_group"
+      ],
+      "forced": "False",
+      "hearing_impaired": "False",
+      "language": "en",
+      "matches": [
+        "year",
+        "season",
+        "resolution",
+        "episode",
+        "streaming_service",
+        "series",
+        "hearing_impaired",
+        "source"
+      ],
+      "original_format": "False",
+      "orig_score": 338,
+      "provider": "gestdown",
+      "release_info": [
+        "Bluray-CtrlHD"
+      ],
+      "score": 93,
+      "score_without_hash": 338,
+      "subtitle": "a2326485-fd32-4b9c-8bf4-f865b4cecb63",
+      "uploader": null,
+      "url": "https://api.gestdown.info/subtitles/download/5p45mvzz1jBNntcbV3ghQX"
+    },
+    {
+      "dont_matches": [
+        "resolution",
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "release_group"
+      ],
+      "forced": "False",
+      "hearing_impaired": "False",
+      "language": "en",
+      "matches": [
+        "year",
+        "season",
+        "streaming_service",
+        "episode",
+        "series",
+        "hearing_impaired",
+        "source"
+      ],
+      "original_format": "False",
+      "orig_score": 337,
+      "provider": "gestdown",
+      "release_info": [
+        "TSV.BDRip"
+      ],
+      "score": 93,
+      "score_without_hash": 337,
+      "subtitle": "86db5f5a-84d5-4214-94f5-0a331c21879c",
+      "uploader": null,
+      "url": "https://api.gestdown.info/subtitles/download/4ENSuReK0y1Q6YfUJRVSbr"
+    },
+    {
+      "dont_matches": [
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "source",
+        "release_group"
+      ],
+      "forced": "False",
+      "hearing_impaired": "False",
+      "language": "en",
+      "matches": [
+        "year",
+        "season",
+        "resolution",
+        "episode",
+        "streaming_service",
+        "series",
+        "hearing_impaired"
+      ],
+      "original_format": "False",
+      "orig_score": 313,
+      "provider": "gestdown",
+      "release_info": [
+        "BluRayREWARD"
+      ],
+      "score": 86,
+      "score_without_hash": 313,
+      "subtitle": "4eacdf28-dc98-4545-8e2f-28515909d515",
+      "uploader": null,
+      "url": "https://api.gestdown.info/subtitles/download/72Dx379lNuYnCBzdNgKWVg"
+    },
+    {
+      "dont_matches": [
+        "resolution",
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "source",
+        "release_group"
+      ],
+      "forced": "False",
+      "hearing_impaired": "False",
+      "language": "en",
+      "matches": [
+        "year",
+        "season",
+        "streaming_service",
+        "episode",
+        "series",
+        "hearing_impaired"
+      ],
+      "original_format": "False",
+      "orig_score": 312,
+      "provider": "gestdown",
+      "release_info": [
+        "0tv"
+      ],
+      "score": 86,
+      "score_without_hash": 312,
+      "subtitle": "51e6c909-520f-47c2-89b6-5b7ce148a5e8",
+      "uploader": null,
+      "url": "https://api.gestdown.info/subtitles/download/3Df15bUM1njyzL2GHv0PaX"
+    },
+    {
+      "dont_matches": [
+        "resolution",
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "source",
+        "release_group"
+      ],
+      "forced": "False",
+      "hearing_impaired": "False",
+      "language": "en",
+      "matches": [
+        "year",
+        "season",
+        "streaming_service",
+        "episode",
+        "series",
+        "hearing_impaired"
+      ],
+      "original_format": "False",
+      "orig_score": 312,
+      "provider": "gestdown",
+      "release_info": [
+        "DVDRip ORPHEUS"
+      ],
+      "score": 86,
+      "score_without_hash": 312,
+      "subtitle": "1e458ecd-5e05-4a34-b956-8a2edd2bd095",
+      "uploader": null,
+      "url": "https://api.gestdown.info/subtitles/download/5pkWMgtuHKfnWq8LTFbTpI"
+    },
+    {
+      "dont_matches": [
+        "resolution",
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "source",
+        "release_group"
+      ],
+      "forced": "False",
+      "hearing_impaired": "False",
+      "language": "en",
+      "matches": [
+        "year",
+        "season",
+        "streaming_service",
+        "episode",
+        "series",
+        "hearing_impaired"
+      ],
+      "original_format": "False",
+      "orig_score": 312,
+      "provider": "gestdown",
+      "release_info": [
+        "sujaidr"
+      ],
+      "score": 86,
+      "score_without_hash": 312,
+      "subtitle": "786280ef-76c9-4075-8c1e-62403d482904",
+      "uploader": null,
+      "url": "https://api.gestdown.info/subtitles/download/6vEvlp5H52eh9gzLFREXgk"
+    }
+  ]
+}

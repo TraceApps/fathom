@@ -62,16 +62,16 @@ class _Bazarr implements HttpClientAdapter {
     final data = o.method == 'GET' && answers.containsKey(path)
         ? answers[path]
         : switch ((o.method, path)) {
-      ('GET', 'system/status') => _fixture('bazarr_status'),
-      ('GET', 'system/health') => _fixture('bazarr_health'),
-      ('GET', 'episodes/wanted') => _fixture('bazarr_episodes_wanted'),
-      ('GET', 'movies/wanted') => _fixture('bazarr_movies_wanted'),
-      ('GET', 'movies/history') => _fixture('bazarr_movies_history'),
-      ('GET', 'episodes/history') => {'data': [], 'total': 0},
-      ('GET', 'providers') => _fixture('bazarr_providers'),
-      ('GET', 'providers/movies') => _fixture('bazarr_movies_manual'),
-      ('GET', 'providers/episodes') => {'data': [], 'total': 0},
-      _ => null,
+            ('GET', 'system/status') => _fixture('bazarr_status'),
+            ('GET', 'system/health') => _fixture('bazarr_health'),
+            ('GET', 'episodes/wanted') => _fixture('bazarr_episodes_wanted'),
+            ('GET', 'movies/wanted') => _fixture('bazarr_movies_wanted'),
+            ('GET', 'movies/history') => _fixture('bazarr_movies_history'),
+            ('GET', 'episodes/history') => {'data': [], 'total': 0},
+            ('GET', 'providers') => _fixture('bazarr_providers'),
+            ('GET', 'providers/movies') => _fixture('bazarr_movies_manual'),
+            ('GET', 'providers/episodes') => {'data': [], 'total': 0},
+            _ => null,
           };
     return data == null
         ? ResponseBody.fromString('', 204)
@@ -93,8 +93,11 @@ class _Bazarr implements HttpClientAdapter {
   ];
 }
 
-BazarrClient _client(_Bazarr s) =>
-    BazarrClient('http://bazarr:6767', 'bkey', dio: Dio()..httpClientAdapter = s);
+BazarrClient _client(_Bazarr s) => BazarrClient(
+  'http://bazarr:6767',
+  'bkey',
+  dio: Dio()..httpClientAdapter = s,
+);
 
 /// Bazarr whose manual search fails while [fail] says so.
 class _Flaky extends _Bazarr {
@@ -212,10 +215,10 @@ void main() {
       final page = await _client(_Bazarr()).history();
       final h = page.items;
       expect(page.total, 2);
-      expect([for (final x in h) x.action], [
-        BazarrAction.downloaded,
-        BazarrAction.manual,
-      ]);
+      expect(
+        [for (final x in h) x.action],
+        [BazarrAction.downloaded, BazarrAction.manual],
+      );
       expect(h.first.provider, 'yifysubtitles');
       expect(h.first.score, '90.56%');
       expect(h.first.time, DateTime(2026, 11, 23, 7, 34));
@@ -238,15 +241,49 @@ void main() {
     });
 
     test('a manual search, the best first', () async {
-      final r = await _client(_Bazarr()).manualSearch(
-        const BazarrWanted(movieId: 18, title: 'The Matrix'),
-      );
+      final r = await _client(
+        _Bazarr(),
+      ).manualSearch(const BazarrWanted(movieId: 18, title: 'The Matrix'));
       expect(r, isNotEmpty);
       for (var i = 1; i < r.length; i++) {
         expect(r[i - 1].score, greaterThanOrEqualTo(r[i].score));
       }
       expect(r.first.subtitle, isNotEmpty);
       expect(r.first.releaseInfo, isNotEmpty);
+    });
+
+    // Both answers are a real Bazarr 1.6's, for Breaking Bad S01E01 off the
+    // rig's Sonarr: Gestdown downloaded it, and a manual search for it.
+    test('an episode, as a real Bazarr answers for one', () async {
+      final b = _Bazarr({
+        'episodes/history': _fixture('bazarr_episodes_history'),
+        'providers/episodes': _fixture('bazarr_episodes_manual'),
+      });
+      final h = (await _client(b).history(movies: false)).items.single;
+      expect(h.action, BazarrAction.downloaded);
+      expect(h.title, 'Breaking Bad');
+      expect(h.episodeCode, 'S01E01');
+      expect(h.episodeTitle, 'Pilot');
+      expect(h.provider, 'gestdown');
+      expect(h.score, '93.89%');
+      expect(h.language?.code, 'en');
+      expect(h.seriesId, 1);
+      expect(h.time, DateTime(2026, 11, 23, 13, 8, 2));
+
+      const ep = BazarrWanted(
+        seriesId: 1,
+        episodeId: 19,
+        title: 'Breaking Bad',
+      );
+      final r = await _client(b).manualSearch(ep);
+      expect(r, hasLength(6));
+      expect(b.asked.last.query, {'episodeid': '19'});
+      expect(r.first.provider, 'gestdown');
+      expect(r.first.score, 93);
+      expect(r.last.score, 86);
+      expect(r.first.language, 'en');
+      expect(r.first.hi, isFalse);
+      expect(r.first.subtitle, isNotEmpty);
     });
 
     test('health: what it\'s about and what\'s wrong', () async {
@@ -268,9 +305,11 @@ void main() {
     test('a manual search out of order comes back best first', () async {
       final data =
           ((_fixture('bazarr_movies_manual')! as Map)['data'] as List).reversed;
-      final r = await _client(_Bazarr({
-        'providers/movies': {'data': data.toList()},
-      })).manualSearch(const BazarrWanted(movieId: 18, title: 'The Matrix'));
+      final r = await _client(
+        _Bazarr({
+          'providers/movies': {'data': data.toList()},
+        }),
+      ).manualSearch(const BazarrWanted(movieId: 18, title: 'The Matrix'));
       for (var i = 1; i < r.length; i++) {
         expect(r[i - 1].score, greaterThanOrEqualTo(r[i].score));
       }
@@ -334,18 +373,16 @@ void main() {
     });
 
     test('history: those without a time go last, in any order', () async {
-      final undated = {
-        'action': 1,
-        'title': 'Undated',
-        'parsed_timestamp': '',
-      };
+      final undated = {'action': 1, 'title': 'Undated', 'parsed_timestamp': ''};
       final movies = Map<String, dynamic>.from(
         _fixture('bazarr_movies_history')! as Map,
       );
       final data = [undated, ...(movies['data'] as List), undated];
-      final h = await _client(_Bazarr({
-        'movies/history': {'data': data, 'total': data.length},
-      })).history();
+      final h = await _client(
+        _Bazarr({
+          'movies/history': {'data': data, 'total': data.length},
+        }),
+      ).history();
       expect([for (final x in h.items) x.title].last, 'Undated');
       expect(h.items[1].title, 'The Matrix');
       expect(h.items.first.time!.isAfter(h.items[1].time!), isTrue);
@@ -356,16 +393,21 @@ void main() {
       final c = _client(s);
       await c.searchAllWanted();
       await c.resetProviders();
-      expect([for (final a in s.sent('POST', 'system/tasks')) a.query['taskid']], [
-        'wanted_search_missing_subtitles_series',
-        'wanted_search_missing_subtitles_movies',
-      ]);
+      expect(
+        [for (final a in s.sent('POST', 'system/tasks')) a.query['taskid']],
+        [
+          'wanted_search_missing_subtitles_series',
+          'wanted_search_missing_subtitles_movies',
+        ],
+      );
       expect(s.sent('POST', 'providers').single.query, {'action': 'reset'});
     });
 
     test('every call is one Bazarr serves', () async {
       final routes = {
-        for (final line in File('test/fixtures/bazarr_routes.txt').readAsLinesSync())
+        for (final line in File(
+          'test/fixtures/bazarr_routes.txt',
+        ).readAsLinesSync())
           if (line.isNotEmpty && !line.startsWith('#')) line,
       };
       final s = _Bazarr();
@@ -409,7 +451,10 @@ void main() {
       await t.tap(find.byTooltip('Search').first);
       await _settle(t);
       expect(s.sent('PATCH', 'episodes/subtitles'), hasLength(1));
-      expect(find.textContaining('Bazarr is searching for English'), findsOneWidget);
+      expect(
+        find.textContaining('Bazarr is searching for English'),
+        findsOneWidget,
+      );
       // The row says so until Bazarr is done.
       expect(find.text('Searching'), findsOneWidget);
       // Asked again a moment later, to see it done.
@@ -497,7 +542,10 @@ void main() {
       await t.tap(find.byTooltip('Search'));
       await _settle(t);
       expect(
-        [for (final a in s.sent('PATCH', 'episodes/subtitles')) (a.query['language'], a.query['hi'])],
+        [
+          for (final a in s.sent('PATCH', 'episodes/subtitles'))
+            (a.query['language'], a.query['hi']),
+        ],
         [('en', 'True'), ('fr', 'False')],
       );
       await t.pump(const Duration(seconds: 15));
@@ -563,8 +611,8 @@ void main() {
 
     testWidgets('History: Load More only with more to show', (t) async {
       // 30 of each: 60 shown, 60 in all, nothing more.
-      final one = ((_fixture('bazarr_movies_history')! as Map)['data'] as List)
-          .first;
+      final one =
+          ((_fixture('bazarr_movies_history')! as Map)['data'] as List).first;
       final thirty = {
         'data': [for (var i = 0; i < 30; i++) one],
         'total': 30,
@@ -635,7 +683,9 @@ void main() {
       await t.tap(find.text('History'));
       await _settle(t);
       expect(
-        find.textContaining(RegExp(r'^Downloaded · English · yifysubtitles · 90\.56%')),
+        find.textContaining(
+          RegExp(r'^Downloaded · English · yifysubtitles · 90\.56%'),
+        ),
         findsOneWidget,
       );
       expect(find.textContaining('Downloaded by Hand'), findsOneWidget);
@@ -702,7 +752,9 @@ void main() {
       testWidgets('the places behind the apps; on a phone, in More: $phone', (
         t,
       ) async {
-        t.view.physicalSize = phone ? const Size(400, 900) : const Size(1200, 900);
+        t.view.physicalSize = phone
+            ? const Size(400, 900)
+            : const Size(1200, 900);
         t.view.devicePixelRatio = 1;
         addTearDown(t.view.reset);
         await t.pumpWidget(
@@ -710,10 +762,18 @@ void main() {
             overrides: [
               bazarrClientProvider.overrideWithValue(_client(_Bazarr())),
               radarrClientProvider.overrideWithValue(
-                RadarrClient('http://r', 'k', dio: Dio()..httpClientAdapter = _Empty()),
+                RadarrClient(
+                  'http://r',
+                  'k',
+                  dio: Dio()..httpClientAdapter = _Empty(),
+                ),
               ),
               prowlarrClientProvider.overrideWithValue(
-                ProwlarrClient('http://p', 'k', dio: Dio()..httpClientAdapter = _Empty()),
+                ProwlarrClient(
+                  'http://p',
+                  'k',
+                  dio: Dio()..httpClientAdapter = _Empty(),
+                ),
               ),
               sonarrClientProvider.overrideWithValue(null),
               lidarrClientProvider.overrideWithValue(null),

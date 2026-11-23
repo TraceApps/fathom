@@ -1,0 +1,51 @@
+{
+  "data": [
+    {
+      "seriesTitle": "Breaking Bad",
+      "monitored": true,
+      "episode_number": "1x1",
+      "episodeTitle": "Pilot",
+      "timestamp": "4 hours ago",
+      "subs_id": "5p45mvzz1jBNntcbV3ghQX",
+      "description": "English subtitles downloaded from gestdown with a score of 93.89%.",
+      "sonarrSeriesId": 1,
+      "language": {
+        "name": "English",
+        "code2": "en",
+        "code3": "eng",
+        "forced": false,
+        "hi": false
+      },
+      "score": "93.89%",
+      "tags": [],
+      "action": 1,
+      "subtitles_path": "/tv/Breaking Bad/Season 01/Breaking.Bad.S01E01.Pilot.720p.BluRay.x264-DEMAND.en.srt",
+      "sonarrEpisodeId": 19,
+      "provider": "gestdown",
+      "upgradable": true,
+      "parsed_timestamp": "11/23/26 13:08:02",
+      "blacklisted": false,
+      "matches": [
+        "year",
+        "season",
+        "title",
+        "edition",
+        "streaming_service",
+        "episode",
+        "resolution",
+        "series",
+        "other",
+        "hearing_impaired",
+        "tvdb_id",
+        "source"
+      ],
+      "dont_matches": [
+        "audio_codec",
+        "video_codec",
+        "hash",
+        "release_group"
+      ]
+    }
+  ],
+  "total": 1
+}
