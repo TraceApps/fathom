@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/arr_client.dart';
+import '../api/download_clients.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
+import '../models/download_client.dart';
 import '../state/arr_providers.dart';
+import '../state/download_providers.dart';
 import '../state/preferences.dart';
 import '../theme/app_theme.dart';
 import 'arr_add_screen.dart';
@@ -12,7 +15,8 @@ import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/tv_keyboard.dart';
 
-/// Connect Sonarr and Radarr: an address and an API key each, checked on save.
+/// Connect Sonarr, Radarr, Lidarr and Prowlarr (an address and an API key
+/// each) and the download clients, each checked on save.
 class ArrSettingsScreen extends StatelessWidget {
   const ArrSettingsScreen({super.key});
 
@@ -36,6 +40,18 @@ class ArrSettingsScreen extends StatelessWidget {
           const _ArrConnectionCard(kind: ArrKind.lidarr),
           const SizedBox(height: 16),
           const _ArrConnectionCard(kind: null),
+          const SizedBox(height: 28),
+          Text(
+            l.dlSettingsHeading,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const _DownloadClientCard(kind: DownloadClientKind.qbittorrent),
+          const SizedBox(height: 16),
+          const _DownloadClientCard(kind: DownloadClientKind.sabnzbd),
         ],
       ),
     );
@@ -402,6 +418,237 @@ class _DefaultsDialogState extends ConsumerState<_DefaultsDialog> {
           child: Text(l.commonSave),
         ),
       ],
+    );
+  }
+}
+
+/// A download client's connection: its address and sign-in (qBittorrent's
+/// username and password, SABnzbd's API key), checked on save.
+class _DownloadClientCard extends ConsumerStatefulWidget {
+  final DownloadClientKind kind;
+  const _DownloadClientCard({required this.kind});
+
+  @override
+  ConsumerState<_DownloadClientCard> createState() =>
+      _DownloadClientCardState();
+}
+
+class _DownloadClientCardState extends ConsumerState<_DownloadClientCard> {
+  late final TextEditingController _url;
+
+  /// qBittorrent's username; unused for SABnzbd.
+  late final TextEditingController _user;
+
+  /// qBittorrent's password, or SABnzbd's API key.
+  late final TextEditingController _secret;
+  bool _busy = false;
+  String? _version;
+
+  bool get _qbit => widget.kind == DownloadClientKind.qbittorrent;
+  String get _app => widget.kind.appName;
+
+  (String, String, String) _saved(Prefs p) => _qbit
+      ? (p.qbitUrl, p.qbitUsername, p.qbitPassword)
+      : (p.sabUrl, '', p.sabApiKey);
+
+  Prefs _withSaved(Prefs p, String url, String user, String secret) => _qbit
+      ? p.copyWith(qbitUrl: url, qbitUsername: user, qbitPassword: secret)
+      : p.copyWith(sabUrl: url, sabApiKey: secret);
+
+  DownloadClient _client(String url, String user, String secret) => _qbit
+      ? QbitClient(url, user, secret)
+      : SabClient(url, secret);
+
+  @override
+  void initState() {
+    super.initState();
+    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
+    final (url, user, secret) = _saved(p);
+    _url = TextEditingController(text: url);
+    _user = TextEditingController(text: user);
+    _secret = TextEditingController(text: secret);
+    if (url.isNotEmpty && (_qbit || secret.isNotEmpty)) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => mounted ? _check(quiet: true) : null,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _url.dispose();
+    _user.dispose();
+    _secret.dispose();
+    super.dispose();
+  }
+
+  Future<void> _check({bool quiet = false}) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // On opening, the app's own client: one that qBittorrent has refused
+      // isn't sent to sign in again (repeated failures get a device banned).
+      final saved = quiet
+          ? (_qbit ? ref.read(qbitClientProvider) : ref.read(sabClientProvider))
+          : null;
+      final v = await (saved ??
+              _client(_url.text.trim(), _user.text.trim(), _secret.text))
+          .version();
+      if (!mounted) return;
+      setState(() => _version = v);
+      if (!quiet) {
+        showSnackOn(
+          messenger,
+          l.arrConnectedTo(_app, v),
+          kind: SnackKind.success,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _version = null);
+      if (!quiet) {
+        showSnackOn(
+          messenger,
+          l.arrSavedTestFailed(e.toString()),
+          kind: SnackKind.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
+    final user = _user.text.trim();
+    // A password is kept as typed: spaces can be part of it.
+    final secret = _qbit ? _secret.text : _secret.text.trim();
+    if (url.isEmpty || (!_qbit && secret.isEmpty)) {
+      showSnack(context, _qbit ? l.dlEnterAddress : l.dlEnterSabBoth);
+      return;
+    }
+    final address = url.contains('://') ? url : 'http://$url';
+    _url.text = address;
+    setState(() => _busy = true);
+    await ref
+        .read(preferencesProvider.notifier)
+        .edit((p) => _withSaved(p, address, user, secret));
+    await _check();
+    if (mounted) setState(() => _busy = false);
+  }
+
+  Future<void> _disconnect() async {
+    final l = AppLocalizations.of(context);
+    await ref
+        .read(preferencesProvider.notifier)
+        .edit((p) => _withSaved(p, '', '', ''));
+    if (!mounted) return;
+    _url.clear();
+    _user.clear();
+    _secret.clear();
+    setState(() => _version = null);
+    showSnack(context, l.arrDisconnected(_app));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final saved = ref.watch(
+      preferencesProvider.select((p) {
+        final v = p.asData?.value;
+        return v != null && _saved(v).$1.isNotEmpty;
+      }),
+    );
+    final status = !saved
+        ? l.arrNotConnected
+        : _version != null
+        ? l.arrConnectedTo(_app, _version!)
+        : null;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _qbit ? Icons.hub_rounded : Icons.dns_rounded,
+                  color: scheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _app,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (status != null)
+                        Text(
+                          status,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _version != null
+                                ? const Color(0xFF22C55E)
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TvTextField(
+              controller: _url,
+              keyboardType: TextInputType.url,
+              label: l.arrServerAddress,
+              hint: _qbit ? 'http://192.168.1.10:8080' : 'http://192.168.1.10:8085',
+              icon: Icons.link_rounded,
+            ),
+            const SizedBox(height: 14),
+            if (_qbit) ...[
+              TvTextField(
+                controller: _user,
+                label: l.dlUsername,
+                icon: Icons.person_rounded,
+                autofillHints: const [AutofillHints.username],
+              ),
+              const SizedBox(height: 14),
+            ],
+            TvTextField(
+              controller: _secret,
+              obscure: true,
+              label: _qbit ? l.dlPassword : l.arrApiKey,
+              helperText: _qbit ? l.dlQbitHelp : l.dlSabKeyHelp,
+              icon: _qbit ? Icons.password_rounded : Icons.key_rounded,
+              onSubmitted: (_) => _busy ? null : _save(),
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                if (saved)
+                  TextButton(
+                    onPressed: _busy ? null : _disconnect,
+                    child: Text(l.arrDisconnect),
+                  ),
+                FilledButton(
+                  onPressed: _busy ? null : _save,
+                  child: _busy ? AppSpinner.inline() : Text(l.arrSaveTest),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

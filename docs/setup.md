@@ -29,11 +29,13 @@ Discover follows your Seerr server's own display settings: with **Hide Available
 
 ### Sonarr, Radarr and Lidarr
 
-Connect [Sonarr](https://sonarr.tv) for shows, [Radarr](https://radarr.video) for movies and [Lidarr](https://lidarr.audio) for music, any of them, in **Settings → Sonarr, Radarr, Lidarr & Prowlarr**. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, `:8686` for Lidarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. **Save & Test** checks the address really is that app and shows its version.
+Connect [Sonarr](https://sonarr.tv) for shows, [Radarr](https://radarr.video) for movies and [Lidarr](https://lidarr.audio) for music, any of them, in **Settings → Manage Connections**. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, `:8686` for Lidarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. **Save & Test** checks the address really is that app and shows its version.
 
 [Prowlarr](https://prowlarr.com), the indexer manager behind them, connects the same way below them (`:9696`). It adds an **Indexers** page to the Manage section; with only Prowlarr connected, Manage opens straight on it.
 
-Once connected, a **Manage** section appears in the navigation. The API keys stay on this device and are never included in [Backup & Restore](backup.md).
+[qBittorrent](https://www.qbittorrent.org) and [SABnzbd](https://sabnzbd.org), the download clients behind them, connect under **Download Clients** on the same page. qBittorrent needs its Web UI address (`:8080`) and its username and password; leave both blank if qBittorrent lets your network in without a sign-in (**Bypass authentication for clients in whitelisted IP subnets** under its **Options → WebUI**). SABnzbd needs its address (`:8085`) and its API key, found under **Config → General → Security**. They add a **Download Clients** page to the Manage section; with only a download client connected, Manage opens straight on it.
+
+Once connected, a **Manage** section appears in the navigation. The API keys and the qBittorrent password stay on this device and are never included in [Backup & Restore](backup.md).
 
 ### YouTube
 

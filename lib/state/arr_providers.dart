@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/arr_client.dart';
 import '../api/jellyfin_client.dart';
 import '../models/arr.dart';
+import 'download_providers.dart';
 import 'preferences.dart';
 import 'providers.dart';
 import 'session_controller.dart';
@@ -111,14 +112,15 @@ List<T> arrStableSorted<T>(List<T> items, int Function(T, T) compare) {
   return sorted;
 }
 
-/// Whether the Arr section shows: Sonarr, Radarr, Lidarr or Prowlarr
-/// connected.
+/// Whether the Arr section shows: Sonarr, Radarr, Lidarr, Prowlarr or a
+/// download client connected.
 final arrConfiguredProvider = Provider<bool>(
   (ref) =>
       ref.watch(sonarrClientProvider) != null ||
       ref.watch(radarrClientProvider) != null ||
       ref.watch(lidarrClientProvider) != null ||
-      ref.watch(prowlarrClientProvider) != null,
+      ref.watch(prowlarrClientProvider) != null ||
+      ref.watch(downloadClientsProvider).isNotEmpty,
 );
 
 /// The libraries the Library tab can show, in its switch's order: Movies,

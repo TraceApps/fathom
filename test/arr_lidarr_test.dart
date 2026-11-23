@@ -744,7 +744,7 @@ void main() {
         overrides: [preferencesProvider.overrideWith(() => _FakePrefs(const Prefs()))],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 2400);
+      t.view.physicalSize = const Size(900, 4400);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -763,7 +763,8 @@ void main() {
       expect(find.text('http://192.168.1.10:8686'), findsOneWidget);
       final fields = find.byType(TextField);
       // Sonarr's two fields, Radarr's, Lidarr's, then Prowlarr's.
-      expect(fields, findsNWidgets(8));
+      // The four apps' address and key, then the download clients'.
+      expect(fields, findsNWidgets(13));
       await t.enterText(fields.at(4), '10.0.0.5:8686');
       await t.enterText(fields.at(5), 'lkey');
       await t.tap(find.text('Save & Test').at(2));

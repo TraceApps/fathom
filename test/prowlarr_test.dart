@@ -707,7 +707,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 3200);
+      t.view.physicalSize = const Size(900, 4400);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -725,10 +725,11 @@ void main() {
       expect(find.text('Prowlarr'), findsOneWidget);
       expect(find.text('http://192.168.1.10:9696'), findsOneWidget);
       final fields = find.byType(TextField);
-      expect(fields, findsNWidgets(8));
+      // The four apps' address and key, then the download clients'.
+      expect(fields, findsNWidgets(13));
       await t.enterText(fields.at(6), '10.0.0.5:9696');
       await t.enterText(fields.at(7), 'pkey');
-      await t.tap(find.text('Save & Test').last);
+      await t.tap(find.text('Save & Test').at(3));
       await _settle(t);
       final p = container.read(preferencesProvider).requireValue;
       expect(p.prowlarrUrl, 'http://10.0.0.5:9696');

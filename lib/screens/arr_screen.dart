@@ -12,10 +12,12 @@ import '../models/arr.dart';
 import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
+import '../state/download_providers.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/context_menu.dart';
 import 'arr_activity_screens.dart';
+import 'download_clients_screen.dart';
 import 'prowlarr_screen.dart';
 import 'arr_calendar_tab.dart';
 import 'arr_detail_screens.dart';
@@ -206,9 +208,13 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final kinds = ref.watch(arrLibraryKindsProvider);
-    // Prowlarr on its own: the section is its indexers.
+    // Prowlarr on its own: the section is its indexers (with a way to the
+    // download clients); without it, the download clients alone.
     if (kinds.isEmpty && ref.watch(prowlarrClientProvider) != null) {
       return const ProwlarrScreen();
+    }
+    if (kinds.isEmpty && ref.watch(downloadClientsProvider).isNotEmpty) {
+      return const DownloadClientsScreen();
     }
     if (kinds.isEmpty) {
       return Scaffold(
@@ -317,6 +323,13 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                       tooltip: l.prowlarrIndexers,
                       icon: const Icon(Icons.travel_explore_rounded),
                       onPressed: () => context.push('/arr/indexers'),
+                    ),
+                  // The download clients, behind them too.
+                  if (ref.watch(downloadClientsProvider).isNotEmpty)
+                    IconButton(
+                      tooltip: l.dlClients,
+                      icon: const Icon(Icons.downloading_rounded),
+                      onPressed: () => context.push('/arr/clients'),
                     ),
                   ArrHealthButton(onTap: () => context.push('/arr/health')),
                   IconButton(

@@ -76,6 +76,12 @@ This allowance is per device and gets cleared when you switch phones, reinstall 
 - **Picture tracks (PGS, VobSub)** are drawn by the player over the video. If one still shows nothing, turn on Diagnostic Logging (below), select the track again, and include the log in a bug report.
 - **No subtitles at all?** If your server has a subtitle provider plugin such as OpenSubtitles, use **Search Subtitles Online** at the bottom of the subtitle menu.
 
+## Manage
+
+### qBittorrent refuses the sign-in
+
+Check the username and password first; they're the ones for qBittorrent's Web UI. If they're right, qBittorrent may be refusing the address Fathom used: it checks that the address matches its own, which fails behind a reverse proxy or when Docker maps its port to another number. Turn off **Enable Host header validation** in qBittorrent's **Options → WebUI**, or reach it at the address and port it expects. After too many failed sign-ins in a row, qBittorrent also blocks the device for a while (an hour, by default); wait, then try again. Fathom tries a refused sign-in only once until you change the username or password, so it doesn't run into that block on its own.
+
 ## Diagnostics
 
 For anything harder to pin down, open **Settings → System → Diagnostics**, turn on **Diagnostic Logging**, reproduce the problem, then tap **Copy Diagnostics**. It captures app errors and playback details in one place, with credentials removed, which is the best thing to attach to a bug report.

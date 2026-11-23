@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/arr_client.dart';
@@ -9,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
+import '../state/download_providers.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
@@ -67,7 +69,20 @@ class _ProwlarrScreenState extends ConsumerState<ProwlarrScreen> {
       onChanged: (v) => setState(() => _view = v),
     );
     return Scaffold(
-      appBar: AppBar(title: Text(l.prowlarrIndexers)),
+      appBar: AppBar(
+        title: Text(l.prowlarrIndexers),
+        actions: [
+          // Opened as the whole section (only Prowlarr and the download
+          // clients connected), the way to the clients is here.
+          if (ref.watch(downloadClientsProvider).isNotEmpty &&
+              ref.watch(arrLibraryKindsProvider).isEmpty)
+            IconButton(
+              tooltip: l.dlClients,
+              icon: const Icon(Icons.downloading_rounded),
+              onPressed: () => context.push('/arr/clients'),
+            ),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

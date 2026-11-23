@@ -363,6 +363,13 @@ class Prefs {
   // Prowlarr, the indexers behind them. Empty URL means not connected.
   final String prowlarrUrl;
   final String prowlarrApiKey;
+  // The download clients behind them. Empty URL means not connected; a
+  // blank qBittorrent username means it lets this network in without one.
+  final String qbitUrl;
+  final String qbitUsername;
+  final String qbitPassword;
+  final String sabUrl;
+  final String sabApiKey;
   // What Add starts with for a new show / movie (ArrAddDefaults as JSON).
   final Map<String, dynamic> sonarrAddDefaults;
   final Map<String, dynamic> radarrAddDefaults;
@@ -513,6 +520,11 @@ class Prefs {
     this.lidarrApiKey = '',
     this.prowlarrUrl = '',
     this.prowlarrApiKey = '',
+    this.qbitUrl = '',
+    this.qbitUsername = '',
+    this.qbitPassword = '',
+    this.sabUrl = '',
+    this.sabApiKey = '',
     this.sonarrAddDefaults = const {},
     this.radarrAddDefaults = const {},
     this.lidarrAddDefaults = const {},
@@ -654,6 +666,11 @@ class Prefs {
     String? lidarrApiKey,
     String? prowlarrUrl,
     String? prowlarrApiKey,
+    String? qbitUrl,
+    String? qbitUsername,
+    String? qbitPassword,
+    String? sabUrl,
+    String? sabApiKey,
     Map<String, dynamic>? sonarrAddDefaults,
     Map<String, dynamic>? radarrAddDefaults,
     Map<String, dynamic>? lidarrAddDefaults,
@@ -809,6 +826,11 @@ class Prefs {
         lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
         prowlarrUrl: prowlarrUrl ?? this.prowlarrUrl,
         prowlarrApiKey: prowlarrApiKey ?? this.prowlarrApiKey,
+        qbitUrl: qbitUrl ?? this.qbitUrl,
+        qbitUsername: qbitUsername ?? this.qbitUsername,
+        qbitPassword: qbitPassword ?? this.qbitPassword,
+        sabUrl: sabUrl ?? this.sabUrl,
+        sabApiKey: sabApiKey ?? this.sabApiKey,
         sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
         radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
         lidarrAddDefaults: lidarrAddDefaults ?? this.lidarrAddDefaults,
@@ -950,6 +972,11 @@ class Prefs {
         'lidarrApiKey': lidarrApiKey,
         'prowlarrUrl': prowlarrUrl,
         'prowlarrApiKey': prowlarrApiKey,
+        'qbitUrl': qbitUrl,
+        'qbitUsername': qbitUsername,
+        'qbitPassword': qbitPassword,
+        'sabUrl': sabUrl,
+        'sabApiKey': sabApiKey,
         'sonarrAddDefaults': sonarrAddDefaults,
         'radarrAddDefaults': radarrAddDefaults,
         'lidarrAddDefaults': lidarrAddDefaults,
@@ -1116,6 +1143,11 @@ class Prefs {
         lidarrApiKey: j['lidarrApiKey'] as String? ?? '',
         prowlarrUrl: j['prowlarrUrl'] as String? ?? '',
         prowlarrApiKey: j['prowlarrApiKey'] as String? ?? '',
+        qbitUrl: j['qbitUrl'] as String? ?? '',
+        qbitUsername: j['qbitUsername'] as String? ?? '',
+        qbitPassword: j['qbitPassword'] as String? ?? '',
+        sabUrl: j['sabUrl'] as String? ?? '',
+        sabApiKey: j['sabApiKey'] as String? ?? '',
         sonarrAddDefaults: j['sonarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['sonarrAddDefaults'] as Map)
             : const {},
