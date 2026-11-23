@@ -698,7 +698,7 @@ void main() {
       );
     });
 
-    for (final phone in [true, false])
+    for (final phone in [true, false]) {
       testWidgets('the places behind the apps; on a phone, in More: $phone', (
         t,
       ) async {
@@ -756,6 +756,7 @@ void main() {
           );
         }
       });
+    }
 
     testWidgets('not connected', (t) async {
       await _open(t, _app(null));

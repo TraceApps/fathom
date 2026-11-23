@@ -81,6 +81,7 @@ dependencies:
   # ("codegen version 2.11.1 should be the same as runtime version 2.12.0") — the
   # media controls then silently never register. Pin the Dart runtime to 2.11.1.
   flutter_rust_bridge: 2.11.1
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:

@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:fathom/api/arr_client.dart';
 import 'package:fathom/models/app_notification.dart';
 import 'package:fathom/models/arr.dart';
+import 'package:fathom/services/arr_background.dart';
 import 'package:fathom/services/resilient_secure_storage.dart';
 import 'package:fathom/state/arr_event_watcher.dart';
 import 'package:fathom/state/arr_providers.dart';
@@ -14,6 +15,7 @@ import 'package:fathom/state/notifications_controller.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Notifications from Sonarr, Radarr and Lidarr without a relay: Fathom reads
@@ -526,6 +528,130 @@ void main() {
       expect(byTitle['Download failed · 4K']!.route, '/arr');
       expect(byTitle['Radarr 4K needs attention']!.route, '/arr');
       expect(fourK.asked, isNotEmpty);
+    });
+
+    group('while Fathom is closed (Android)', () {
+      ProviderContainer bg({Prefs prefs = const Prefs()}) {
+        final pc = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(storage),
+            preferencesProvider.overrideWith(() => _FakePrefs(prefs)),
+            sonarrClientProvider.overrideWithValue(null),
+            lidarrClientProvider.overrideWithValue(null),
+            radarrClientProvider.overrideWith(
+              (ref) => RadarrClient(
+                url,
+                'k',
+                dio: Dio()..httpClientAdapter = radarr,
+              ),
+            ),
+          ],
+        );
+        addTearDown(pc.dispose);
+        return pc;
+      }
+
+      test('it looks as Fathom does, and tells into the bell', () async {
+        // Fathom looked once (its baseline), a while ago.
+        await c.read(arrEventWatcherProvider)!.poll(firstRun: true);
+        final later = DateTime.now().add(const Duration(minutes: 20));
+        radarr.history = [_withId(_of('radarr', 'downloadFailed'), 30)];
+        final b = bg();
+        expect(await arrBackgroundCheck(b, now: later), isTrue);
+        final got = await b.read(notificationsProvider.future);
+        expect([for (final n in got) n.kind], [AppNotifKind.arrFailed]);
+        // Not told twice: the next run finds nothing new.
+        await arrBackgroundCheck(bg(), now: later);
+        expect(await bg().read(notificationsProvider.future), hasLength(1));
+      });
+
+      test('what it tells joins what the bell already had', () async {
+        await c.read(arrEventWatcherProvider)!.poll(firstRun: true);
+        radarr.history = [_withId(_of('radarr', 'downloadFailed'), 30)];
+        await arrBackgroundCheck(
+          bg(),
+          now: DateTime.now().add(const Duration(minutes: 20)),
+        );
+        radarr.history = [_withId(_of('radarr', 'downloadFolderImported'), 31)];
+        // A fresh run, as each is: the bell read from storage before it adds.
+        await arrBackgroundCheck(
+          bg(),
+          now: DateTime.now().add(const Duration(minutes: 40)),
+        );
+        expect([for (final n in await bg().read(notificationsProvider.future)) n.kind], [
+          AppNotifKind.arrImported,
+          AppNotifKind.arrFailed,
+        ]);
+      });
+
+      test('it leaves alone what Fathom has just looked at', () async {
+        await c.read(arrEventWatcherProvider)!.poll(firstRun: true);
+        expect(storage.store[ArrEventWatcher.liveKey], isNotNull);
+        expect(await arrBackgroundCheck(bg()), isFalse);
+        expect(radarr.asked, hasLength(1));
+      });
+
+      test('it never says Fathom looked', () async {
+        final later = DateTime.now().add(const Duration(minutes: 20));
+        await arrBackgroundCheck(bg(), now: later);
+        expect(storage.store[ArrEventWatcher.liveKey], isNull);
+      });
+
+      test('checking off: nothing, in the background too', () async {
+        expect(
+          await arrBackgroundCheck(bg(prefs: const Prefs(arrPollMinutes: 0))),
+          isFalse,
+        );
+        expect(radarr.asked, isEmpty);
+      });
+
+      test('back in Fathom: what was told meanwhile is read again', () async {
+        final w = c.read(arrEventWatcherProvider)!;
+        await w.poll(firstRun: true);
+        expect(await bell(), isEmpty);
+        // The background check told one (another process, the same store).
+        final later = DateTime.now().add(const Duration(minutes: 20));
+        radarr.history = [_withId(_of('radarr', 'downloadFolderImported'), 40)];
+        await arrBackgroundCheck(bg(), now: later);
+        w.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        // Its own look on the way back, done.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        // Told once: what the background saw is read, so not told again.
+        expect([for (final n in await bell()) n.kind], [AppNotifKind.arrImported]);
+      });
+
+      test('the bell, still loading, keeps what it had when one comes', () async {
+        storage.store['fathom_notifications'] = jsonEncode([
+          AppNotif(
+            id: 'old',
+            kind: AppNotifKind.info,
+            title: 'Older',
+            body: '',
+            time: DateTime(2026),
+          ).toJson(),
+        ]);
+        final fresh = make();
+        // Straight away, before it has read the store.
+        await fresh
+            .read(notificationsProvider.notifier)
+            .add(
+              AppNotif(
+                id: 'new',
+                kind: AppNotifKind.arrImported,
+                title: 'Downloaded',
+                body: '',
+                time: DateTime(2026, 2),
+              ),
+            );
+        expect(
+          [for (final n in await fresh.read(notificationsProvider.future)) n.id],
+          ['new', 'old'],
+        );
+      });
+
+      test('only on Android', () {
+        expect(ArrBackgroundSchedule.supported, isFalse);
+      });
     });
 
     test('off (never checks) when the interval is 0, or nothing connected', () {

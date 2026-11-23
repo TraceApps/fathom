@@ -9,7 +9,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 class AppNotifications {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _ready = false;
-  static int _id = 100;
+  // Started from the clock, not a fixed number: a background run is a new
+  // process each time, and a notification with an id already showing
+  // replaces it.
+  static int _id = DateTime.now().millisecondsSinceEpoch % 1000000000;
 
   static Future<void> init() async {
     // On Linux, the plugin subscribes to a D-Bus signal stream as part of

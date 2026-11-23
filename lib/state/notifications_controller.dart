@@ -43,7 +43,11 @@ class NotificationsController extends AsyncNotifier<List<AppNotif>> {
   }
 
   Future<void> add(AppNotif n) async {
-    final list = <AppNotif>[n, ...(state.asData?.value ?? const [])];
+    // Still loading (just started, or reading again after the background
+    // check told some): wait for it, or what's stored would be replaced by
+    // this one alone.
+    final current = await future;
+    final list = <AppNotif>[n, ...current];
     if (list.length > _max) list.removeRange(_max, list.length);
     await _persist(list);
   }

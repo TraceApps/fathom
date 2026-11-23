@@ -178,6 +178,7 @@ class ArrEventWatcher with WidgetsBindingObserver {
     this._interval, {
     bool start = true,
     this.makeClient,
+    this.background = false,
   }) {
     if (start) _start();
   }
@@ -187,6 +188,14 @@ class ArrEventWatcher with WidgetsBindingObserver {
 
   /// Makes the client for a saved server not in use (tests give their own).
   final ArrClient Function(ArrKind, ArrServer)? makeClient;
+
+  /// Running while Fathom is closed (Android's WorkManager): each is a real
+  /// system notification, there being no app to show it in.
+  final bool background;
+
+  /// When Fathom itself last looked, kept for the background check: it
+  /// leaves alone what Fathom has just seen to.
+  static const liveKey = 'fathom_arr_events_live';
 
   /// While Fathom shows: soon enough to hear of a download as it lands.
   static const _liveInterval = Duration(seconds: 60);
@@ -224,7 +233,11 @@ class ArrEventWatcher with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      poll();
+      // The background check may have looked and told meanwhile: what it
+      // saw and what it put in the bell are read again first.
+      _loaded = false;
+      ref.invalidate(notificationsProvider);
+      ref.read(notificationsProvider.future).whenComplete(poll);
       _restart(_activeInterval());
     } else {
       _restart(_interval);
@@ -269,6 +282,16 @@ class ArrEventWatcher with WidgetsBindingObserver {
     _polling = true;
     try {
       await _load();
+      if (!background) {
+        try {
+          await ref
+              .read(secureStorageProvider)
+              .write(
+                key: liveKey,
+                value: DateTime.now().toUtc().toIso8601String(),
+              );
+        } catch (_) {}
+      }
       final prefs = ref.read(preferencesProvider).asData?.value ?? const Prefs();
       for (final app in ArrKind.values) {
         final inUse = switch (app) {
@@ -460,6 +483,7 @@ class ArrEventWatcher with WidgetsBindingObserver {
         body: body,
         enabled: enabled,
         desktopToast: toast,
+        osNotify: background,
         route: route,
       );
     } catch (_) {}
