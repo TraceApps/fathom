@@ -46,6 +46,71 @@ final lidarrClientProvider = Provider<LidarrClient?>((ref) {
   return LidarrClient(c.$1, c.$2);
 });
 
+/// The Prowlarr server, when one is connected.
+final prowlarrClientProvider = Provider<ProwlarrClient?>((ref) {
+  final c = ref.watch(
+    preferencesProvider.select((p) {
+      final v = p.asData?.value;
+      return (v?.prowlarrUrl ?? '', v?.prowlarrApiKey ?? '');
+    }),
+  );
+  if (c.$1.isEmpty || c.$2.isEmpty) return null;
+  return ProwlarrClient(c.$1, c.$2);
+});
+
+/// An indexer with what Prowlarr says of its health: held back after
+/// failures, until when.
+typedef ProwlarrIndexerRow = ({
+  ProwlarrIndexer indexer,
+  ProwlarrIndexerStatus? status,
+});
+
+/// Prowlarr's indexers by priority then name, as its own page lists them,
+/// each with its status.
+final prowlarrIndexersProvider =
+    FutureProvider.autoDispose<List<ProwlarrIndexerRow>>((ref) async {
+      final c = ref.watch(prowlarrClientProvider);
+      if (c == null) return const [];
+      final r = await Future.wait([c.indexers(), c.statuses()]);
+      final statuses = {
+        for (final s in r[1] as List<ProwlarrIndexerStatus>) s.indexerId: s,
+      };
+      final list = [...r[0] as List<ProwlarrIndexer>]
+        ..sort((a, b) {
+          final p = a.priority.compareTo(b.priority);
+          return p != 0
+              ? p
+              : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+      return [
+        for (final i in list) (indexer: i, status: statuses[i.id]),
+      ];
+    });
+
+/// Prowlarr's counts per indexer, the busiest first.
+final prowlarrStatsProvider =
+    FutureProvider.autoDispose<List<ProwlarrIndexerStats>>((ref) async {
+      final c = ref.watch(prowlarrClientProvider);
+      if (c == null) return const [];
+      final list = await c.stats();
+      return arrStableSorted(list, (a, b) => b.queries.compareTo(a.queries));
+    });
+
+/// What Prowlarr did lately, the newest [limit].
+final prowlarrHistoryProvider = FutureProvider.autoDispose
+    .family<ArrPage<ProwlarrHistoryItem>, int>((ref, limit) async {
+      final c = ref.watch(prowlarrClientProvider);
+      if (c == null) return const ArrPage([], 0);
+      return c.history(pageSize: limit);
+    });
+
+/// [items] sorted by [compare], those alike keeping the order they came in.
+List<T> arrStableSorted<T>(List<T> items, int Function(T, T) compare) {
+  final sorted = [...items];
+  mergeSort<T>(sorted, compare: compare);
+  return sorted;
+}
+
 /// Whether the Arr section shows: Sonarr, Radarr or Lidarr connected.
 final arrConfiguredProvider = Provider<bool>(
   (ref) =>
@@ -942,16 +1007,27 @@ final arrBlocklistProvider = FutureProvider.autoDispose
 
 /// Each connected app's health check, and its version.
 class ArrAppHealth {
-  final ArrKind kind;
+  /// The app's kind; null for Prowlarr, which isn't one.
+  final ArrKind? kind;
+
+  /// The app's name.
+  final String name;
   final String? version;
   final List<ArrHealth> issues;
   final String? error; // the app couldn't be reached
-  const ArrAppHealth(
-    this.kind, {
+  ArrAppHealth(
+    ArrKind this.kind, {
     this.version,
     this.issues = const [],
     this.error,
-  });
+  }) : name = kind.appName;
+
+  const ArrAppHealth.prowlarr({
+    this.version,
+    this.issues = const [],
+    this.error,
+  }) : kind = null,
+       name = ProwlarrClient.appName;
 
   int get problems => issues.where((i) => i.isProblem).length;
 }
@@ -972,8 +1048,23 @@ final arrHealthProvider = FutureProvider.autoDispose<List<ArrAppHealth>>((
     }
   }
 
+  Future<ArrAppHealth> prowlarr(ProwlarrClient c) async {
+    try {
+      final r = await Future.wait([c.status(), c.health()]);
+      return ArrAppHealth.prowlarr(
+        version: (r[0] as ArrStatus).version,
+        issues: r[1] as List<ArrHealth>,
+      );
+    } catch (e) {
+      return ArrAppHealth.prowlarr(error: e.toString());
+    }
+  }
+
+  final p = ref.watch(prowlarrClientProvider);
   return Future.wait([
     for (final c in _arrClients(ref)) one(c),
+    // After the apps it serves.
+    ?(p == null ? null : prowlarr(p)),
   ]);
 });
 

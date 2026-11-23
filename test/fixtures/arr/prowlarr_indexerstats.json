@@ -1,0 +1,46 @@
+{
+  "indexers": [
+    {
+      "indexerId": 1,
+      "indexerName": "Rig Usenet",
+      "averageResponseTime": 1,
+      "averageGrabResponseTime": 0,
+      "numberOfQueries": 8,
+      "numberOfGrabs": 0,
+      "numberOfRssQueries": 0,
+      "numberOfAuthQueries": 0,
+      "numberOfFailedQueries": 0,
+      "numberOfFailedGrabs": 0,
+      "numberOfFailedRssQueries": 0,
+      "numberOfFailedAuthQueries": 0
+    },
+    {
+      "indexerId": 2,
+      "indexerName": "Flaky Usenet",
+      "averageResponseTime": 1,
+      "averageGrabResponseTime": 0,
+      "numberOfQueries": 1,
+      "numberOfGrabs": 0,
+      "numberOfRssQueries": 0,
+      "numberOfAuthQueries": 0,
+      "numberOfFailedQueries": 1,
+      "numberOfFailedGrabs": 0,
+      "numberOfFailedRssQueries": 0,
+      "numberOfFailedAuthQueries": 0
+    }
+  ],
+  "userAgents": [
+    {
+      "userAgent": "Prowlarr",
+      "numberOfQueries": 9,
+      "numberOfGrabs": 0
+    }
+  ],
+  "hosts": [
+    {
+      "host": "host",
+      "numberOfQueries": 9,
+      "numberOfGrabs": 0
+    }
+  ]
+}

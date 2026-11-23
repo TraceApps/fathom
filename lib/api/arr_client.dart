@@ -568,8 +568,11 @@ String sizedLocalImageUrl(String url, String type, int width) {
 /// What to tell the user when the app answers with an error. Sonarr and Radarr
 /// explain a refusal in `message`, or in a list of field errors.
 @visibleForTesting
-String arrErrorMessage(ArrKind kind, DioException e) {
-  final app = kind.appName;
+String arrErrorMessage(ArrKind kind, DioException e) =>
+    arrAppErrorMessage(kind.appName, e);
+
+/// [arrErrorMessage] for any of the apps by name (Prowlarr too).
+String arrAppErrorMessage(String app, DioException e) {
   final code = e.response?.statusCode;
   if (code == 401) return '$app rejected the API key.';
   final data = e.response?.data;
@@ -1587,4 +1590,212 @@ class LidarrClient extends ArrClient {
   @override
   Future<void> searchAllCutoffUnmet() =>
       command('CutoffUnmetAlbumSearch', {'monitored': true});
+}
+
+/// Prowlarr: the indexers the other apps search through, over its v1 API.
+/// Not one of the library apps, so it has no [ArrKind].
+class ProwlarrClient {
+  final String baseUrl;
+  final String apiKey;
+  final Dio _dio;
+
+  ProwlarrClient(String baseUrl, this.apiKey, {Dio? dio})
+    : baseUrl = baseUrl.trim().replaceAll(RegExp(r'/+$'), ''),
+      _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 30),
+            ),
+          );
+
+  static const appName = 'Prowlarr';
+
+  Options get _opts => Options(headers: {'X-Api-Key': apiKey});
+  String _api(String path) => '$baseUrl/api/v1/$path';
+
+  Future<dynamic> _send(
+    String method,
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    Duration? wait,
+  }) async {
+    try {
+      final r = await _dio.request(
+        _api(path),
+        data: body,
+        queryParameters: query,
+        options: _opts.copyWith(method: method, receiveTimeout: wait),
+      );
+      return r.data;
+    } on DioException catch (e) {
+      throw ArrException(arrAppErrorMessage(appName, e));
+    }
+  }
+
+  Future<dynamic> _get(String path, [Map<String, dynamic>? query]) =>
+      _send('GET', path, query: query);
+
+  /// A request whose refusal carries an answer of its own (a test's
+  /// failures): the error is left to the caller.
+  Future<Response<dynamic>> _try(String method, String path, {Object? body}) =>
+      _dio.request(
+        _api(path),
+        data: body,
+        options: _opts.copyWith(
+          method: method,
+          receiveTimeout: const Duration(minutes: 3),
+        ),
+      );
+
+  /// Which app answers at this address, and its version. Throws when it
+  /// isn't Prowlarr.
+  Future<ArrStatus> status() async {
+    final data = await _get('system/status');
+    if (data is! Map) {
+      throw ArrException('$appName sent something unexpected.');
+    }
+    final s = ArrStatus.fromJson(Map<String, dynamic>.from(data));
+    if (s.appName.isNotEmpty && s.appName.toLowerCase() != 'prowlarr') {
+      throw ArrException('This address is ${s.appName}, not $appName.');
+    }
+    return s;
+  }
+
+  Future<List<ArrHealth>> health() async {
+    final data = await _get('health');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ArrHealth.fromJson(null, Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  Future<List<ProwlarrIndexer>> indexers() async {
+    final data = await _get('indexer');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ProwlarrIndexer.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// The indexers Prowlarr is holding back after failures.
+  Future<List<ProwlarrIndexerStatus>> statuses() async {
+    final data = await _get('indexerstatus');
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map)
+          ProwlarrIndexerStatus.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  Future<List<ProwlarrIndexerStats>> stats() async {
+    final data = await _get('indexerstats');
+    return [
+      for (final m in ((data as Map?)?['indexers'] as List?) ?? const [])
+        if (m is Map) ProwlarrIndexerStats.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// What Prowlarr did lately, newest first.
+  Future<ArrPage<ProwlarrHistoryItem>> history({int pageSize = 50}) async {
+    final data = await _get('history', {
+      'page': 1,
+      'pageSize': pageSize,
+      'sortKey': 'date',
+      'sortDirection': 'descending',
+    });
+    final map = data is Map ? data : const {};
+    return ArrPage([
+      for (final m in (map['records'] as List?) ?? const [])
+        if (m is Map) ProwlarrHistoryItem.fromJson(Map<String, dynamic>.from(m)),
+    ], (map['totalRecords'] as num?)?.toInt() ?? 0);
+  }
+
+  /// Turns indexers on or off, several at once.
+  Future<void> setEnabled(List<int> ids, bool enable) =>
+      _send('PUT', 'indexer/bulk', body: {'ids': ids, 'enable': enable});
+
+  /// Tests one indexer: null when it works, otherwise what's wrong.
+  Future<List<String>?> test(ProwlarrIndexer i) async {
+    try {
+      await _try('POST', 'indexer/test', body: i.raw);
+      return null;
+    } on DioException catch (e) {
+      final problems = _problems(e.response?.data);
+      if (e.response?.statusCode == 400 && problems.isNotEmpty) {
+        return problems;
+      }
+      throw ArrException(arrAppErrorMessage(appName, e));
+    }
+  }
+
+  /// Tests every indexer. Prowlarr answers 400 when any fails, with the
+  /// results still in the answer.
+  Future<List<ProwlarrTestResult>> testAll() async {
+    Object? data;
+    try {
+      data = (await _try('POST', 'indexer/testall')).data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 400 || e.response?.data is! List) {
+        throw ArrException(arrAppErrorMessage(appName, e));
+      }
+      data = e.response!.data;
+    }
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map)
+          (
+            id: (m['id'] as num?)?.toInt() ?? 0,
+            ok: m['isValid'] == true,
+            problems: _problems(m['validationFailures']),
+          ),
+    ];
+  }
+
+  static List<String> _problems(Object? v) => [
+    for (final f in (v as List?) ?? const [])
+      if (f is Map && f['errorMessage'] is String) f['errorMessage'] as String,
+  ];
+
+  /// Hands the indexers to the connected apps again (Prowlarr's Sync App
+  /// Indexers).
+  Future<void> syncApps() =>
+      _send('POST', 'command', body: {'name': 'ApplicationIndexerSync'});
+
+  /// Searches every enabled indexer (or [indexerIds]) for [query], in
+  /// [categories] (Newznab's: 2000 movies, 5000 TV, 3000 audio...). Slow:
+  /// Prowlarr waits for each indexer.
+  Future<List<ProwlarrRelease>> search(
+    String query, {
+    List<int> categories = const [],
+    List<int> indexerIds = const [],
+    int limit = 100,
+  }) async {
+    final data = await _send(
+      'GET',
+      'search',
+      query: {
+        'query': query,
+        'type': 'search',
+        'limit': limit,
+        'offset': 0,
+        if (categories.isNotEmpty) 'categories': categories,
+        if (indexerIds.isNotEmpty) 'indexerIds': indexerIds,
+      },
+      wait: const Duration(minutes: 3),
+    );
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) ProwlarrRelease.fromJson(Map<String, dynamic>.from(m)),
+    ];
+  }
+
+  /// Sends a release to Prowlarr's own download client.
+  Future<void> grab(ProwlarrRelease r) => _send(
+    'POST',
+    'search',
+    body: {'guid': r.guid, 'indexerId': r.indexerId},
+  );
 }

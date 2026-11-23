@@ -64,6 +64,7 @@ import '../screens/arr_collections_screen.dart';
 import '../screens/arr_releases_screen.dart';
 import '../screens/arr_screen.dart';
 import '../screens/arr_settings_screen.dart';
+import '../screens/prowlarr_screen.dart';
 import '../screens/updates_screen.dart';
 import '../models/seerr_result.dart';
 import '../screens/server_connect_screen.dart';
@@ -565,6 +566,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/arr/collections',
               pageBuilder: (_, _) => _managePage(const ArrCollectionsScreen())),
+          GoRoute(
+              path: '/arr/indexers',
+              pageBuilder: (_, _) => _managePage(const ProwlarrScreen())),
           GoRoute(
               path: '/arr/health',
               pageBuilder: (_, _) => _managePage(const ArrHealthScreen())),

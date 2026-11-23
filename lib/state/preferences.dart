@@ -360,6 +360,9 @@ class Prefs {
   final String radarrApiKey;
   final String lidarrUrl;
   final String lidarrApiKey;
+  // Prowlarr, the indexers behind them. Empty URL means not connected.
+  final String prowlarrUrl;
+  final String prowlarrApiKey;
   // What Add starts with for a new show / movie (ArrAddDefaults as JSON).
   final Map<String, dynamic> sonarrAddDefaults;
   final Map<String, dynamic> radarrAddDefaults;
@@ -508,6 +511,8 @@ class Prefs {
     this.radarrApiKey = '',
     this.lidarrUrl = '',
     this.lidarrApiKey = '',
+    this.prowlarrUrl = '',
+    this.prowlarrApiKey = '',
     this.sonarrAddDefaults = const {},
     this.radarrAddDefaults = const {},
     this.lidarrAddDefaults = const {},
@@ -647,6 +652,8 @@ class Prefs {
     String? radarrApiKey,
     String? lidarrUrl,
     String? lidarrApiKey,
+    String? prowlarrUrl,
+    String? prowlarrApiKey,
     Map<String, dynamic>? sonarrAddDefaults,
     Map<String, dynamic>? radarrAddDefaults,
     Map<String, dynamic>? lidarrAddDefaults,
@@ -800,6 +807,8 @@ class Prefs {
         radarrApiKey: radarrApiKey ?? this.radarrApiKey,
         lidarrUrl: lidarrUrl ?? this.lidarrUrl,
         lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
+        prowlarrUrl: prowlarrUrl ?? this.prowlarrUrl,
+        prowlarrApiKey: prowlarrApiKey ?? this.prowlarrApiKey,
         sonarrAddDefaults: sonarrAddDefaults ?? this.sonarrAddDefaults,
         radarrAddDefaults: radarrAddDefaults ?? this.radarrAddDefaults,
         lidarrAddDefaults: lidarrAddDefaults ?? this.lidarrAddDefaults,
@@ -939,6 +948,8 @@ class Prefs {
         'radarrApiKey': radarrApiKey,
         'lidarrUrl': lidarrUrl,
         'lidarrApiKey': lidarrApiKey,
+        'prowlarrUrl': prowlarrUrl,
+        'prowlarrApiKey': prowlarrApiKey,
         'sonarrAddDefaults': sonarrAddDefaults,
         'radarrAddDefaults': radarrAddDefaults,
         'lidarrAddDefaults': lidarrAddDefaults,
@@ -1103,6 +1114,8 @@ class Prefs {
         radarrApiKey: j['radarrApiKey'] as String? ?? '',
         lidarrUrl: j['lidarrUrl'] as String? ?? '',
         lidarrApiKey: j['lidarrApiKey'] as String? ?? '',
+        prowlarrUrl: j['prowlarrUrl'] as String? ?? '',
+        prowlarrApiKey: j['prowlarrApiKey'] as String? ?? '',
         sonarrAddDefaults: j['sonarrAddDefaults'] is Map
             ? Map<String, dynamic>.from(j['sonarrAddDefaults'] as Map)
             : const {},

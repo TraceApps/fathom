@@ -18,20 +18,23 @@ void main() {
     final sonarr = routes('sonarr');
     final radarr = routes('radarr');
     final lidarr = routes('lidarr');
+    final prowlarr = routes('prowlarr');
     final src = File('lib/api/arr_client.dart').readAsStringSync();
     final sonarrAt = src.indexOf('class SonarrClient');
     final radarrAt = src.indexOf('class RadarrClient');
     final lidarrAt = src.indexOf('class LidarrClient');
+    final prowlarrAt = src.indexOf('class ProwlarrClient');
     expect(sonarrAt, greaterThan(0));
     expect(radarrAt, greaterThan(sonarrAt));
     expect(lidarrAt, greaterThan(radarrAt));
+    expect(prowlarrAt, greaterThan(lidarrAt));
 
     // _get/_post/_put/_delete('path'), _send('METHOD', 'path') for calls
     // that need a body or query the short forms don't take, plus
     // _api('path') for a GET made directly (the slow release search).
     final call = RegExp(
       r"_(get|post|put|delete|api)\(\s*'([^']*)'"
-      r"|_send\(\s*'(GET|POST|PUT|DELETE)',\s*'([^']*)'",
+      r"|_(?:send|try)\(\s*'(GET|POST|PUT|DELETE)',\s*'([^']*)'",
     );
     final checked = <String>[];
     final sent = <String>[];
@@ -44,7 +47,9 @@ void main() {
       final method = m.group(3) ??
           (m.group(1) == 'api' ? 'GET' : m.group(1)!.toUpperCase());
       if (m.group(3) != null) sent.add(route0(method, '/api/v3/$tail'));
-      final apps = m.start > lidarrAt
+      final apps = m.start > prowlarrAt
+          ? {'prowlarr': prowlarr}
+          : m.start > lidarrAt
           ? {'lidarr': lidarr}
           : m.start > radarrAt
               ? {'radarr': radarr}
@@ -52,7 +57,7 @@ void main() {
                   ? {'sonarr': sonarr}
                   : {'sonarr': sonarr, 'radarr': radarr, 'lidarr': lidarr};
       for (final a in apps.entries) {
-        final v = a.key == 'lidarr' ? 'v1' : 'v3';
+        final v = a.key == 'lidarr' || a.key == 'prowlarr' ? 'v1' : 'v3';
         final route = '$method /api/$v/$tail';
         checked.add('${a.key} $route');
         if (!a.value.contains(route)) unknown.add('${a.key}: $route');

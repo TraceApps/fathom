@@ -1102,7 +1102,8 @@ class ArrPage<T> {
 /// Something the app's own health check found: an indexer down, a disk
 /// filling up, an update waiting...
 class ArrHealth {
-  final ArrKind kind;
+  /// The app it's from; null for Prowlarr, which isn't one of the kinds.
+  final ArrKind? kind;
   final String source;
   final String type; // ok, notice, warning, error
   final String message;
@@ -1116,7 +1117,7 @@ class ArrHealth {
     this.wikiUrl,
   });
 
-  factory ArrHealth.fromJson(ArrKind kind, Map<String, dynamic> j) {
+  factory ArrHealth.fromJson(ArrKind? kind, Map<String, dynamic> j) {
     final wiki = j['wikiUrl'];
     return ArrHealth(
       kind: kind,
@@ -2594,3 +2595,251 @@ class ArrTrack {
     );
   }
 }
+
+// ----------------------------------------------------------------- Prowlarr
+
+/// An indexer in Prowlarr: a site it searches for the other apps.
+class ProwlarrIndexer {
+  final int id;
+  final String name;
+  final bool enable;
+  final String protocol; // usenet, torrent
+  final String? privacy; // public, semiPrivate, private
+  final int priority;
+  final String? definitionName;
+  final String? description;
+  final String? language;
+  final List<String> urls;
+  final List<int> tags;
+
+  /// The kinds of release it has, by Newznab's top categories (Movies, TV,
+  /// Audio...), as names.
+  final List<String> categories;
+
+  /// The indexer exactly as Prowlarr keeps it, for its test.
+  final Map<String, dynamic> raw;
+
+  const ProwlarrIndexer({
+    required this.id,
+    required this.name,
+    this.enable = true,
+    this.protocol = 'unknown',
+    this.privacy,
+    this.priority = 25,
+    this.definitionName,
+    this.description,
+    this.language,
+    this.urls = const [],
+    this.tags = const [],
+    this.categories = const [],
+    this.raw = const {},
+  });
+
+  factory ProwlarrIndexer.fromJson(Map<String, dynamic> j) {
+    final caps = (j['capabilities'] as Map?) ?? const {};
+    return ProwlarrIndexer(
+      id: _int(j['id']),
+      name: j['name'] as String? ?? '',
+      enable: j['enable'] == true,
+      protocol: _protocol(j['protocol']) ?? 'unknown',
+      privacy: _text(j['privacy']),
+      priority: _intOrNull(j['priority']) ?? 25,
+      definitionName: _text(j['definitionName']),
+      description: _text(j['description']),
+      language: _text(j['language']),
+      urls: _strings(j['indexerUrls']),
+      tags: [
+        for (final t in (j['tags'] as List?) ?? const [])
+          if (t is num) t.toInt(),
+      ],
+      // The standard categories (below 100000), not the site's own copies.
+      categories: [
+        for (final c in _maps(caps['categories']))
+          if (_int(c['id']) < 100000 && c['name'] is String)
+            c['name'] as String,
+      ],
+      raw: j,
+    );
+  }
+}
+
+/// An indexer Prowlarr has stopped using for a while after failures.
+class ProwlarrIndexerStatus {
+  final int indexerId;
+  final DateTime? disabledTill;
+  final DateTime? mostRecentFailure;
+  final DateTime? initialFailure;
+
+  const ProwlarrIndexerStatus({
+    required this.indexerId,
+    this.disabledTill,
+    this.mostRecentFailure,
+    this.initialFailure,
+  });
+
+  factory ProwlarrIndexerStatus.fromJson(Map<String, dynamic> j) =>
+      ProwlarrIndexerStatus(
+        indexerId: _int(j['indexerId']),
+        disabledTill: _date(j['disabledTill']),
+        mostRecentFailure: _date(j['mostRecentFailure']),
+        initialFailure: _date(j['initialFailure']),
+      );
+
+  /// Still held back at [now].
+  bool disabledAt(DateTime now) =>
+      disabledTill != null && disabledTill!.isAfter(now);
+}
+
+/// How an indexer has done: Prowlarr's counts since it was added.
+class ProwlarrIndexerStats {
+  final int indexerId;
+  final String name;
+  final int averageResponseMs;
+  final int averageGrabResponseMs;
+  final int queries;
+  final int grabs;
+  final int rssQueries;
+  final int authQueries;
+  final int failedQueries;
+  final int failedGrabs;
+  final int failedRssQueries;
+  final int failedAuthQueries;
+
+  const ProwlarrIndexerStats({
+    required this.indexerId,
+    required this.name,
+    this.averageResponseMs = 0,
+    this.averageGrabResponseMs = 0,
+    this.queries = 0,
+    this.grabs = 0,
+    this.rssQueries = 0,
+    this.authQueries = 0,
+    this.failedQueries = 0,
+    this.failedGrabs = 0,
+    this.failedRssQueries = 0,
+    this.failedAuthQueries = 0,
+  });
+
+  factory ProwlarrIndexerStats.fromJson(Map<String, dynamic> j) =>
+      ProwlarrIndexerStats(
+        indexerId: _int(j['indexerId']),
+        name: j['indexerName'] as String? ?? '',
+        averageResponseMs: _int(j['averageResponseTime']),
+        averageGrabResponseMs: _int(j['averageGrabResponseTime']),
+        queries: _int(j['numberOfQueries']),
+        grabs: _int(j['numberOfGrabs']),
+        rssQueries: _int(j['numberOfRssQueries']),
+        authQueries: _int(j['numberOfAuthQueries']),
+        failedQueries: _int(j['numberOfFailedQueries']),
+        failedGrabs: _int(j['numberOfFailedGrabs']),
+        failedRssQueries: _int(j['numberOfFailedRssQueries']),
+        failedAuthQueries: _int(j['numberOfFailedAuthQueries']),
+      );
+
+  /// Every request that failed, of every kind.
+  int get failures =>
+      failedQueries + failedGrabs + failedRssQueries + failedAuthQueries;
+}
+
+/// One thing Prowlarr did: a search, an RSS check, a grab, a sign-in.
+class ProwlarrHistoryItem {
+  final int id;
+  final int indexerId;
+  final DateTime? date;
+  final bool successful;
+  final String eventType; // indexerQuery, indexerRss, releaseGrabbed, indexerAuth
+  final String? query;
+  final String? queryType;
+  final String? source; // the app or Prowlarr itself
+  final int? results;
+  final int? elapsedMs;
+  final String? grabTitle;
+
+  const ProwlarrHistoryItem({
+    required this.id,
+    required this.indexerId,
+    required this.eventType,
+    this.date,
+    this.successful = true,
+    this.query,
+    this.queryType,
+    this.source,
+    this.results,
+    this.elapsedMs,
+    this.grabTitle,
+  });
+
+  factory ProwlarrHistoryItem.fromJson(Map<String, dynamic> j) {
+    final d = (j['data'] as Map?) ?? const {};
+    return ProwlarrHistoryItem(
+      id: _int(j['id']),
+      indexerId: _int(j['indexerId']),
+      date: _date(j['date']),
+      successful: j['successful'] != false,
+      eventType: j['eventType'] as String? ?? 'unknown',
+      query: _text(d['query']),
+      queryType: _text(d['queryType']),
+      source: _text(d['source']),
+      results: int.tryParse('${d['queryResults'] ?? ''}'),
+      elapsedMs: int.tryParse('${d['elapsedTime'] ?? ''}'),
+      grabTitle: _text(d['grabTitle']),
+    );
+  }
+}
+
+/// A release from a Prowlarr search, across its indexers.
+class ProwlarrRelease {
+  final String guid;
+  final int indexerId;
+  final String indexer;
+  final String title;
+  final int size;
+  final double? ageHours;
+  final DateTime? publishDate;
+  final String protocol;
+  final int? seeders;
+  final int? leechers;
+  final int? grabs;
+  final List<String> categories;
+  final String? infoUrl;
+
+  const ProwlarrRelease({
+    required this.guid,
+    required this.indexerId,
+    required this.indexer,
+    required this.title,
+    this.size = 0,
+    this.ageHours,
+    this.publishDate,
+    this.protocol = 'unknown',
+    this.seeders,
+    this.leechers,
+    this.grabs,
+    this.categories = const [],
+    this.infoUrl,
+  });
+
+  factory ProwlarrRelease.fromJson(Map<String, dynamic> j) => ProwlarrRelease(
+    guid: j['guid'] as String? ?? '',
+    indexerId: _int(j['indexerId']),
+    indexer: j['indexer'] as String? ?? '',
+    title: arrUnescape(j['title'] as String? ?? ''),
+    size: _int(j['size']),
+    ageHours: (j['ageHours'] as num?)?.toDouble(),
+    publishDate: _date(j['publishDate']),
+    protocol: _protocol(j['protocol']) ?? 'unknown',
+    seeders: _intOrNull(j['seeders']),
+    leechers: _intOrNull(j['leechers']),
+    grabs: _intOrNull(j['grabs']),
+    categories: [
+      for (final c in _maps(j['categories']))
+        if (_int(c['id']) < 100000 && c['name'] is String) c['name'] as String,
+    ],
+    infoUrl: _text(j['infoUrl']),
+  );
+
+  bool get isTorrent => protocol == 'torrent';
+}
+
+/// What testing one indexer said: fine, or why not.
+typedef ProwlarrTestResult = ({int id, bool ok, List<String> problems});

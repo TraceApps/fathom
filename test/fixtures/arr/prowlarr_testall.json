@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "isValid": true,
+    "validationFailures": []
+  },
+  {
+    "id": 2,
+    "isValid": false,
+    "validationFailures": [
+      {
+        "propertyName": "",
+        "errorMessage": "Unable to connect to indexer, indexer's server is unavailable. Try again later. HTTP request failed: [500:InternalServerError] [GET] at [http://host.docker.internal:19696/api?t=search&extended=1&apikey=flaky]",
+        "severity": "error"
+      }
+    ]
+  }
+]

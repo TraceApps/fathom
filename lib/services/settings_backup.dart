@@ -35,6 +35,7 @@ const secretPrefKeys = <String>{
   'sonarrApiKey',
   'radarrApiKey',
   'lidarrApiKey',
+  'prowlarrApiKey',
 };
 
 const _appearanceKeys = <String>{

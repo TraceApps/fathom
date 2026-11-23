@@ -306,6 +306,13 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
                       );
                     },
                   ),
+                  // Prowlarr's indexers, behind the apps.
+                  if (ref.watch(prowlarrClientProvider) != null)
+                    IconButton(
+                      tooltip: l.prowlarrIndexers,
+                      icon: const Icon(Icons.travel_explore_rounded),
+                      onPressed: () => context.push('/arr/indexers'),
+                    ),
                   ArrHealthButton(onTap: () => context.push('/arr/health')),
                   IconButton(
                     tooltip: l.browseSettings,

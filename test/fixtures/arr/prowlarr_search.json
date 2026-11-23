@@ -1,0 +1,200 @@
+[
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-FLAC-1994-GRP",
+    "age": 30,
+    "ageHours": 720.0000134400833,
+    "ageMinutes": 43200.00080640833,
+    "size": 450000000,
+    "files": 0,
+    "grabs": 0,
+    "indexerId": 1,
+    "indexer": "Rig Usenet",
+    "title": "Portishead-Dummy-1994-FLAC-1994-GRP",
+    "sortTitle": "portishead dummy 1994 flac 1994 grp",
+    "imdbId": 0,
+    "tmdbId": 0,
+    "tvdbId": 0,
+    "tvMazeId": 0,
+    "publishDate": "2026-10-24T00:21:46Z",
+    "downloadUrl": "(hidden)",
+    "indexerFlags": [],
+    "categories": [
+      {
+        "id": 3040,
+        "name": "Audio/Lossless",
+        "subCategories": []
+      },
+      {
+        "id": 103040,
+        "subCategories": []
+      }
+    ],
+    "protocol": "usenet",
+    "fileName": "Portishead-Dummy-1994-FLAC-1994-GRP.nzb"
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-CD-FLAC-GRP",
+    "age": 3,
+    "ageHours": 72.00001357086111,
+    "ageMinutes": 4320.000814253333,
+    "size": 400000000,
+    "files": 0,
+    "grabs": 0,
+    "indexerId": 1,
+    "indexer": "Rig Usenet",
+    "title": "Portishead-Dummy-1994-CD-FLAC-GRP",
+    "sortTitle": "portishead dummy 1994 cd flac grp",
+    "imdbId": 0,
+    "tmdbId": 0,
+    "tvdbId": 0,
+    "tvMazeId": 0,
+    "publishDate": "2026-11-20T00:21:46Z",
+    "downloadUrl": "(hidden)",
+    "indexerFlags": [],
+    "categories": [
+      {
+        "id": 3040,
+        "name": "Audio/Lossless",
+        "subCategories": []
+      },
+      {
+        "id": 103040,
+        "subCategories": []
+      }
+    ],
+    "protocol": "usenet",
+    "fileName": "Portishead-Dummy-1994-CD-FLAC-GRP.nzb"
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+    "age": 10,
+    "ageHours": 240.0000135808889,
+    "ageMinutes": 14400.000814853332,
+    "size": 120000000,
+    "files": 0,
+    "grabs": 0,
+    "indexerId": 1,
+    "indexer": "Rig Usenet",
+    "title": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+    "sortTitle": "portishead dummy 1994 web mp3 320 grp",
+    "imdbId": 0,
+    "tmdbId": 0,
+    "tvdbId": 0,
+    "tvMazeId": 0,
+    "publishDate": "2026-11-13T00:21:46Z",
+    "downloadUrl": "(hidden)",
+    "indexerFlags": [],
+    "categories": [
+      {
+        "id": 3010,
+        "name": "Audio/MP3",
+        "subCategories": []
+      },
+      {
+        "id": 103010,
+        "subCategories": []
+      }
+    ],
+    "protocol": "usenet",
+    "fileName": "Portishead-Dummy-1994-WEB-MP3-320-GRP.nzb"
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-V0-GRP",
+    "age": 200,
+    "ageHours": 4800.000013587916,
+    "ageMinutes": 288000.000815275,
+    "size": 95000000,
+    "files": 0,
+    "grabs": 0,
+    "indexerId": 1,
+    "indexer": "Rig Usenet",
+    "title": "Portishead-Dummy-1994-WEB-MP3-V0-GRP",
+    "sortTitle": "portishead dummy 1994 web mp3 v0 grp",
+    "imdbId": 0,
+    "tmdbId": 0,
+    "tvdbId": 0,
+    "tvMazeId": 0,
+    "publishDate": "2026-05-07T00:21:46Z",
+    "downloadUrl": "(hidden)",
+    "indexerFlags": [],
+    "categories": [
+      {
+        "id": 3010,
+        "name": "Audio/MP3",
+        "subCategories": []
+      },
+      {
+        "id": 103010,
+        "subCategories": []
+      }
+    ],
+    "protocol": "usenet",
+    "fileName": "Portishead-Dummy-1994-WEB-MP3-V0-GRP.nzb"
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Portishead-Portishead-1997-FLAC-1994-GRP",
+    "age": 30,
+    "ageHours": 720.0000135933055,
+    "ageMinutes": 43200.00081559833,
+    "size": 450000000,
+    "files": 0,
+    "grabs": 0,
+    "indexerId": 1,
+    "indexer": "Rig Usenet",
+    "title": "Portishead-Portishead-1997-FLAC-1994-GRP",
+    "sortTitle": "portishead portishead 1997 flac 1994 grp",
+    "imdbId": 0,
+    "tmdbId": 0,
+    "tvdbId": 0,
+    "tvMazeId": 0,
+    "publishDate": "2026-10-24T00:21:46Z",
+    "downloadUrl": "(hidden)",
+    "indexerFlags": [],
+    "categories": [
+      {
+        "id": 3040,
+        "name": "Audio/Lossless",
+        "subCategories": []
+      },
+      {
+        "id": 103040,
+        "subCategories": []
+      }
+    ],
+    "protocol": "usenet",
+    "fileName": "Portishead-Portishead-1997-FLAC-1994-GRP.nzb"
+  },
+  {
+    "guid": "http://host.docker.internal:19696/getnzb?id=Portishead-Portishead-1997-CD-FLAC-GRP",
+    "age": 3,
+    "ageHours": 72.00001359805556,
+    "ageMinutes": 4320.000815883333,
+    "size": 400000000,
+    "files": 0,
+    "grabs": 0,
+    "indexerId": 1,
+    "indexer": "Rig Usenet",
+    "title": "Portishead-Portishead-1997-CD-FLAC-GRP",
+    "sortTitle": "portishead portishead 1997 cd flac grp",
+    "imdbId": 0,
+    "tmdbId": 0,
+    "tvdbId": 0,
+    "tvMazeId": 0,
+    "publishDate": "2026-11-20T00:21:46Z",
+    "downloadUrl": "(hidden)",
+    "indexerFlags": [],
+    "categories": [
+      {
+        "id": 3040,
+        "name": "Audio/Lossless",
+        "subCategories": []
+      },
+      {
+        "id": 103040,
+        "subCategories": []
+      }
+    ],
+    "protocol": "usenet",
+    "fileName": "Portishead-Portishead-1997-CD-FLAC-GRP.nzb"
+  }
+]

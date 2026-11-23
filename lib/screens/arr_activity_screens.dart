@@ -750,7 +750,7 @@ class _AppHealth extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final name = app.kind.appName;
+    final name = app.name;
     final issues = app.issues;
     return Padding(
       padding: const EdgeInsets.only(top: 16),

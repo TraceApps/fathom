@@ -1,0 +1,155 @@
+{
+  "page": 1,
+  "pageSize": 50,
+  "sortKey": "date",
+  "sortDirection": "descending",
+  "totalRecords": 9,
+  "records": [
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:16:48Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "0",
+        "query": "portishead",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "12",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=rig&q=portishead",
+        "cached": "0"
+      },
+      "id": 9
+    },
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:16:36Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "1",
+        "query": "portishead",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "12",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=rig&q=portishead",
+        "cached": "0"
+      },
+      "id": 8
+    },
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:16:28Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "1",
+        "query": "portishead",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "12",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=rig&q=portishead",
+        "cached": "0"
+      },
+      "id": 7
+    },
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:13:46Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "1",
+        "query": "interstellar",
+        "queryType": "search",
+        "categories": "2000",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "0",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&cat=2040,2000&apikey=rig&q=interstellar",
+        "cached": "0"
+      },
+      "id": 6
+    },
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:13:44Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "limit": "100",
+        "offset": "0",
+        "elapsedTime": "1",
+        "query": "portishead",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "12",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=rig&q=portishead&limit=100&offset=0",
+        "cached": "0"
+      },
+      "id": 5
+    },
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:13:30Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "1",
+        "query": "three",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "0",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=rig&q=three",
+        "cached": "0"
+      },
+      "id": 4
+    },
+    {
+      "indexerId": 1,
+      "date": "2026-11-23T00:13:28Z",
+      "successful": true,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "1",
+        "query": "two",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "0",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=rig&q=two",
+        "cached": "0"
+      },
+      "id": 3
+    },
+    {
+      "indexerId": 2,
+      "date": "2026-11-23T00:13:26Z",
+      "successful": false,
+      "eventType": "indexerQuery",
+      "data": {
+        "elapsedTime": "1",
+        "query": "one",
+        "queryType": "search",
+        "categories": "",
+        "source": "Prowlarr",
+        "host": "host",
+        "queryResults": "0",
+        "url": "http://host.docker.internal:19696/api?t=search&extended=1&apikey=flaky&q=one",
+        "cached": "0"
+      },
+      "id": 2
+    }
+  ]
+}

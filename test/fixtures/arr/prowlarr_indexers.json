@@ -1,0 +1,462 @@
+[
+  {
+    "indexerUrls": [
+      "http://host.docker.internal:19696"
+    ],
+    "legacyUrls": [],
+    "definitionName": "Newznab",
+    "description": "Newznab is an API search specification for Usenet",
+    "language": "en-US",
+    "encoding": "Unicode (UTF-8)",
+    "enable": true,
+    "redirect": true,
+    "supportsRss": true,
+    "supportsSearch": true,
+    "supportsRedirect": true,
+    "supportsPagination": true,
+    "appProfileId": 1,
+    "protocol": "usenet",
+    "privacy": "private",
+    "capabilities": {
+      "limitsMax": 100,
+      "limitsDefault": 100,
+      "categories": [
+        {
+          "id": 2000,
+          "name": "Movies",
+          "subCategories": [
+            {
+              "id": 2040,
+              "name": "Movies/HD",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": 102040,
+          "name": "Movies/HD",
+          "subCategories": []
+        },
+        {
+          "id": 102000,
+          "name": "Movies",
+          "subCategories": []
+        },
+        {
+          "id": 5000,
+          "name": "TV",
+          "subCategories": [
+            {
+              "id": 5040,
+              "name": "TV/HD",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": 105040,
+          "name": "TV/HD",
+          "subCategories": []
+        },
+        {
+          "id": 105000,
+          "name": "TV",
+          "subCategories": []
+        },
+        {
+          "id": 3000,
+          "name": "Audio",
+          "subCategories": [
+            {
+              "id": 3010,
+              "name": "Audio/MP3",
+              "subCategories": []
+            },
+            {
+              "id": 3040,
+              "name": "Audio/Lossless",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": 103010,
+          "name": "Audio/MP3",
+          "subCategories": []
+        },
+        {
+          "id": 103040,
+          "name": "Audio/Lossless",
+          "subCategories": []
+        },
+        {
+          "id": 103000,
+          "name": "Audio",
+          "subCategories": []
+        }
+      ],
+      "supportsRawSearch": false,
+      "searchParams": [
+        "q"
+      ],
+      "tvSearchParams": [
+        "q",
+        "season",
+        "ep",
+        "tvdbId"
+      ],
+      "movieSearchParams": [
+        "q",
+        "imdbId",
+        "tmdbId"
+      ],
+      "musicSearchParams": [
+        "q",
+        "artist",
+        "album"
+      ],
+      "bookSearchParams": []
+    },
+    "priority": 30,
+    "downloadClientId": 0,
+    "added": "2026-11-23T00:13:17Z",
+    "sortName": "flaky usenet",
+    "name": "Flaky Usenet",
+    "fields": [
+      {
+        "order": 0,
+        "name": "baseUrl",
+        "label": "Url",
+        "value": "http://host.docker.internal:19696",
+        "type": "textbox",
+        "advanced": false,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 1,
+        "name": "apiPath",
+        "label": "API Path",
+        "helpText": "Path to the api, usually /api",
+        "value": "/api",
+        "type": "textbox",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 2,
+        "name": "apiKey",
+        "label": "API Key",
+        "helpText": "Site API Key",
+        "value": "(hidden)",
+        "type": "textbox",
+        "advanced": false,
+        "privacy": "apiKey",
+        "isFloat": false
+      },
+      {
+        "order": 3,
+        "name": "additionalParameters",
+        "label": "Additional Parameters",
+        "helpText": "Additional Newznab parameters",
+        "type": "textbox",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 4,
+        "name": "vipExpiration",
+        "label": "VIP Expiration",
+        "helpText": "Enter date (yyyy-mm-dd) for VIP Expiration or blank, Prowlarr will notify 1 week from expiration of VIP",
+        "value": "",
+        "type": "textbox",
+        "advanced": false,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 5,
+        "name": "baseSettings.queryLimit",
+        "label": "Query Limit",
+        "helpText": "The number of max queries as specified by the respective unit that Prowlarr will allow to the site",
+        "type": "number",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 6,
+        "name": "baseSettings.grabLimit",
+        "label": "Grab Limit",
+        "helpText": "The number of max grabs as specified by the respective unit that Prowlarr will allow to the site",
+        "type": "number",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 7,
+        "name": "baseSettings.limitsUnit",
+        "label": "Limits Unit",
+        "helpText": "The unit of time for counting limits per indexer",
+        "value": 0,
+        "type": "select",
+        "advanced": true,
+        "selectOptions": [
+          {
+            "value": 0,
+            "name": "Day",
+            "order": 0,
+            "hint": "(0)"
+          },
+          {
+            "value": 1,
+            "name": "Hour",
+            "order": 1,
+            "hint": "(1)"
+          }
+        ],
+        "privacy": "normal",
+        "isFloat": false
+      }
+    ],
+    "implementationName": "Newznab",
+    "implementation": "Newznab",
+    "configContract": "NewznabSettings",
+    "infoLink": "https://wiki.servarr.com/prowlarr/supported-indexers#newznab",
+    "tags": [],
+    "id": 2
+  },
+  {
+    "indexerUrls": [
+      "http://host.docker.internal:19696"
+    ],
+    "legacyUrls": [],
+    "definitionName": "Newznab",
+    "description": "Newznab is an API search specification for Usenet",
+    "language": "en-US",
+    "encoding": "Unicode (UTF-8)",
+    "enable": true,
+    "redirect": true,
+    "supportsRss": true,
+    "supportsSearch": true,
+    "supportsRedirect": true,
+    "supportsPagination": true,
+    "appProfileId": 1,
+    "protocol": "usenet",
+    "privacy": "private",
+    "capabilities": {
+      "limitsMax": 100,
+      "limitsDefault": 100,
+      "categories": [
+        {
+          "id": 2000,
+          "name": "Movies",
+          "subCategories": [
+            {
+              "id": 2040,
+              "name": "Movies/HD",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": 102040,
+          "name": "Movies/HD",
+          "subCategories": []
+        },
+        {
+          "id": 102000,
+          "name": "Movies",
+          "subCategories": []
+        },
+        {
+          "id": 5000,
+          "name": "TV",
+          "subCategories": [
+            {
+              "id": 5040,
+              "name": "TV/HD",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": 105040,
+          "name": "TV/HD",
+          "subCategories": []
+        },
+        {
+          "id": 105000,
+          "name": "TV",
+          "subCategories": []
+        },
+        {
+          "id": 3000,
+          "name": "Audio",
+          "subCategories": [
+            {
+              "id": 3010,
+              "name": "Audio/MP3",
+              "subCategories": []
+            },
+            {
+              "id": 3040,
+              "name": "Audio/Lossless",
+              "subCategories": []
+            }
+          ]
+        },
+        {
+          "id": 103010,
+          "name": "Audio/MP3",
+          "subCategories": []
+        },
+        {
+          "id": 103040,
+          "name": "Audio/Lossless",
+          "subCategories": []
+        },
+        {
+          "id": 103000,
+          "name": "Audio",
+          "subCategories": []
+        }
+      ],
+      "supportsRawSearch": false,
+      "searchParams": [
+        "q"
+      ],
+      "tvSearchParams": [
+        "q",
+        "season",
+        "ep",
+        "tvdbId"
+      ],
+      "movieSearchParams": [
+        "q",
+        "imdbId",
+        "tmdbId"
+      ],
+      "musicSearchParams": [
+        "q",
+        "artist",
+        "album"
+      ],
+      "bookSearchParams": []
+    },
+    "priority": 25,
+    "downloadClientId": 0,
+    "added": "2026-11-23T00:12:46Z",
+    "sortName": "rig usenet",
+    "name": "Rig Usenet",
+    "fields": [
+      {
+        "order": 0,
+        "name": "baseUrl",
+        "label": "Url",
+        "value": "http://host.docker.internal:19696",
+        "type": "textbox",
+        "advanced": false,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 1,
+        "name": "apiPath",
+        "label": "API Path",
+        "helpText": "Path to the api, usually /api",
+        "value": "/api",
+        "type": "textbox",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 2,
+        "name": "apiKey",
+        "label": "API Key",
+        "helpText": "Site API Key",
+        "value": "(hidden)",
+        "type": "textbox",
+        "advanced": false,
+        "privacy": "apiKey",
+        "isFloat": false
+      },
+      {
+        "order": 3,
+        "name": "additionalParameters",
+        "label": "Additional Parameters",
+        "helpText": "Additional Newznab parameters",
+        "type": "textbox",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 4,
+        "name": "vipExpiration",
+        "label": "VIP Expiration",
+        "helpText": "Enter date (yyyy-mm-dd) for VIP Expiration or blank, Prowlarr will notify 1 week from expiration of VIP",
+        "value": "",
+        "type": "textbox",
+        "advanced": false,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 5,
+        "name": "baseSettings.queryLimit",
+        "label": "Query Limit",
+        "helpText": "The number of max queries as specified by the respective unit that Prowlarr will allow to the site",
+        "type": "number",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 6,
+        "name": "baseSettings.grabLimit",
+        "label": "Grab Limit",
+        "helpText": "The number of max grabs as specified by the respective unit that Prowlarr will allow to the site",
+        "type": "number",
+        "advanced": true,
+        "privacy": "normal",
+        "isFloat": false
+      },
+      {
+        "order": 7,
+        "name": "baseSettings.limitsUnit",
+        "label": "Limits Unit",
+        "helpText": "The unit of time for counting limits per indexer",
+        "value": 0,
+        "type": "select",
+        "advanced": true,
+        "selectOptions": [
+          {
+            "value": 0,
+            "name": "Day",
+            "order": 0,
+            "hint": "(0)"
+          },
+          {
+            "value": 1,
+            "name": "Hour",
+            "order": 1,
+            "hint": "(1)"
+          }
+        ],
+        "privacy": "normal",
+        "isFloat": false
+      }
+    ],
+    "implementationName": "Newznab",
+    "implementation": "Newznab",
+    "configContract": "NewznabSettings",
+    "infoLink": "https://wiki.servarr.com/prowlarr/supported-indexers#newznab",
+    "tags": [],
+    "id": 1
+  }
+]

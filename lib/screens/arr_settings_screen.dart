@@ -34,6 +34,8 @@ class ArrSettingsScreen extends StatelessWidget {
           const _ArrConnectionCard(kind: ArrKind.radarr),
           const SizedBox(height: 16),
           const _ArrConnectionCard(kind: ArrKind.lidarr),
+          const SizedBox(height: 16),
+          const _ArrConnectionCard(kind: null),
         ],
       ),
     );
@@ -41,7 +43,8 @@ class ArrSettingsScreen extends StatelessWidget {
 }
 
 class _ArrConnectionCard extends ConsumerStatefulWidget {
-  final ArrKind kind;
+  /// The app; null for Prowlarr, which isn't one of the library apps.
+  final ArrKind? kind;
   const _ArrConnectionCard({required this.kind});
 
   @override
@@ -77,22 +80,27 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
   }
 
   /// The address and key saved for this app.
+  String get _app => widget.kind?.appName ?? ProwlarrClient.appName;
+
   (String, String) _saved(Prefs p) => switch (widget.kind) {
+    null => (p.prowlarrUrl, p.prowlarrApiKey),
     ArrKind.sonarr => (p.sonarrUrl, p.sonarrApiKey),
     ArrKind.radarr => (p.radarrUrl, p.radarrApiKey),
     ArrKind.lidarr => (p.lidarrUrl, p.lidarrApiKey),
   };
 
   Prefs _withSaved(Prefs p, String url, String key) => switch (widget.kind) {
+    null => p.copyWith(prowlarrUrl: url, prowlarrApiKey: key),
     ArrKind.sonarr => p.copyWith(sonarrUrl: url, sonarrApiKey: key),
     ArrKind.radarr => p.copyWith(radarrUrl: url, radarrApiKey: key),
     ArrKind.lidarr => p.copyWith(lidarrUrl: url, lidarrApiKey: key),
   };
 
-  ArrClient _client(String url, String key) => switch (widget.kind) {
-    ArrKind.sonarr => SonarrClient(url, key),
-    ArrKind.radarr => RadarrClient(url, key),
-    ArrKind.lidarr => LidarrClient(url, key),
+  Future<ArrStatus> _status(String url, String key) => switch (widget.kind) {
+    null => ProwlarrClient(url, key).status(),
+    ArrKind.sonarr => SonarrClient(url, key).status(),
+    ArrKind.radarr => RadarrClient(url, key).status(),
+    ArrKind.lidarr => LidarrClient(url, key).status(),
   };
 
   /// Asks the server what it is. Quiet on open, so a saved connection just
@@ -101,13 +109,13 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final s = await _client(_url.text.trim(), _key.text.trim()).status();
+      final s = await _status(_url.text.trim(), _key.text.trim());
       if (!mounted) return;
       setState(() => _version = s.version);
       if (!quiet) {
         showSnackOn(
           messenger,
-          l.arrConnectedTo(widget.kind.appName, s.version),
+          l.arrConnectedTo(_app, s.version),
           kind: SnackKind.success,
         );
       }
@@ -153,7 +161,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     _url.clear();
     _key.clear();
     setState(() => _version = null);
-    showSnack(context, l.arrDisconnected(widget.kind.appName));
+    showSnack(context, l.arrDisconnected(_app));
   }
 
   @override
@@ -170,7 +178,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
     final status = !saved
         ? l.arrNotConnected
         : _version != null
-        ? l.arrConnectedTo(widget.kind.appName, _version!)
+        ? l.arrConnectedTo(_app, _version!)
         : null;
     return Card(
       margin: EdgeInsets.zero,
@@ -182,6 +190,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
             Row(
               children: [
                 Icon(switch (widget.kind) {
+                  null => Icons.travel_explore_rounded,
                   ArrKind.sonarr => Icons.live_tv_rounded,
                   ArrKind.radarr => Icons.movie_rounded,
                   ArrKind.lidarr => Icons.library_music_rounded,
@@ -192,7 +201,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.kind.appName,
+                        _app,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -217,6 +226,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
               keyboardType: TextInputType.url,
               label: l.arrServerAddress,
               hint: switch (widget.kind) {
+                null => 'http://192.168.1.10:9696',
                 ArrKind.sonarr => 'http://192.168.1.10:8989',
                 ArrKind.radarr => 'http://192.168.1.10:7878',
                 ArrKind.lidarr => 'http://192.168.1.10:8686',
@@ -228,7 +238,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
               controller: _key,
               obscure: true,
               label: l.arrApiKey,
-              helperText: l.arrApiKeyHelp(widget.kind.appName),
+              helperText: l.arrApiKeyHelp(_app),
               icon: Icons.key_rounded,
               onSubmitted: (_) => _busy ? null : _save(),
             ),
@@ -249,10 +259,14 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
                 ),
               ],
             ),
-            if (saved && _version != null) ...[
+            if (saved && _version != null && widget.kind != null) ...[
               const SizedBox(height: 12),
               const Divider(height: 1),
-              _DefaultsTile(kind: widget.kind),
+              ?switch (widget.kind) {
+                final k? => _DefaultsTile(kind: k),
+                // Prowlarr adds nothing: no defaults to set.
+                null => null,
+              },
             ],
           ],
         ),

@@ -762,11 +762,11 @@ void main() {
       expect(find.text('Lidarr'), findsOneWidget);
       expect(find.text('http://192.168.1.10:8686'), findsOneWidget);
       final fields = find.byType(TextField);
-      // Sonarr's two fields, Radarr's, then Lidarr's.
-      expect(fields, findsNWidgets(6));
+      // Sonarr's two fields, Radarr's, Lidarr's, then Prowlarr's.
+      expect(fields, findsNWidgets(8));
       await t.enterText(fields.at(4), '10.0.0.5:8686');
       await t.enterText(fields.at(5), 'lkey');
-      await t.tap(find.text('Save & Test').last);
+      await t.tap(find.text('Save & Test').at(2));
       await _settle(t);
       // The check is Lidarr's: a test has no network, so it says it failed.
       expect(
