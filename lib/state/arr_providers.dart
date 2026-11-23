@@ -111,12 +111,14 @@ List<T> arrStableSorted<T>(List<T> items, int Function(T, T) compare) {
   return sorted;
 }
 
-/// Whether the Arr section shows: Sonarr, Radarr or Lidarr connected.
+/// Whether the Arr section shows: Sonarr, Radarr, Lidarr or Prowlarr
+/// connected.
 final arrConfiguredProvider = Provider<bool>(
   (ref) =>
       ref.watch(sonarrClientProvider) != null ||
       ref.watch(radarrClientProvider) != null ||
-      ref.watch(lidarrClientProvider) != null,
+      ref.watch(lidarrClientProvider) != null ||
+      ref.watch(prowlarrClientProvider) != null,
 );
 
 /// The libraries the Library tab can show, in its switch's order: Movies,

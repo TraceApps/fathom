@@ -116,10 +116,8 @@ class AppTheme {
               color: scheme.outlineVariant.withValues(alpha: 0.25)),
         ),
       ),
-      // TV ONLY: a switch's segment under the remote shows, the selected one
-      // too (its fill alone reads the same focused or not). Null elsewhere.
-      // On a TV, a switch the remote is on gets a ring like a button's: by
-      // default only a faint halo round its thumb says so.
+      // TV ONLY: a switch the remote is on gets a ring like a button's: by
+      // default only a faint halo round its thumb says so. Null elsewhere.
       switchTheme: isTvDevice
           ? SwitchThemeData(
               overlayColor: WidgetStateProperty.resolveWith(
@@ -137,6 +135,8 @@ class AppTheme {
               ),
             )
           : null,
+      // TV ONLY: a switch's segment under the remote shows, the selected one
+      // too (its fill alone reads the same focused or not). Null elsewhere.
       segmentedButtonTheme: isTvDevice
           ? SegmentedButtonThemeData(
               style: ButtonStyle(

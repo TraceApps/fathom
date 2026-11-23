@@ -16,6 +16,7 @@ import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/context_menu.dart';
 import 'arr_activity_screens.dart';
+import 'prowlarr_screen.dart';
 import 'arr_calendar_tab.dart';
 import 'arr_detail_screens.dart';
 import 'arr_import_screen.dart';
@@ -205,6 +206,10 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final kinds = ref.watch(arrLibraryKindsProvider);
+    // Prowlarr on its own: the section is its indexers.
+    if (kinds.isEmpty && ref.watch(prowlarrClientProvider) != null) {
+      return const ProwlarrScreen();
+    }
     if (kinds.isEmpty) {
       return Scaffold(
         appBar: AppBar(

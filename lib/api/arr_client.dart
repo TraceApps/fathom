@@ -1592,6 +1592,13 @@ class LidarrClient extends ArrClient {
       command('CutoffUnmetAlbumSearch', {'monitored': true});
 }
 
+/// [text] with the keys in any address it quotes hidden (apikey=, passkey=,
+/// api_key=...): Prowlarr's test failures quote the indexer's own request.
+String arrHideKeys(String text) => text.replaceAllMapped(
+  RegExp(r'((?:api_?key|passkey|key|token)=)[^&\s\]\)]+', caseSensitive: false),
+  (m) => '${m[1]}…',
+);
+
 /// Prowlarr: the indexers the other apps search through, over its v1 API.
 /// Not one of the library apps, so it has no [ArrKind].
 class ProwlarrClient {
@@ -1754,9 +1761,15 @@ class ProwlarrClient {
     ];
   }
 
+  /// What a test found wrong: its errors, not its warnings, with any
+  /// indexer's key in a quoted address hidden.
   static List<String> _problems(Object? v) => [
     for (final f in (v as List?) ?? const [])
-      if (f is Map && f['errorMessage'] is String) f['errorMessage'] as String,
+      if (f is Map &&
+          f['errorMessage'] is String &&
+          f['isWarning'] != true &&
+          f['severity'] != 'warning')
+        arrHideKeys(f['errorMessage'] as String),
   ];
 
   /// Hands the indexers to the connected apps again (Prowlarr's Sync App

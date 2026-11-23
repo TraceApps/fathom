@@ -31,7 +31,7 @@ Discover follows your Seerr server's own display settings: with **Hide Available
 
 Connect [Sonarr](https://sonarr.tv) for shows, [Radarr](https://radarr.video) for movies and [Lidarr](https://lidarr.audio) for music, any of them, in **Settings → Sonarr, Radarr, Lidarr & Prowlarr**. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, `:8686` for Lidarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. **Save & Test** checks the address really is that app and shows its version.
 
-[Prowlarr](https://prowlarr.com), the indexer manager behind them, connects the same way below them (`:9696`). It adds an **Indexers** page to the Manage section.
+[Prowlarr](https://prowlarr.com), the indexer manager behind them, connects the same way below them (`:9696`). It adds an **Indexers** page to the Manage section; with only Prowlarr connected, Manage opens straight on it.
 
 Once connected, a **Manage** section appears in the navigation. The API keys stay on this device and are never included in [Backup & Restore](backup.md).
 

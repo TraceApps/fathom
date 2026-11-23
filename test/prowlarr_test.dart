@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -17,6 +18,7 @@ import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/session_controller.dart';
 import 'package:fathom/theme/app_theme.dart';
+import 'package:fathom/widgets/app_spinner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +46,9 @@ typedef _Asked = ({
 class _Prowlarr implements HttpClientAdapter {
   final List<_Asked> asked = [];
   final Map<String, ResponseBody Function()> answers;
+
+  /// Held until completed: Test All, mid-run.
+  Completer<void>? hold;
   _Prowlarr([this.answers = const {}]);
 
   static ResponseBody _json(Object? data, [int code = 200]) =>
@@ -68,6 +73,7 @@ class _Prowlarr implements HttpClientAdapter {
       query: o.uri.queryParametersAll,
       body: o.data,
     ));
+    if (path == 'indexer/testall') await hold?.future;
     final custom = answers[path];
     if (custom != null) return custom();
     return switch ((o.method, path)) {
@@ -266,6 +272,32 @@ void main() {
       final got = await _client(_Prowlarr()).testAll();
       expect([for (final r in got) (r.id, r.ok)], [(1, true), (2, false)]);
       expect(got[1].problems.single, contains('Unable to connect'));
+      // The indexer's key in the quoted address stays hidden.
+      expect(got[1].problems.single, contains('apikey=…]'));
+      expect(got[1].problems.single, isNot(contains('flaky]')));
+    });
+
+    test('a test\'s warnings aren\'t problems, and keys stay hidden', () async {
+      final s = _Prowlarr({
+        'indexer/testall': () => _Prowlarr._json([
+          {
+            'id': 1,
+            'isValid': false,
+            'validationFailures': [
+              {'errorMessage': 'Slow to answer', 'isWarning': true},
+              {'errorMessage': 'Also slow', 'severity': 'warning'},
+              {
+                'errorMessage': 'Refused at [https://x/api?t=caps&passkey=abc123&x=1]',
+                'severity': 'error',
+              },
+            ],
+          },
+        ], 400),
+      });
+      final got = await _client(s).testAll();
+      expect(got.single.problems, ['Refused at [https://x/api?t=caps&passkey=…&x=1]']);
+      expect(arrHideKeys('a?api_key=s3cret b?token=t&q=1 key=k'), 'a?api_key=… b?token=…&q=1 key=…');
+      expect(arrHideKeys('no keys here'), 'no keys here');
     });
 
     test('one indexer\'s test: fine, or what\'s wrong', () async {
@@ -435,6 +467,153 @@ void main() {
       expect(find.byTooltip('Grabbed'), findsOneWidget);
     });
 
+    testWidgets('Test All: none on, and one of one', (t) async {
+      final none = _Prowlarr({'indexer/testall': () => _Prowlarr._json([])});
+      await _open(t, _app(none, home: const ProwlarrScreen()));
+      await t.tap(find.text('Test All'));
+      await _settle(t);
+      expect(find.text('No indexers are on to test'), findsOneWidget);
+    });
+
+    testWidgets('Test All, one failing of one', (t) async {
+      final s = _Prowlarr({
+        'indexer/testall': () => _Prowlarr._json([
+          (_fixture('prowlarr_testall')! as List)[1],
+        ], 400),
+      });
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      await t.tap(find.text('Test All'));
+      await _settle(t);
+      expect(find.text('The indexer failed the test'), findsOneWidget);
+    });
+
+    testWidgets('Test All marks only the indexers that are on', (t) async {
+      final s = _Prowlarr({
+        'indexer': () => _Prowlarr._json([
+          for (final m in _list('prowlarr_indexers'))
+            {...m, 'enable': m['id'] == 1},
+        ]),
+      })..hold = Completer();
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      await t.tap(find.text('Test All'));
+      await _settle(t);
+      // While it runs: the row that's on is testing, the one that's off isn't
+      // (Prowlarr's Test All leaves it out).
+      expect(find.text('Testing'), findsOneWidget);
+      final testing = find.ancestor(
+        of: find.text('Testing'),
+        matching: find.byType(Column),
+      );
+      expect(
+        find.descendant(of: testing.first, matching: find.text('Rig Usenet')),
+        findsOneWidget,
+      );
+      s.hold!.complete();
+      await _settle(t);
+      expect(find.text('Testing'), findsNothing);
+    });
+
+    testWidgets('results stay across tabs; tests refresh the list', (t) async {
+      final s = _Prowlarr();
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      final before = s.sent('GET', 'indexer').length;
+      await t.tap(find.byTooltip('Test').first);
+      await _settle(t);
+      // One indexer's test asks for the list again (it can be back in use).
+      expect(s.sent('GET', 'indexer').length, greaterThan(before));
+      expect(find.text('Works'), findsOneWidget);
+      await t.tap(find.text('Stats'));
+      await _settle(t);
+      await t.tap(find.text('Indexers').first);
+      await _settle(t);
+      expect(find.text('Works'), findsOneWidget);
+    });
+
+    testWidgets('a held-back indexer is asked about again when it\'s due', (
+      t,
+    ) async {
+      final until = DateTime.now().toUtc().add(const Duration(seconds: 3));
+      final s = _Prowlarr({
+        'indexerstatus': () => _Prowlarr._json([
+          {
+            ..._list('prowlarr_indexerstatus').single,
+            'disabledTill': until.toIso8601String(),
+          },
+        ]),
+      });
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      final before = s.sent('GET', 'indexerstatus').length;
+      await t.pump(const Duration(seconds: 1));
+      expect(s.sent('GET', 'indexerstatus').length, before);
+      await t.pump(const Duration(seconds: 5));
+      await _settle(t);
+      expect(s.sent('GET', 'indexerstatus').length, greaterThan(before));
+    });
+
+    testWidgets('Search: an empty box drops the old results', (t) async {
+      final s = _Prowlarr();
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      await t.tap(find.text('Search').first);
+      await _settle(t);
+      await t.enterText(find.byType(TextField), 'portishead');
+      await t.testTextInput.receiveAction(TextInputAction.search);
+      await _settle(t);
+      expect(find.text('6 results'), findsOneWidget);
+      await t.enterText(find.byType(TextField), '');
+      await t.tap(find.text('Music'));
+      await _settle(t);
+      expect(find.text('6 results'), findsNothing);
+      expect(s.sent('GET', 'search'), hasLength(1));
+    });
+
+    testWidgets('Search: the same guid from two indexers, grabbed once', (
+      t,
+    ) async {
+      final two = _list('prowlarr_search').take(2).toList();
+      final s = _Prowlarr({
+        'search': () => _Prowlarr._json([
+          {...two[0], 'guid': 'same', 'indexerId': 1, 'title': 'A copy'},
+          {...two[1], 'guid': 'same', 'indexerId': 2, 'title': 'B copy'},
+        ]),
+      });
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      await t.tap(find.text('Search').first);
+      await _settle(t);
+      await t.enterText(find.byType(TextField), 'x');
+      await t.testTextInput.receiveAction(TextInputAction.search);
+      await _settle(t);
+      await t.tap(find.byTooltip('Grab').first);
+      await _settle(t);
+      expect(find.byTooltip('Grabbed'), findsOneWidget);
+      expect(find.byTooltip('Grab'), findsOneWidget);
+    });
+
+    testWidgets('History: Load More keeps the list up while it asks', (
+      t,
+    ) async {
+      var calls = 0;
+      final s = _Prowlarr({
+        'history': () {
+          calls++;
+          return _Prowlarr._json(_fixture('prowlarr_history'));
+        },
+      });
+      await _open(t, _app(s, home: const ProwlarrScreen()));
+      await t.tap(find.text('History'));
+      await _settle(t);
+      final h = ((_fixture('prowlarr_history')! as Map)['records'] as List).first as Map;
+      final q = (h['data'] as Map)['query'] as String;
+      expect(find.text(q), findsWidgets);
+      final asked = calls;
+      await t.tap(find.text('Load More'));
+      await t.pump();
+      expect(find.text(q), findsWidgets);
+      expect(find.byType(AppSpinner), findsNothing);
+      await _settle(t);
+      expect(calls, greaterThan(asked));
+      expect(s.sent('GET', 'history').last.query['pageSize'], ['100']);
+    });
+
     testWidgets('Stats and History', (t) async {
       final s = _Prowlarr();
       await _open(t, _app(s, home: const ProwlarrScreen()));
@@ -479,6 +658,29 @@ void main() {
       await t.tap(find.byTooltip('Indexers'));
       await _settle(t);
       expect(_visited.single, '/arr/indexers');
+    });
+
+    test('Prowlarr on its own puts Manage in the navigation', () {
+      ProviderContainer only(ProwlarrClient? p) => ProviderContainer(
+        overrides: [
+          prowlarrClientProvider.overrideWithValue(p),
+          sonarrClientProvider.overrideWithValue(null),
+          radarrClientProvider.overrideWithValue(null),
+          lidarrClientProvider.overrideWithValue(null),
+        ],
+      );
+      final on = only(_client(_Prowlarr()));
+      final off = only(null);
+      addTearDown(on.dispose);
+      addTearDown(off.dispose);
+      expect(on.read(arrConfiguredProvider), isTrue);
+      expect(off.read(arrConfiguredProvider), isFalse);
+    });
+
+    testWidgets('Manage with only Prowlarr opens on its indexers', (t) async {
+      await _open(t, _app(_Prowlarr(), home: const ArrScreen()));
+      expect(find.text('Rig Usenet'), findsOneWidget);
+      expect(find.byType(ProwlarrScreen), findsOneWidget);
     });
 
     testWidgets('and not without it', (t) async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -36,6 +38,10 @@ class ProwlarrScreen extends ConsumerStatefulWidget {
 
 class _ProwlarrScreenState extends ConsumerState<ProwlarrScreen> {
   ProwlarrView _view = ProwlarrView.indexers;
+
+  /// The last test of each indexer, by id: null when it worked, or what's
+  /// wrong. Kept while the page is open, across its tabs.
+  final Map<int, List<String>?> _tested = {};
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +88,10 @@ class _ProwlarrScreenState extends ConsumerState<ProwlarrScreen> {
           ),
           Expanded(
             child: switch (_view) {
-              ProwlarrView.indexers => _Indexers(client: client),
+              ProwlarrView.indexers => _Indexers(
+                client: client,
+                tested: _tested,
+              ),
               ProwlarrView.search => _Search(client: client),
               ProwlarrView.stats => const _Stats(),
               ProwlarrView.history => const _History(),
@@ -98,18 +107,48 @@ class _ProwlarrScreenState extends ConsumerState<ProwlarrScreen> {
 
 class _Indexers extends ConsumerStatefulWidget {
   final ProwlarrClient client;
-  const _Indexers({required this.client});
+
+  /// The page's test results, kept above this tab.
+  final Map<int, List<String>?> tested;
+  const _Indexers({required this.client, required this.tested});
 
   @override
   ConsumerState<_Indexers> createState() => _IndexersState();
 }
 
 class _IndexersState extends ConsumerState<_Indexers> {
-  /// The last test of each indexer, by id: null when it worked, or what's
-  /// wrong. Kept while the page is open.
-  final Map<int, List<String>?> _tested = {};
+  Map<int, List<String>?> get _tested => widget.tested;
   final Set<int> _testing = {};
   bool _testingAll = false;
+
+  /// Asks again when the soonest held-back indexer is due back, so its
+  /// "Failing" goes when Prowlarr tries it again.
+  Timer? _due;
+
+  @override
+  void dispose() {
+    _due?.cancel();
+    super.dispose();
+  }
+
+  /// What an action changes besides the list: Prowlarr's health warning
+  /// about failing indexers, behind the Health button's count.
+  void _changed() {
+    ref.invalidate(prowlarrIndexersProvider);
+    ref.invalidate(arrHealthProvider);
+  }
+
+  void _wakeAt(List<ProwlarrIndexerRow> rows, DateTime now) {
+    _due?.cancel();
+    final next = [
+      for (final r in rows)
+        if (r.status?.disabledAt(now) ?? false) r.status!.disabledTill!,
+    ]..sort();
+    if (next.isEmpty) return;
+    _due = Timer(next.first.difference(now) + const Duration(seconds: 2), () {
+      if (mounted) _changed();
+    });
+  }
 
   Future<void> _test(ProwlarrIndexer i) async {
     final l = AppLocalizations.of(context);
@@ -118,6 +157,8 @@ class _IndexersState extends ConsumerState<_Indexers> {
       final problems = await widget.client.test(i);
       if (!mounted) return;
       setState(() => _tested[i.id] = problems);
+      // A test can put a failing indexer back in use.
+      _changed();
       showSnack(
         context,
         problems == null ? l.prowlarrTestWorks(i.name) : problems.first,
@@ -150,7 +191,7 @@ class _IndexersState extends ConsumerState<_Indexers> {
         kind: failed == 0 ? SnackKind.success : SnackKind.error,
       );
       // A test can put an indexer back in use, or out of it.
-      ref.invalidate(prowlarrIndexersProvider);
+      _changed();
     } catch (e) {
       if (mounted) showSnack(context, e.toString(), kind: SnackKind.error);
     } finally {
@@ -165,7 +206,7 @@ class _IndexersState extends ConsumerState<_Indexers> {
       () => widget.client.setEnabled([i.id], on),
       done: on ? l.prowlarrTurnedOn(i.name) : l.prowlarrTurnedOff(i.name),
     )) {
-      ref.invalidate(prowlarrIndexersProvider);
+      _changed();
     }
   }
 
@@ -210,6 +251,7 @@ class _IndexersState extends ConsumerState<_Indexers> {
             );
           }
           final now = DateTime.now();
+          _wakeAt(rows, now);
           return ArrListView(
             slivers: _boxes([
               ArrListColumn(child: bar),
@@ -218,7 +260,10 @@ class _IndexersState extends ConsumerState<_Indexers> {
                   key: ValueKey(r.indexer.id),
                   row: r,
                   now: now,
-                  testing: _testingAll || _testing.contains(r.indexer.id),
+                  // Prowlarr's Test All tests only the indexers that are on.
+                  testing:
+                      (_testingAll && r.indexer.enable) ||
+                      _testing.contains(r.indexer.id),
                   tested: _tested.containsKey(r.indexer.id),
                   problems: _tested[r.indexer.id],
                   onTest: () => _test(r.indexer),
@@ -437,7 +482,12 @@ class _SearchState extends ConsumerState<_Search> {
 
   void _run() {
     final q = _query.text.trim();
-    if (q.isEmpty) return;
+    if (q.isEmpty) {
+      // Nothing to look for: no results from an earlier search, which the
+      // chips may no longer match.
+      setState(() => _results = null);
+      return;
+    }
     setState(() {
       _results = widget.client.search(
         q,
@@ -448,7 +498,8 @@ class _SearchState extends ConsumerState<_Search> {
 
   Future<void> _grab(ProwlarrRelease r) async {
     final l = AppLocalizations.of(context);
-    setState(() => _grabbing.add(r.guid));
+    final key = _key(r);
+    setState(() => _grabbing.add(key));
     final ok = await arrRun(
       context,
       () => widget.client.grab(r),
@@ -456,10 +507,13 @@ class _SearchState extends ConsumerState<_Search> {
     );
     if (!mounted) return;
     setState(() {
-      _grabbing.remove(r.guid);
-      if (ok) _grabbed.add(r.guid);
+      _grabbing.remove(key);
+      if (ok) _grabbed.add(key);
     });
   }
+
+  /// Two indexers can hand back the same guid: a release is both.
+  static String _key(ProwlarrRelease r) => '${r.indexerId}:${r.guid}';
 
   List<ProwlarrRelease> _sorted(List<ProwlarrRelease> all) => arrStableSorted(
     all,
@@ -586,10 +640,10 @@ class _SearchState extends ConsumerState<_Search> {
                         ),
                         for (final r in list)
                           _ReleaseRow(
-                            key: ValueKey('${r.indexerId}:${r.guid}'),
+                            key: ValueKey(_key(r)),
                             release: r,
-                            busy: _grabbing.contains(r.guid),
-                            grabbed: _grabbed.contains(r.guid),
+                            busy: _grabbing.contains(_key(r)),
+                            grabbed: _grabbed.contains(_key(r)),
                             onGrab: () => _grab(r),
                           ),
                       ]),
@@ -777,6 +831,10 @@ class _History extends ConsumerStatefulWidget {
 class _HistoryState extends ConsumerState<_History> {
   int _limit = arrPageSize;
 
+  /// The last page shown: it stays while Load More asks for a bigger one,
+  /// which is another provider with nothing of its own yet.
+  ArrPage<ProwlarrHistoryItem>? _last;
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -789,7 +847,8 @@ class _HistoryState extends ConsumerState<_History> {
               const <ProwlarrIndexerRow>[])
         r.indexer.id: r.indexer.name,
     };
-    final page = async.asData?.value ?? async.unwrapPrevious().asData?.value;
+    final page = async.asData?.value ?? _last;
+    if (async.hasValue) _last = async.value;
     if (page == null) {
       return async.hasError
           ? ErrorView(

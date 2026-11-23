@@ -143,8 +143,8 @@ If the title is already on the server's disk in a folder the app doesn't manage,
 
 **Indexers**, at the top of the Manage section when [Prowlarr](setup.md#sonarr-radarr-and-lidarr) is connected, brings in the indexer manager behind the apps:
 
-- **Indexers**: each indexer with its kind (Usenet or torrent), privacy, priority and the kinds of release it has, a switch to turn it on or off, and **Test**. One that Prowlarr is holding back after failures says so, and when it tries it again. **Test All** tests every indexer and marks each, and **Sync App Indexers** hands them to Sonarr, Radarr and Lidarr again. Indexers are added in Prowlarr itself.
-- **Search**: searches every indexer at once, for everything or for movies, shows, music or books, sorted by newest, size or seeders. **Grab** sends a release to Prowlarr's own download client.
+- **Indexers**: each indexer with its kind (Usenet or torrent), privacy, priority and the kinds of release it has, a switch to turn it on or off, and **Test**. One that Prowlarr is holding back after failures says so, and when it tries it again. **Test All** tests every indexer that's on and marks each, and **Sync App Indexers** hands them to Sonarr, Radarr and Lidarr again. Indexers are added in Prowlarr itself.
+- **Search**: searches every indexer that's on at once, for everything or for movies, shows, music or books, sorted by newest, size or seeders. **Grab** sends a release to Prowlarr's own download client.
 - **Stats**: how many searches and grabs each indexer has answered, how many failed, and how quickly it answers.
 - **History**: Prowlarr's searches, RSS checks and grabs, newest first, with the indexer, what asked, and how many results.
 
