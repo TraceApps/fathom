@@ -345,6 +345,58 @@ void main() {
       expect([for (final i in later.items) i.name], [_movie, _album, _magnet]);
     });
 
+    test('after the first answer, only what changed: put together', () async {
+      // qBittorrent 5.3's own answers, one after another: everything; then a
+      // torrent stopped (its state alone); then one removed.
+      final steps = [
+        for (final n in ['full', 'partial', 'removed'])
+          Map<String, dynamic>.from(_fixture('qbit_sync_$n')! as Map),
+      ];
+      final s = _Qbit();
+      final c = _qbit(s);
+      final got = <DownloadClientState>[];
+      for (final step in steps) {
+        s.maindata = step;
+        got.add(await c.load());
+      }
+      // Each ask says where the last answer got to.
+      expect([for (final a in s.sent('sync/maindata')) a.query['rid']], [
+        ['0'],
+        ['${steps[0]['rid']}'],
+        ['${steps[1]['rid']}'],
+      ]);
+      final full = got[0].items;
+      expect(full, hasLength(2));
+      final movie = full.firstWhere((i) => i.name.contains('Movie'));
+      expect(movie.state, DownloadState.stalled);
+      // The stopped one keeps everything else it had (its name, size,
+      // category) with its new state.
+      final stopped = got[1].items.firstWhere((i) => i.id == movie.id);
+      expect(stopped.state, DownloadState.paused);
+      expect((stopped.name, stopped.size), (movie.name, movie.size));
+      expect(got[1].items, hasLength(2));
+      // The removed one is gone; the other stays.
+      expect([for (final i in got[2].items) i.id], [movie.id]);
+      // Speeds and space: what the server state last said of each.
+      expect(got[2].summary.freeSpace, got[0].summary.freeSpace);
+      expect(got[2].summary.connection, got[0].summary.connection);
+    });
+
+    test('an answer in full starts afresh (a new session, a lost place)', () async {
+      final s = _Qbit();
+      final c = _qbit(s);
+      s.maindata = Map<String, dynamic>.from(_fixture('qbit_sync_full')! as Map);
+      await c.load();
+      // Everything again, without one of them: it's gone, not kept.
+      final full = Map<String, dynamic>.from(_fixture('qbit_maindata')! as Map);
+      s.maindata = full;
+      final got = await c.load();
+      expect(
+        {for (final i in got.items) i.id},
+        {for (final h in (full['torrents'] as Map).keys) h},
+      );
+    });
+
     test('every state, 5.x names and 4.x ones', () {
       expect(qbitState('stoppedDL'), DownloadState.paused);
       expect(qbitState('pausedDL'), DownloadState.paused);

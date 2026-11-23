@@ -205,24 +205,17 @@ class QbitClient extends DownloadClient {
   /// Everything at once: its torrents, speeds and state (sync/maindata).
   @override
   Future<DownloadClientState> load() async {
-    final data = await _send('GET', 'sync/maindata', query: {'rid': 0});
+    final data = await _send('GET', 'sync/maindata', query: {'rid': _rid});
     if (data is! Map) {
       throw ArrException('qBittorrent sent something unexpected.');
     }
-    final s = data['server_state'] is Map
-        ? Map<String, dynamic>.from(data['server_state'] as Map)
-        : const <String, dynamic>{};
-    final torrents = data['torrents'] is Map
-        ? Map<String, dynamic>.from(data['torrents'] as Map)
-        : const <String, dynamic>{};
+    _merge(data);
+    final s = _server;
+    final torrents = _torrents;
     final items =
         [
             for (final e in torrents.entries)
-              if (e.value is Map)
-                DownloadItem.fromQbit({
-                  ...Map<String, dynamic>.from(e.value as Map),
-                  'hash': e.key,
-                }),
+              DownloadItem.fromQbit({...e.value, 'hash': e.key}),
           ]
           // The newest first, as it has no order of its own to keep: the
           // answer's order can change from one ask to the next.
@@ -244,6 +237,43 @@ class QbitClient extends DownloadClient {
       ),
       items: items,
     );
+  }
+
+  /// Where qBittorrent's answers have got to: each answer after the first
+  /// says only what changed since this one.
+  int _rid = 0;
+
+  /// Every torrent as last told, by hash, and how it's doing as a whole:
+  /// what each answer changed, put together.
+  final Map<String, Map<String, dynamic>> _torrents = {};
+  final Map<String, dynamic> _server = {};
+
+  /// Puts an answer to sync/maindata together with what came before: in
+  /// full when qBittorrent sends it all (the first answer, or one it lost
+  /// track of), else field by field, with the torrents it removed gone.
+  void _merge(Map<dynamic, dynamic> data) {
+    if (data['full_update'] == true) {
+      _torrents.clear();
+      _server.clear();
+    }
+    if (data['server_state'] is Map) {
+      _server.addAll(Map<String, dynamic>.from(data['server_state'] as Map));
+    }
+    if (data['torrents'] is Map) {
+      for (final e in (data['torrents'] as Map).entries) {
+        if (e.value is! Map) continue;
+        final changed = Map<String, dynamic>.from(e.value as Map);
+        _torrents.update(
+          '${e.key}',
+          (was) => {...was, ...changed},
+          ifAbsent: () => changed,
+        );
+      }
+    }
+    for (final h in (data['torrents_removed'] as List?) ?? const []) {
+      _torrents.remove('$h');
+    }
+    _rid = (data['rid'] as num?)?.toInt() ?? 0;
   }
 
   /// 5.x calls pausing "stop"; earlier versions answer only to "pause".
