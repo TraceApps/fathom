@@ -37,6 +37,7 @@ const secretPrefKeys = <String>{
   'radarrApiKey',
   'lidarrApiKey',
   'prowlarrApiKey',
+  'bazarrApiKey',
   'qbitPassword',
   'arrServerKeys',
   'sabApiKey',

@@ -1,0 +1,14 @@
+{
+    "data": [
+        {
+            "name": "tvsubtitles",
+            "status": "HTTPError",
+            "retry": "in 9 minutes"
+        },
+        {
+            "name": "yifysubtitles",
+            "status": "Good",
+            "retry": "-"
+        }
+    ]
+}

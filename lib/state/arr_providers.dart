@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/arr_client.dart';
+import '../api/bazarr_client.dart';
 import '../api/jellyfin_client.dart';
 import '../models/arr.dart';
 import 'download_providers.dart';
@@ -58,6 +59,46 @@ final prowlarrClientProvider = Provider<ProwlarrClient?>((ref) {
   if (c.$1.isEmpty || c.$2.isEmpty) return null;
   return ProwlarrClient(c.$1, c.$2);
 });
+
+/// The Bazarr server, when one is connected.
+final bazarrClientProvider = Provider<BazarrClient?>((ref) {
+  final c = ref.watch(
+    preferencesProvider.select((p) {
+      final v = p.asData?.value;
+      return (v?.bazarrUrl ?? '', v?.bazarrApiKey ?? '');
+    }),
+  );
+  if (c.$1.isEmpty || c.$2.isEmpty) return null;
+  return BazarrClient(c.$1, c.$2);
+});
+
+/// What's missing subtitles: the first [length] episodes and movies, and
+/// how many in all.
+final bazarrWantedProvider = FutureProvider.autoDispose
+    .family<({List<BazarrWanted> items, int total}), int>((ref, length) async {
+      final c = ref.watch(bazarrClientProvider);
+      if (c == null) return (items: const <BazarrWanted>[], total: 0);
+      return c.wanted(length: length);
+    });
+
+/// What Bazarr did lately.
+final bazarrHistoryProvider = FutureProvider.autoDispose
+    .family<({List<BazarrHistoryItem> items, int total}), int>((
+      ref,
+      length,
+    ) async {
+      final c = ref.watch(bazarrClientProvider);
+      if (c == null) return (items: const <BazarrHistoryItem>[], total: 0);
+      return c.history(length: length);
+    });
+
+/// Bazarr's subtitle providers and how each is doing.
+final bazarrProvidersProvider =
+    FutureProvider.autoDispose<List<BazarrProvider>>((ref) async {
+      final c = ref.watch(bazarrClientProvider);
+      if (c == null) return const [];
+      return c.providers();
+    });
 
 /// An indexer with what Prowlarr says of its health: held back after
 /// failures, until when.
@@ -120,6 +161,7 @@ final arrConfiguredProvider = Provider<bool>(
       ref.watch(radarrClientProvider) != null ||
       ref.watch(lidarrClientProvider) != null ||
       ref.watch(prowlarrClientProvider) != null ||
+      ref.watch(bazarrClientProvider) != null ||
       ref.watch(downloadClientsProvider).isNotEmpty,
 );
 
@@ -1033,6 +1075,13 @@ class ArrAppHealth {
   }) : kind = null,
        name = ProwlarrClient.appName;
 
+  const ArrAppHealth.bazarr({
+    this.version,
+    this.issues = const [],
+    this.error,
+  }) : kind = null,
+       name = BazarrClient.appName;
+
   int get problems => issues.where((i) => i.isProblem).length;
 }
 
@@ -1064,11 +1113,25 @@ final arrHealthProvider = FutureProvider.autoDispose<List<ArrAppHealth>>((
     }
   }
 
+  Future<ArrAppHealth> bazarr(BazarrClient c) async {
+    try {
+      final r = await Future.wait([c.version(), c.health()]);
+      return ArrAppHealth.bazarr(
+        version: r[0] as String,
+        issues: r[1] as List<ArrHealth>,
+      );
+    } catch (e) {
+      return ArrAppHealth.bazarr(error: e.toString());
+    }
+  }
+
   final p = ref.watch(prowlarrClientProvider);
+  final b = ref.watch(bazarrClientProvider);
   return Future.wait([
     for (final c in _arrClients(ref)) one(c),
-    // After the apps it serves.
+    // After the apps they serve.
     ?(p == null ? null : prowlarr(p)),
+    ?(b == null ? null : bazarr(b)),
   ]);
 });
 

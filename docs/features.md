@@ -141,14 +141,22 @@ If the title is already on the server's disk in a folder the app doesn't manage,
 
 **Import Library** (the button beside Sort in the Library; under **⋮** on a phone or in a narrow window) adds shows or movies that are already on disk, all at once, as the apps' own Library Import does. It lists every folder in your root folders that the app doesn't manage yet and matches each one to a title by its folder name. A folder whose title the app already has says so, one with no match has **Find** to search by another name, and **Change** fixes a wrong match. Choose how they're added under **Add With** (quality profile, what to monitor, and Series Type and Season Folders for shows or Minimum Availability for movies), tick the folders, and **Import**: each title keeps its folder and the files already in it. Nothing is searched for unless you tick the search option.
 
-**Indexers**, at the top of the Manage section when [Prowlarr](setup.md#sonarr-radarr-and-lidarr) is connected, brings in the indexer manager behind the apps:
+**Indexers**, a button at the top of the Manage section (under **More** on a phone) when [Prowlarr](setup.md#sonarr-radarr-and-lidarr) is connected, brings in the indexer manager behind the apps:
 
 - **Indexers**: each indexer with its kind (Usenet or torrent), privacy, priority and the kinds of release it has, a switch to turn it on or off, and **Test**. One that Prowlarr is holding back after failures says so, and when it tries it again. **Test All** tests every indexer that's on and marks each, and **Sync App Indexers** hands them to Sonarr, Radarr and Lidarr again. Indexers are added in Prowlarr itself.
 - **Search**: searches every indexer that's on at once, for everything or for movies, shows, music or books, sorted by newest, size or seeders. **Grab** sends a release to Prowlarr's own download client.
 - **Stats**: how many searches and grabs each indexer has answered, how many failed, and how quickly it answers.
 - **History**: Prowlarr's searches, RSS checks and grabs, newest first, with the indexer, what asked, and how many results.
 
-**Download Clients**, at the top of the Manage section when [qBittorrent or SABnzbd](setup.md#sonarr-radarr-and-lidarr) is connected, shows what each client is doing, asked again every few seconds while it's open:
+**Subtitles**, a button at the top of the Manage section (under **More** on a phone) when [Bazarr](setup.md#sonarr-radarr-and-lidarr) is connected:
+
+- **Wanted**: the episodes and movies missing subtitles, and in which languages (HI for the hard of hearing, Forced for foreign-language lines). **Search** has Bazarr find the best for each missing language and keep it; **Manual Search** lists every provider's subtitles for it, scored by how well they match the file, to pick one and **Download** it; **Search All** searches for everything missing. Bazarr does these a moment later: the row says Searching meanwhile, and the list is asked again a few seconds on.
+- **History**: what Bazarr did, newest first: downloaded, downloaded by hand, upgraded, uploaded, synced, translated, extracted from the video, or deleted, with the language, the provider, the score and when.
+- **Providers**: each subtitle provider Bazarr asks and whether it's working, or what went wrong and when Bazarr tries it again; **Try All Again** lets it try every one now.
+
+Bazarr's health problems show in **Health** with the apps'.
+
+**Download Clients**, a button at the top of the Manage section (under **More** on a phone) when [qBittorrent or SABnzbd](setup.md#sonarr-radarr-and-lidarr) is connected, shows what each client is doing, asked again every few seconds while it's open:
 
 - **Each client**: its speed (down, and up for qBittorrent), its free space, and whether qBittorrent is firewalled or disconnected. **Pause All** or **Resume All** for the whole client, qBittorrent's **Alternative Speed Limits** (the limits set in qBittorrent itself), and SABnzbd's **Speed Limit**, from 1 to 50 MB/s.
 - **Each download**: its progress, size, speed, time left and category, and for a torrent its seeds and peers, or its ratio once it's done. Keep the list to **Active**, **Paused**, **Finished** or **Failed** downloads. Pause or resume one, move it to the top of SABnzbd's queue with **Move to Top**, or **Remove** it, with its files if you like.

@@ -1,0 +1,85 @@
+{
+    "data": [
+        {
+            "action": 1,
+            "title": "The Matrix",
+            "timestamp": "2 minutes ago",
+            "description": "English subtitles downloaded from yifysubtitles with a score of 90.56%.",
+            "radarrId": 18,
+            "monitored": true,
+            "path": null,
+            "language": {
+                "name": "English",
+                "code2": "en",
+                "code3": "eng",
+                "forced": false,
+                "hi": false
+            },
+            "tags": [],
+            "score": "90.56%",
+            "subs_id": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383628",
+            "provider": "yifysubtitles",
+            "subtitles_path": "/movies/The Matrix (1999)/The Matrix (1999).en.srt",
+            "upgradable": true,
+            "parsed_timestamp": "11/23/26 07:34:00",
+            "blacklisted": false,
+            "matches": [
+                "year",
+                "hearing_impaired",
+                "resolution",
+                "title",
+                "streaming_service",
+                "edition",
+                "imdb_id",
+                "source"
+            ],
+            "dont_matches": [
+                "release_group",
+                "audio_codec",
+                "video_codec",
+                "hash"
+            ]
+        },
+        {
+            "action": 2,
+            "title": "The Matrix",
+            "timestamp": "2 minutes ago",
+            "description": "English subtitles manually downloaded from yifysubtitles with a score of 90.56%.",
+            "radarrId": 18,
+            "monitored": true,
+            "path": null,
+            "language": {
+                "name": "English",
+                "code2": "en",
+                "code3": "eng",
+                "forced": false,
+                "hi": false
+            },
+            "tags": [],
+            "score": "90.56%",
+            "subs_id": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383628",
+            "provider": "yifysubtitles",
+            "subtitles_path": "/movies/The Matrix (1999)/The Matrix (1999).en.srt",
+            "upgradable": false,
+            "parsed_timestamp": "11/23/26 07:33:59",
+            "blacklisted": false,
+            "matches": [
+                "year",
+                "title",
+                "streaming_service",
+                "edition",
+                "imdb_id",
+                "source",
+                "resolution"
+            ],
+            "dont_matches": [
+                "audio_codec",
+                "hash",
+                "hearing_impaired",
+                "release_group",
+                "video_codec"
+            ]
+        }
+    ],
+    "total": 2
+}

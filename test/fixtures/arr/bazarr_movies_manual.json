@@ -1,0 +1,190 @@
+{
+ "data": [
+  {
+   "dont_matches": [
+    "release_group",
+    "audio_codec",
+    "video_codec",
+    "hash"
+   ],
+   "forced": "False",
+   "hearing_impaired": "False",
+   "language": "en",
+   "matches": [
+    "year",
+    "hearing_impaired",
+    "resolution",
+    "title",
+    "streaming_service",
+    "edition",
+    "source"
+   ],
+   "original_format": "False",
+   "orig_score": 163,
+   "provider": "yifysubtitles",
+   "release_info": [
+    "The.Matrix.1999.OPEN.MATTE.1080p.WEB-DL"
+   ],
+   "score": 90,
+   "score_without_hash": 163,
+   "subtitle": "00ab77ce-c80f-469d-a2f1-56fd4fc14d9e",
+   "uploader": "simonkhan",
+   "url": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383628"
+  },
+  {
+   "dont_matches": [
+    "release_group",
+    "source",
+    "audio_codec",
+    "hash"
+   ],
+   "forced": "False",
+   "hearing_impaired": "False",
+   "language": "en",
+   "matches": [
+    "year",
+    "hearing_impaired",
+    "resolution",
+    "title",
+    "streaming_service",
+    "edition",
+    "video_codec"
+   ],
+   "original_format": "False",
+   "orig_score": 134,
+   "provider": "yifysubtitles",
+   "release_info": [
+    "The.Matrix.1999.BluRay.1080p.x264.DTS-WiKi"
+   ],
+   "score": 74,
+   "score_without_hash": 134,
+   "subtitle": "578c557e-0565-4b07-9122-0bc59a4279ba",
+   "uploader": null,
+   "url": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383658"
+  },
+  {
+   "dont_matches": [
+    "release_group",
+    "source",
+    "audio_codec",
+    "hash"
+   ],
+   "forced": "False",
+   "hearing_impaired": "False",
+   "language": "en",
+   "matches": [
+    "year",
+    "hearing_impaired",
+    "resolution",
+    "title",
+    "streaming_service",
+    "edition",
+    "video_codec"
+   ],
+   "original_format": "False",
+   "orig_score": 134,
+   "provider": "yifysubtitles",
+   "release_info": [
+    "The.Matrix.1999.1080p.HDDVD.x264-hV"
+   ],
+   "score": 74,
+   "score_without_hash": 134,
+   "subtitle": "b67b9aa2-8ec9-43e8-a25e-7eb2ac3b92e5",
+   "uploader": "supermix1337",
+   "url": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383664"
+  },
+  {
+   "dont_matches": [
+    "release_group",
+    "source",
+    "audio_codec",
+    "hash"
+   ],
+   "forced": "False",
+   "hearing_impaired": "False",
+   "language": "en",
+   "matches": [
+    "year",
+    "hearing_impaired",
+    "resolution",
+    "title",
+    "streaming_service",
+    "edition",
+    "video_codec"
+   ],
+   "original_format": "False",
+   "orig_score": 134,
+   "provider": "yifysubtitles",
+   "release_info": [
+    "The Matrix (1999) 1080p BRRip x264 [Dual-Audio] [Engndi]"
+   ],
+   "score": 74,
+   "score_without_hash": 134,
+   "subtitle": "343c4fd9-1a4c-41e5-a38e-ba3cbfe41023",
+   "uploader": "aa1bb2cc",
+   "url": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383674"
+  },
+  {
+   "dont_matches": [
+    "release_group",
+    "source",
+    "audio_codec",
+    "hash"
+   ],
+   "forced": "False",
+   "hearing_impaired": "False",
+   "language": "en",
+   "matches": [
+    "year",
+    "hearing_impaired",
+    "resolution",
+    "title",
+    "streaming_service",
+    "edition",
+    "video_codec"
+   ],
+   "original_format": "False",
+   "orig_score": 134,
+   "provider": "yifysubtitles",
+   "release_info": [
+    "The.Matrix.1999.1080p.BrRip.x264.YIFY"
+   ],
+   "score": 74,
+   "score_without_hash": 134,
+   "subtitle": "41be35d3-84ec-4392-bfd4-01f0c6c54079",
+   "uploader": "sub",
+   "url": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-119112"
+  },
+  {
+   "dont_matches": [
+    "release_group",
+    "source",
+    "audio_codec",
+    "hash"
+   ],
+   "forced": "False",
+   "hearing_impaired": "False",
+   "language": "en",
+   "matches": [
+    "year",
+    "hearing_impaired",
+    "resolution",
+    "title",
+    "streaming_service",
+    "edition",
+    "video_codec"
+   ],
+   "original_format": "False",
+   "orig_score": 134,
+   "provider": "yifysubtitles",
+   "release_info": [
+    "The.Matrix.1999.1080p.BrRip.x264.YIFY"
+   ],
+   "score": 74,
+   "score_without_hash": 134,
+   "subtitle": "691925a4-89be-4668-ba5f-b3c8293f0246",
+   "uploader": "Sunbim_Abrar",
+   "url": "https://yifysubtitles.ch/subtitles/the-matrix-1999-english-yify-383637"
+  }
+ ]
+}

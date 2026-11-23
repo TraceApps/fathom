@@ -1,0 +1,8 @@
+{
+    "data": [
+        {
+            "object": "/tv",
+            "issue": "This Sonarr root directory does not seem to be accessible by Bazarr. Please check path mapping or if directory/drive is online."
+        }
+    ]
+}

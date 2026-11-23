@@ -372,6 +372,9 @@ class Prefs {
   // Prowlarr, the indexers behind them. Empty URL means not connected.
   final String prowlarrUrl;
   final String prowlarrApiKey;
+  // Bazarr, the subtitles beside them. Empty URL means not connected.
+  final String bazarrUrl;
+  final String bazarrApiKey;
   // The download clients behind them. Empty URL means not connected; a
   // blank qBittorrent username means it lets this network in without one.
   final String qbitUrl;
@@ -543,6 +546,8 @@ class Prefs {
     this.lidarrApiKey = '',
     this.prowlarrUrl = '',
     this.prowlarrApiKey = '',
+    this.bazarrUrl = '',
+    this.bazarrApiKey = '',
     this.qbitUrl = '',
     this.qbitUsername = '',
     this.qbitPassword = '',
@@ -697,6 +702,8 @@ class Prefs {
     String? lidarrApiKey,
     String? prowlarrUrl,
     String? prowlarrApiKey,
+    String? bazarrUrl,
+    String? bazarrApiKey,
     String? qbitUrl,
     String? qbitUsername,
     String? qbitPassword,
@@ -865,6 +872,8 @@ class Prefs {
         lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
         prowlarrUrl: prowlarrUrl ?? this.prowlarrUrl,
         prowlarrApiKey: prowlarrApiKey ?? this.prowlarrApiKey,
+        bazarrUrl: bazarrUrl ?? this.bazarrUrl,
+        bazarrApiKey: bazarrApiKey ?? this.bazarrApiKey,
         qbitUrl: qbitUrl ?? this.qbitUrl,
         qbitUsername: qbitUsername ?? this.qbitUsername,
         qbitPassword: qbitPassword ?? this.qbitPassword,
@@ -1019,6 +1028,8 @@ class Prefs {
         'lidarrApiKey': lidarrApiKey,
         'prowlarrUrl': prowlarrUrl,
         'prowlarrApiKey': prowlarrApiKey,
+        'bazarrUrl': bazarrUrl,
+        'bazarrApiKey': bazarrApiKey,
         'qbitUrl': qbitUrl,
         'qbitUsername': qbitUsername,
         'qbitPassword': qbitPassword,
@@ -1198,6 +1209,8 @@ class Prefs {
         lidarrApiKey: j['lidarrApiKey'] as String? ?? '',
         prowlarrUrl: j['prowlarrUrl'] as String? ?? '',
         prowlarrApiKey: j['prowlarrApiKey'] as String? ?? '',
+        bazarrUrl: j['bazarrUrl'] as String? ?? '',
+        bazarrApiKey: j['bazarrApiKey'] as String? ?? '',
         qbitUrl: j['qbitUrl'] as String? ?? '',
         qbitUsername: j['qbitUsername'] as String? ?? '',
         qbitPassword: j['qbitPassword'] as String? ?? '',

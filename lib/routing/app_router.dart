@@ -64,6 +64,7 @@ import '../screens/arr_collections_screen.dart';
 import '../screens/arr_releases_screen.dart';
 import '../screens/arr_screen.dart';
 import '../screens/arr_settings_screen.dart';
+import '../screens/bazarr_screen.dart';
 import '../screens/download_clients_screen.dart';
 import '../screens/prowlarr_screen.dart';
 import '../screens/updates_screen.dart';
@@ -570,6 +571,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/arr/indexers',
               pageBuilder: (_, _) => _managePage(const ProwlarrScreen())),
+          GoRoute(
+              path: '/arr/subtitles',
+              pageBuilder: (_, _) => _managePage(const BazarrScreen())),
           GoRoute(
               path: '/arr/clients',
               pageBuilder: (_, _) => _managePage(const DownloadClientsScreen())),

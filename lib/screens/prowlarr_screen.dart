@@ -74,13 +74,20 @@ class _ProwlarrScreenState extends ConsumerState<ProwlarrScreen> {
         actions: [
           // Opened as the whole section (only Prowlarr and the download
           // clients connected), the way to the clients is here.
-          if (ref.watch(downloadClientsProvider).isNotEmpty &&
-              ref.watch(arrLibraryKindsProvider).isEmpty)
-            IconButton(
-              tooltip: l.dlClients,
-              icon: const Icon(Icons.downloading_rounded),
-              onPressed: () => context.push('/arr/clients'),
-            ),
+          if (ref.watch(arrLibraryKindsProvider).isEmpty) ...[
+            if (ref.watch(bazarrClientProvider) != null)
+              IconButton(
+                tooltip: l.bzSubtitles,
+                icon: const Icon(Icons.subtitles_rounded),
+                onPressed: () => context.push('/arr/subtitles'),
+              ),
+            if (ref.watch(downloadClientsProvider).isNotEmpty)
+              IconButton(
+                tooltip: l.dlClients,
+                icon: const Icon(Icons.downloading_rounded),
+                onPressed: () => context.push('/arr/clients'),
+              ),
+          ],
         ],
       ),
       body: Column(

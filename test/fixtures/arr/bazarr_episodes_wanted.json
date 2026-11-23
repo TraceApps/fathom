@@ -1,0 +1,148 @@
+{
+    "data": [
+        {
+            "seriesTitle": "The Office (US)",
+            "episode_number": "1x1",
+            "episodeTitle": "Pilot",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 5,
+            "sonarrEpisodeId": 1160,
+            "sceneName": null,
+            "tags": [],
+            "seriesType": "standard"
+        },
+        {
+            "seriesTitle": "Severance",
+            "episode_number": "1x1",
+            "episodeTitle": "Good News About Hell",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 3,
+            "sonarrEpisodeId": 992,
+            "sceneName": null,
+            "tags": [],
+            "seriesType": "standard"
+        },
+        {
+            "seriesTitle": "Breaking Bad",
+            "episode_number": "2x5",
+            "episodeTitle": "Breakage",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 2,
+            "sonarrEpisodeId": 920,
+            "sceneName": null,
+            "tags": [
+                "parity"
+            ],
+            "seriesType": "standard"
+        },
+        {
+            "seriesTitle": "Breaking Bad",
+            "episode_number": "2x4",
+            "episodeTitle": "Down",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 2,
+            "sonarrEpisodeId": 919,
+            "sceneName": null,
+            "tags": [
+                "parity"
+            ],
+            "seriesType": "standard"
+        },
+        {
+            "seriesTitle": "Breaking Bad",
+            "episode_number": "1x3",
+            "episodeTitle": "...And the Bag's in the River",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 2,
+            "sonarrEpisodeId": 911,
+            "sceneName": null,
+            "tags": [
+                "parity"
+            ],
+            "seriesType": "standard"
+        },
+        {
+            "seriesTitle": "Breaking Bad",
+            "episode_number": "1x2",
+            "episodeTitle": "Cat's in the Bag...",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 2,
+            "sonarrEpisodeId": 910,
+            "sceneName": null,
+            "tags": [
+                "parity"
+            ],
+            "seriesType": "standard"
+        },
+        {
+            "seriesTitle": "Breaking Bad",
+            "episode_number": "1x1",
+            "episodeTitle": "Pilot",
+            "missing_subtitles": [
+                {
+                    "name": "English",
+                    "code2": "en",
+                    "code3": "eng",
+                    "forced": false,
+                    "hi": false
+                }
+            ],
+            "sonarrSeriesId": 2,
+            "sonarrEpisodeId": 909,
+            "sceneName": null,
+            "tags": [
+                "parity"
+            ],
+            "seriesType": "standard"
+        }
+    ],
+    "total": 7
+}

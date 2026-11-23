@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../api/download_clients.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/download_client.dart';
+import '../state/arr_providers.dart';
 import '../state/download_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
@@ -233,6 +234,15 @@ class _DownloadClientsScreenState extends ConsumerState<DownloadClientsScreen> {
       appBar: AppBar(
         title: Text(l.dlClients),
         actions: [
+          // The whole section (no Sonarr, Radarr or Lidarr): the way to
+          // Bazarr's subtitles is here.
+          if (ref.watch(arrLibraryKindsProvider).isEmpty &&
+              ref.watch(bazarrClientProvider) != null)
+            IconButton(
+              tooltip: l.bzSubtitles,
+              icon: const Icon(Icons.subtitles_rounded),
+              onPressed: () => context.push('/arr/subtitles'),
+            ),
           IconButton(
             tooltip: l.dlAdd,
             icon: const Icon(Icons.add_link_rounded),

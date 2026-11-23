@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/arr_client.dart';
+import '../api/bazarr_client.dart';
 import '../api/download_clients.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -42,6 +43,8 @@ class ArrSettingsScreen extends StatelessWidget {
           const _ArrConnectionCard(kind: ArrKind.lidarr),
           const SizedBox(height: 16),
           const _ArrConnectionCard(kind: null),
+          const SizedBox(height: 16),
+          const _ArrConnectionCard(kind: null, bazarr: true),
           const SizedBox(height: 28),
           Text(
             l.dlSettingsHeading,
@@ -61,9 +64,12 @@ class ArrSettingsScreen extends StatelessWidget {
 }
 
 class _ArrConnectionCard extends ConsumerStatefulWidget {
-  /// The app; null for Prowlarr, which isn't one of the library apps.
+  /// The app; null for Prowlarr or Bazarr, which aren't library apps.
   final ArrKind? kind;
-  const _ArrConnectionCard({required this.kind});
+
+  /// With no kind: Bazarr rather than Prowlarr.
+  final bool bazarr;
+  const _ArrConnectionCard({required this.kind, this.bazarr = false});
 
   @override
   ConsumerState<_ArrConnectionCard> createState() => _ArrConnectionCardState();
@@ -98,9 +104,12 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
   }
 
   /// The address and key saved for this app.
-  String get _app => widget.kind?.appName ?? ProwlarrClient.appName;
+  String get _app =>
+      widget.kind?.appName ??
+      (widget.bazarr ? BazarrClient.appName : ProwlarrClient.appName);
 
   (String, String) _saved(Prefs p) => switch (widget.kind) {
+    null when widget.bazarr => (p.bazarrUrl, p.bazarrApiKey),
     null => (p.prowlarrUrl, p.prowlarrApiKey),
     ArrKind.sonarr => (p.sonarrUrl, p.sonarrApiKey),
     ArrKind.radarr => (p.radarrUrl, p.radarrApiKey),
@@ -108,6 +117,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
   };
 
   Prefs _withSaved(Prefs p, String url, String key) => switch (widget.kind) {
+    null when widget.bazarr => p.copyWith(bazarrUrl: url, bazarrApiKey: key),
     null => p.copyWith(prowlarrUrl: url, prowlarrApiKey: key),
     ArrKind.sonarr => p.copyWith(sonarrUrl: url, sonarrApiKey: key),
     ArrKind.radarr => p.copyWith(radarrUrl: url, radarrApiKey: key),
@@ -115,6 +125,9 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
   };
 
   Future<ArrStatus> _status(String url, String key) => switch (widget.kind) {
+    null when widget.bazarr => BazarrClient(url, key).version().then(
+      (v) => ArrStatus(appName: BazarrClient.appName, version: v),
+    ),
     null => ProwlarrClient(url, key).status(),
     ArrKind.sonarr => SonarrClient(url, key).status(),
     ArrKind.radarr => RadarrClient(url, key).status(),
@@ -257,6 +270,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
             Row(
               children: [
                 Icon(switch (widget.kind) {
+                  null when widget.bazarr => Icons.subtitles_rounded,
                   null => Icons.travel_explore_rounded,
                   ArrKind.sonarr => Icons.live_tv_rounded,
                   ArrKind.radarr => Icons.movie_rounded,
@@ -293,6 +307,7 @@ class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
               keyboardType: TextInputType.url,
               label: l.arrServerAddress,
               hint: switch (widget.kind) {
+                null when widget.bazarr => 'http://192.168.1.10:6767',
                 null => 'http://192.168.1.10:9696',
                 ArrKind.sonarr => 'http://192.168.1.10:8989',
                 ArrKind.radarr => 'http://192.168.1.10:7878',
