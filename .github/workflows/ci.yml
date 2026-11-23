@@ -42,4 +42,7 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Tests
+        # The suite takes a few minutes; a hang (a native player left
+        # running) fails here rather than holding the runner for hours.
+        timeout-minutes: 20
         run: flutter test
