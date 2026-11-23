@@ -725,8 +725,9 @@ void main() {
       expect(find.text('Prowlarr'), findsOneWidget);
       expect(find.text('http://192.168.1.10:9696'), findsOneWidget);
       final fields = find.byType(TextField);
-      // The four apps' address and key, then the download clients'.
-      expect(fields, findsNWidgets(13));
+      // The five apps' address and key (Bazarr's too), then the download
+      // clients'.
+      expect(fields, findsNWidgets(15));
       await t.enterText(fields.at(6), '10.0.0.5:9696');
       await t.enterText(fields.at(7), 'pkey');
       await t.tap(find.text('Save & Test').at(3));

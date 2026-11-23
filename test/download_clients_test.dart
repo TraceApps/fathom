@@ -1302,33 +1302,33 @@ void main() {
       final fields = find.byType(TextField);
       // Four apps (address and key each), then qBittorrent's three and
       // SABnzbd's two.
-      expect(fields, findsNWidgets(13));
+      expect(fields, findsNWidgets(15));
       final saves = find.text('Save & Test');
       // qBittorrent with no sign-in: an address is enough.
-      await t.enterText(fields.at(8), '10.0.0.5:8080');
-      await t.tap(saves.at(4));
+      await t.enterText(fields.at(10), '10.0.0.5:8080');
+      await t.tap(saves.at(5));
       await _settle(t);
       var p = container.read(preferencesProvider).requireValue;
       expect(p.qbitUrl, 'http://10.0.0.5:8080');
       expect(p.qbitUsername, isEmpty);
       // SABnzbd without its key isn't saved.
-      await t.enterText(fields.at(11), '10.0.0.5:8085');
-      await t.tap(saves.at(5));
+      await t.enterText(fields.at(13), '10.0.0.5:8085');
+      await t.tap(saves.at(6));
       await _settle(t);
       expect(
         find.text('Enter the server address and the API key'),
         findsOneWidget,
       );
-      await t.enterText(fields.at(12), ' skey ');
-      await t.tap(saves.at(5));
+      await t.enterText(fields.at(14), ' skey ');
+      await t.tap(saves.at(6));
       await _settle(t);
       p = container.read(preferencesProvider).requireValue;
       expect(p.sabUrl, 'http://10.0.0.5:8085');
       expect(p.sabApiKey, 'skey');
       // A password keeps its spaces.
-      await t.enterText(fields.at(9), 'admin');
-      await t.enterText(fields.at(10), ' pass word ');
-      await t.tap(saves.at(4));
+      await t.enterText(fields.at(11), 'admin');
+      await t.enterText(fields.at(12), ' pass word ');
+      await t.tap(saves.at(5));
       await _settle(t);
       p = container.read(preferencesProvider).requireValue;
       expect((p.qbitUsername, p.qbitPassword), ('admin', ' pass word '));
