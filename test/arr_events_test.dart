@@ -9,6 +9,7 @@ import 'package:fathom/models/arr.dart';
 import 'package:fathom/services/resilient_secure_storage.dart';
 import 'package:fathom/state/arr_event_watcher.dart';
 import 'package:fathom/state/arr_providers.dart';
+import 'package:fathom/state/arr_servers.dart';
 import 'package:fathom/state/notifications_controller.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/providers.dart';
@@ -465,6 +466,66 @@ void main() {
       w.dispose();
       await w.poll(firstRun: true);
       expect(radarr.asked, isEmpty);
+    });
+
+    test('every server of an app is watched, each by name', () async {
+      final fourK = _Radarr();
+      final pc = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(storage),
+          preferencesProvider.overrideWith(
+            () => _FakePrefs(
+              arrAddServer(
+                const Prefs(radarrUrl: 'http://radarr:7878', radarrApiKey: 'k'),
+                ArrKind.radarr,
+                name: '4K',
+                url: 'http://radarr4k:7878',
+                apiKey: 'k4',
+              ),
+            ),
+          ),
+          sonarrClientProvider.overrideWithValue(null),
+          lidarrClientProvider.overrideWithValue(null),
+          radarrClientProvider.overrideWith(
+            (ref) => RadarrClient(
+              'http://radarr:7878',
+              'k',
+              dio: Dio()..httpClientAdapter = radarr,
+            ),
+          ),
+          arrEventWatcherProvider.overrideWith(
+            (ref) => ArrEventWatcher(
+              ref,
+              const Duration(minutes: 5),
+              start: false,
+              makeClient: (kind, s) => RadarrClient(
+                s.url,
+                s.apiKey,
+                dio: Dio()..httpClientAdapter = fourK,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(pc.dispose);
+      await pc.read(preferencesProvider.future);
+      await pc.read(notificationsProvider.future);
+      final w = pc.read(arrEventWatcherProvider)!;
+      await w.poll(firstRun: true);
+      radarr.history = [_withId(_of('radarr', 'downloadFolderImported'), 5)];
+      fourK.history = [_withId(_of('radarr', 'downloadFailed'), 9)];
+      fourK.health = [
+        {'source': 'DiskSpaceCheck', 'type': 'warning', 'message': 'Low space'},
+      ];
+      await w.poll();
+      final got = await pc.read(notificationsProvider.future);
+      final byTitle = {for (final n in got) n.title: n};
+      // The one in use: named, and its title opens.
+      expect(byTitle['Downloaded · Main']!.route, startsWith('/arr/movie/'));
+      // The 4K one: named; its numbers are another server's, so Manage.
+      expect(byTitle['Download failed · 4K']!.route, '/arr');
+      expect(byTitle['Radarr 4K needs attention']!.route, '/arr');
+      expect(fourK.asked, isNotEmpty);
     });
 
     test('off (never checks) when the interval is 0, or nothing connected', () {

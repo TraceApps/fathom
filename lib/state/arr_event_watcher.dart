@@ -9,6 +9,7 @@ import '../l10n/l10n.dart';
 import '../models/app_notification.dart';
 import '../models/arr.dart';
 import 'arr_providers.dart';
+import 'arr_servers.dart';
 import 'notifications_controller.dart';
 import 'preferences.dart';
 import 'providers.dart';
@@ -172,12 +173,20 @@ class _Seen {
 /// Watches the connected apps and notifies (in the bell, and as a system
 /// notification where Fathom posts those) what they did.
 class ArrEventWatcher with WidgetsBindingObserver {
-  ArrEventWatcher(this.ref, this._interval, {bool start = true}) {
+  ArrEventWatcher(
+    this.ref,
+    this._interval, {
+    bool start = true,
+    this.makeClient,
+  }) {
     if (start) _start();
   }
 
   final Ref ref;
   final Duration _interval;
+
+  /// Makes the client for a saved server not in use (tests give their own).
+  final ArrClient Function(ArrKind, ArrServer)? makeClient;
 
   /// While Fathom shows: soon enough to hear of a download as it lands.
   static const _liveInterval = Duration(seconds: 60);
@@ -262,17 +271,39 @@ class ArrEventWatcher with WidgetsBindingObserver {
       await _load();
       final prefs = ref.read(preferencesProvider).asData?.value ?? const Prefs();
       for (final app in ArrKind.values) {
-        final client = switch (app) {
+        final inUse = switch (app) {
           ArrKind.sonarr => ref.read(sonarrClientProvider),
           ArrKind.radarr => ref.read(radarrClientProvider),
           ArrKind.lidarr => ref.read(lidarrClientProvider),
         };
-        if (client == null) continue;
-        if (_disposed) return;
-        try {
-          await _pollOne(app, client, prefs, firstRun: firstRun);
-        } catch (_) {
-          // That app didn't answer: the next look catches up.
+        // Every server of the app, the one in use first: a 4K Radarr's
+        // downloads are told too. Each by name once there's more than one.
+        final servers = arrServersOf(prefs, app);
+        String? label(ArrServer s) => servers.length < 2
+            ? null
+            : (s.name.trim().isEmpty ? tr.arrServerMain : s.name.trim());
+        final active = servers.where((s) => s.active).firstOrNull;
+        final looks = <(ArrClient, String?, bool)>[
+          if (inUse != null)
+            (inUse, active == null ? null : label(active), true),
+          for (final s in servers)
+            if (!s.active && s.ready && s.url != inUse?.baseUrl)
+              (_clientFor(app, s), label(s), false),
+        ];
+        for (final (client, name, isInUse) in looks) {
+          if (_disposed) return;
+          try {
+            await _pollOne(
+              app,
+              client,
+              prefs,
+              firstRun: firstRun,
+              server: name,
+              inUse: isInUse,
+            );
+          } catch (_) {
+            // That server didn't answer: the next look catches up.
+          }
         }
       }
     } catch (_) {
@@ -282,12 +313,32 @@ class ArrEventWatcher with WidgetsBindingObserver {
     }
   }
 
+  /// A client for a saved server that isn't in use, kept while its address
+  /// and key stay the same.
+  final Map<String, ArrClient> _clients = {};
+  ArrClient _clientFor(ArrKind app, ArrServer s) => _clients.putIfAbsent(
+    '${s.url}|${s.apiKey}',
+    () =>
+        makeClient?.call(app, s) ??
+        switch (app) {
+      ArrKind.sonarr => SonarrClient(s.url, s.apiKey),
+      ArrKind.radarr => RadarrClient(s.url, s.apiKey),
+      ArrKind.lidarr => LidarrClient(s.url, s.apiKey),
+    },
+  );
+
+  /// [server]: the server's name, once the app has more than one. A title
+  /// opens only from the server in use ([inUse]): another's numbers mean
+  /// other titles there.
   Future<void> _pollOne(
     ArrKind app,
     ArrClient client,
     Prefs prefs, {
     required bool firstRun,
+    String? server,
+    bool inUse = true,
   }) async {
+    String named(String title) => server == null ? title : '$title · $server';
     final url = client.baseUrl;
     final seen = _seen[url];
     if (seen == null) {
@@ -348,7 +399,7 @@ class ArrEventWatcher with WidgetsBindingObserver {
     if (more > 0) {
       await _tell(
         kind: AppNotifKind.info,
-        title: app.appName,
+        title: named(app.appName),
         body: tr.arrNotifMore(more),
         enabled:
             prefs.notifArrImported ||
@@ -371,21 +422,23 @@ class ArrEventWatcher with WidgetsBindingObserver {
           ArrEventKind.failed => AppNotifKind.arrFailed,
           ArrEventKind.grabbed => AppNotifKind.arrGrabbed,
         },
-        title: n.title,
+        title: named(n.title),
         body: n.body,
         enabled: enabled,
         toast: !firstRun,
-        route: n.route,
+        route: inUse ? n.route : '/arr',
       );
     }
     for (final h in newHealth) {
       await _tell(
         kind: AppNotifKind.arrHealth,
-        title: tr.arrNotifHealth(app.appName),
+        title: tr.arrNotifHealth(
+          server == null ? app.appName : '${app.appName} $server',
+        ),
         body: h.message,
         enabled: prefs.notifArrHealth,
         toast: !firstRun,
-        route: '/arr/health',
+        route: inUse ? '/arr/health' : '/arr',
       );
     }
   }
@@ -435,7 +488,13 @@ final arrEventWatcherProvider = Provider<ArrEventWatcher?>((ref) {
   final configured =
       ref.watch(sonarrClientProvider) != null ||
       ref.watch(radarrClientProvider) != null ||
-      ref.watch(lidarrClientProvider) != null;
+      ref.watch(lidarrClientProvider) != null ||
+      // Servers saved but none in use: still watched.
+      ref.watch(
+        preferencesProvider.select(
+          (p) => p.asData?.value.arrServers.isNotEmpty ?? false,
+        ),
+      );
   final minutes = ref.watch(
     preferencesProvider.select((p) => p.asData?.value.arrPollMinutes ?? 5),
   );
