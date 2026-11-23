@@ -8362,6 +8362,8 @@
   "@arrAddAnythingHint": {"description": "Add: hint in the search box when it searches every connected app, Lidarr among them."},
   "arrAddAnythingTip": "Search by name, or by an id for an exact match: imdb:, tmdb: and tvdb: for movies and shows, lidarr: and a MusicBrainz id for artists.",
   "@arrAddAnythingTip": {"description": "Add: under the empty search when it searches every connected app, Lidarr among them."},
+  "arrProfileFromRootFolder": "What the root folder is set up with in Lidarr",
+  "@arrProfileFromRootFolder": {"description": "Under the quality profile in Add: it came from the Lidarr root folder's own defaults."},
   "arrProfileFromArtists": "What most of your artists use",
   "@arrProfileFromArtists": {"description": "Add: under the quality profile, when it's the one most of the artists use."},
   "arrSearchAlbumsNow": "Start Search for Missing Albums",

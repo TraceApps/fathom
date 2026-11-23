@@ -1167,12 +1167,16 @@ class ArrRootFolder {
   /// Folders inside this one that the app doesn't manage yet: titles already
   /// on disk, such as ones Jellyfin plays that were never added.
   final List<ArrFolder> unmappedFolders;
+
+  /// Lidarr's: what an artist added here starts with.
+  final ArrRootDefaults? defaults;
   const ArrRootFolder({
     required this.id,
     required this.path,
     this.freeSpace,
     this.accessible = true,
     this.unmappedFolders = const [],
+    this.defaults,
   });
 
   factory ArrRootFolder.fromJson(Map<String, dynamic> j) => ArrRootFolder(
@@ -1188,7 +1192,44 @@ class ArrRootFolder {
             path: m['path'] as String,
           ),
     ],
+    defaults: ArrRootDefaults.fromJson(j),
   );
+}
+
+/// What Lidarr has an artist added to a root folder start with, as that
+/// folder is set up in Lidarr.
+class ArrRootDefaults {
+  final int? qualityProfileId;
+  final int? metadataProfileId;
+
+  /// Which albums: all, future, missing and the rest.
+  final String? monitor;
+
+  /// Albums that come out later: all, new or none.
+  final String? monitorNewItems;
+  final List<int>? tags;
+
+  const ArrRootDefaults({
+    this.qualityProfileId,
+    this.metadataProfileId,
+    this.monitor,
+    this.monitorNewItems,
+    this.tags,
+  });
+
+  /// Null for a root folder with none (Sonarr's and Radarr's).
+  static ArrRootDefaults? fromJson(Map<String, dynamic> j) {
+    if (!j.keys.any((k) => k.startsWith('default'))) return null;
+    return ArrRootDefaults(
+      qualityProfileId: _intOrNull(j['defaultQualityProfileId']),
+      metadataProfileId: _intOrNull(j['defaultMetadataProfileId']),
+      monitor: j['defaultMonitorOption'] as String?,
+      monitorNewItems: j['defaultNewItemMonitorOption'] as String?,
+      tags: j['defaultTags'] is List
+          ? [for (final t in j['defaultTags'] as List) ?_intOrNull(t)]
+          : null,
+    );
+  }
 }
 
 /// A folder on the app's disk.
@@ -1607,7 +1648,20 @@ typedef ArrAddedWith = ({
 });
 
 /// Where a starting choice came from.
-enum ArrChoiceSource { saved, library, first }
+enum ArrChoiceSource { saved, rootFolder, library, first }
+
+/// Lidarr's choices for which albums of a new artist, and for albums that
+/// come out later: a root folder's defaults outside these aren't used.
+const lidarrMonitorChoices = {
+  'all',
+  'future',
+  'missing',
+  'existing',
+  'latest',
+  'first',
+  'none',
+};
+const lidarrNewItemChoices = {'all', 'new', 'none'};
 
 /// The choices Add opens with.
 class ArrAddChoice {
@@ -1686,13 +1740,30 @@ ArrAddChoice arrStartingChoice({
   required List<int> profiles,
   required List<ArrAddedWith> library,
   List<int> metadataProfiles = const [],
+  Map<String, ArrRootDefaults> rootDefaults = const {},
 }) {
+  final root =
+      (saved.rootFolder != null && roots.contains(saved.rootFolder)
+          ? saved.rootFolder
+          : null) ??
+      _mostCommon(library.map((t) => arrRootOf(t.path, roots))) ??
+      (roots.isEmpty ? null : roots.first);
+  // Lidarr: what the root folder is set up with, after saved defaults and
+  // before the library's habits, as Lidarr's own Add does.
+  final fromRoot = root == null ? null : rootDefaults[root];
+  final rootProfile = profiles.contains(fromRoot?.qualityProfileId)
+      ? fromRoot!.qualityProfileId
+      : null;
+  final rootMetadata = metadataProfiles.contains(fromRoot?.metadataProfileId)
+      ? fromRoot!.metadataProfileId
+      : null;
   // Lidarr: the metadata profile, by the same rule as the quality profile.
   final metadata =
       (saved.metadataProfileId != null &&
               metadataProfiles.contains(saved.metadataProfileId)
           ? saved.metadataProfileId
           : null) ??
+      rootMetadata ??
       _mostCommon(
         library.map(
           (t) => metadataProfiles.contains(t.metadataProfileId)
@@ -1701,12 +1772,6 @@ ArrAddChoice arrStartingChoice({
         ),
       ) ??
       (metadataProfiles.isEmpty ? null : metadataProfiles.first);
-  final root =
-      (saved.rootFolder != null && roots.contains(saved.rootFolder)
-          ? saved.rootFolder
-          : null) ??
-      _mostCommon(library.map((t) => arrRootOf(t.path, roots))) ??
-      (roots.isEmpty ? null : roots.first);
   final savedProfile =
       saved.qualityProfileId != null &&
           profiles.contains(saved.qualityProfileId)
@@ -1719,13 +1784,21 @@ ArrAddChoice arrStartingChoice({
   );
   final profile =
       savedProfile ??
+      rootProfile ??
       libraryProfile ??
       (profiles.isEmpty ? null : profiles.first);
+  final rootMonitor = lidarrMonitorChoices.contains(fromRoot?.monitor)
+      ? fromRoot!.monitor
+      : null;
+  final rootNewItems = lidarrNewItemChoices.contains(fromRoot?.monitorNewItems)
+      ? fromRoot!.monitorNewItems
+      : null;
   return ArrAddChoice(
     rootFolder: root,
     qualityProfileId: profile,
     monitor:
         saved.monitor ??
+        rootMonitor ??
         switch (kind) {
           ArrKind.sonarr || ArrKind.lidarr => 'all',
           ArrKind.radarr => 'movieOnly',
@@ -1746,10 +1819,12 @@ ArrAddChoice arrStartingChoice({
     monitorNewSeasons: saved.monitorNewSeasons ?? true,
     searchCutoff: saved.searchCutoff ?? false,
     metadataProfileId: metadata,
-    monitorNewItems: saved.monitorNewItems ?? 'all',
-    tags: saved.tags ?? const [],
+    monitorNewItems: saved.monitorNewItems ?? rootNewItems ?? 'all',
+    tags: saved.tags ?? fromRoot?.tags ?? const [],
     profileSource: savedProfile != null
         ? ArrChoiceSource.saved
+        : rootProfile != null
+        ? ArrChoiceSource.rootFolder
         : libraryProfile != null
         ? ArrChoiceSource.library
         : ArrChoiceSource.first,

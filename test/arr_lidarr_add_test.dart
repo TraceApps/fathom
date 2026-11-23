@@ -324,6 +324,95 @@ void main() {
       expect(c.profileSource, ArrChoiceSource.library);
     });
 
+    test('a root folder\'s own defaults, as Lidarr 3.1 sends them', () {
+      final r = ArrRootFolder.fromJson(
+        Map<String, dynamic>.from(_list('lidarr_rootfolder_defaults').single),
+      );
+      expect(r.defaults!.qualityProfileId, 2);
+      expect(r.defaults!.metadataProfileId, 1);
+      expect(r.defaults!.monitor, 'future');
+      expect(r.defaults!.monitorNewItems, 'new');
+      expect(r.defaults!.tags, isEmpty);
+      // Sonarr's and Radarr's root folders have none.
+      expect(
+        ArrRootFolder.fromJson({'id': 1, 'path': '/tv'}).defaults,
+        isNull,
+      );
+    });
+
+    test('then the root folder\'s defaults, before the library\'s', () {
+      const rd = ArrRootDefaults(
+        qualityProfileId: 1,
+        metadataProfileId: 1,
+        monitor: 'future',
+        monitorNewItems: 'new',
+        tags: [7],
+      );
+      final c = arrStartingChoice(
+        kind: ArrKind.lidarr,
+        saved: const ArrAddDefaults(),
+        roots: const ['/music', '/music-lossless'],
+        profiles: const [1, 2],
+        metadataProfiles: const [1, 2],
+        library: [
+          artist('/music-lossless/A', 2, 2),
+          artist('/music-lossless/B', 2, 2),
+        ],
+        rootDefaults: const {'/music-lossless': rd},
+      );
+      expect(c.rootFolder, '/music-lossless');
+      expect(c.qualityProfileId, 1);
+      expect(c.metadataProfileId, 1);
+      expect(c.monitor, 'future');
+      expect(c.monitorNewItems, 'new');
+      expect(c.tags, [7]);
+      expect(c.profileSource, ArrChoiceSource.rootFolder);
+      // Saved defaults still come first.
+      final saved = arrStartingChoice(
+        kind: ArrKind.lidarr,
+        saved: const ArrAddDefaults(
+          qualityProfileId: 2,
+          monitor: 'all',
+          monitorNewItems: 'all',
+          tags: [],
+        ),
+        roots: const ['/music-lossless'],
+        profiles: const [1, 2],
+        metadataProfiles: const [1, 2],
+        library: const [],
+        rootDefaults: const {'/music-lossless': rd},
+      );
+      expect(saved.qualityProfileId, 2);
+      expect(saved.monitor, 'all');
+      expect(saved.monitorNewItems, 'all');
+      expect(saved.tags, isEmpty);
+      expect(saved.profileSource, ArrChoiceSource.saved);
+    });
+
+    test('a root folder\'s defaults the server no longer has aren\'t used', () {
+      final c = arrStartingChoice(
+        kind: ArrKind.lidarr,
+        saved: const ArrAddDefaults(),
+        roots: const ['/music'],
+        profiles: const [1, 2],
+        metadataProfiles: const [1, 2],
+        library: const [],
+        rootDefaults: const {
+          '/music': ArrRootDefaults(
+            qualityProfileId: 9,
+            metadataProfileId: 9,
+            monitor: 'somethingNew',
+            monitorNewItems: 'somethingNew',
+          ),
+        },
+      );
+      expect(c.qualityProfileId, 1);
+      expect(c.metadataProfileId, 1);
+      expect(c.monitor, 'all');
+      expect(c.monitorNewItems, 'all');
+      expect(c.profileSource, ArrChoiceSource.first);
+    });
+
     test('saved choices first, while the server still has them', () {
       final c = arrStartingChoice(
         kind: ArrKind.lidarr,
@@ -555,6 +644,57 @@ void main() {
       await t.tap(find.widgetWithText(FilledButton, 'Add'));
       await _settle(t);
       expect((s.sent('POST', 'artist').single.body! as Map)['metadataProfileId'], 2);
+    });
+
+    testWidgets('a root folder set up in Lidarr: its defaults, sent', (
+      t,
+    ) async {
+      final s = _Lidarr({
+        'rootfolder': () => [
+          {'id': 1, 'path': '/music', 'freeSpace': 1 << 40},
+          {
+            ..._list('lidarr_rootfolder_defaults').single,
+            'id': 2,
+            'path': '/music-lossless',
+          },
+        ],
+      });
+      await _open(t, _app(s, home: const ArrAddScreen(kind: ArrKind.lidarr)));
+      await _search(t, 'portishead');
+      await t.tap(find.text('Mortishead'));
+      await _settle(t);
+      // Most of the artists are in /music: the form starts there. Picking
+      // the other folder brings what it's set up with.
+      await t.tap(find.text('/music  ·  1.00 TB free').first);
+      await _settle(t);
+      await t.tap(find.textContaining('/music-lossless').last);
+      await _settle(t);
+      expect(find.text('What the root folder is set up with in Lidarr'), findsOneWidget);
+      await t.tap(find.widgetWithText(FilledButton, 'Add'));
+      await _settle(t);
+      final body = s.sent('POST', 'artist').single.body! as Map;
+      expect(body['rootFolderPath'], '/music-lossless');
+      expect(body['qualityProfileId'], 2);
+      expect(body['metadataProfileId'], 1);
+      expect((body['addOptions'] as Map)['monitor'], 'future');
+      expect(body['monitorNewItems'], 'new');
+    });
+
+    testWidgets('the folder it starts on, set up in Lidarr: from the start', (
+      t,
+    ) async {
+      final s = _Lidarr({
+        'rootfolder': () => _list('lidarr_rootfolder_defaults'),
+      });
+      await _open(t, _app(s, home: const ArrAddScreen(kind: ArrKind.lidarr)));
+      await _search(t, 'portishead');
+      await t.tap(find.text('Mortishead'));
+      await _settle(t);
+      await t.tap(find.widgetWithText(FilledButton, 'Add'));
+      await _settle(t);
+      final body = s.sent('POST', 'artist').single.body! as Map;
+      expect((body['addOptions'] as Map)['monitor'], 'future');
+      expect(body['monitorNewItems'], 'new');
     });
 
     testWidgets('by MusicBrainz id, the form opens on its own', (t) async {

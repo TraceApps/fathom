@@ -944,6 +944,10 @@ final arrAddSetupProvider = FutureProvider.autoDispose
           profiles: [for (final p in profiles) p.id],
           library: lib,
           metadataProfiles: [for (final p in metadata) p.id],
+          rootDefaults: {
+            for (final r in roots)
+              if (r.defaults case final d?) r.path: d,
+          },
         ),
       );
     });

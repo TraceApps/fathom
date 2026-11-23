@@ -881,7 +881,7 @@ class ArrChoiceDraft {
   /// The search setting Add started with, to go back to when "use the
   /// existing folder" is switched off again.
   final bool searchDefault;
-  final ArrChoiceSource profileSource;
+  ArrChoiceSource profileSource;
 
   ArrChoiceDraft.from(ArrAddChoice c)
     : rootFolder = c.rootFolder,
@@ -966,6 +966,7 @@ class ArrChoiceFields extends StatelessWidget {
         ? null
         : switch (d.profileSource) {
             ArrChoiceSource.saved => l.arrProfileFromDefaults,
+            ArrChoiceSource.rootFolder => l.arrProfileFromRootFolder,
             ArrChoiceSource.library => switch (kind) {
               ArrKind.sonarr => l.arrProfileFromShows,
               ArrKind.radarr => l.arrProfileFromMovies,
@@ -986,7 +987,17 @@ class ArrChoiceFields extends StatelessWidget {
                     ? r.path
                     : '${r.path}  ·  ${l.arrFree(arrSize(r.freeSpace!))}',
             },
-            onChanged: enabled ? (v) => set(() => d.rootFolder = v) : null,
+            onChanged: enabled
+                ? (v) => set(() {
+                    d.rootFolder = v;
+                    // Lidarr's root folders have defaults of their own: a
+                    // folder picked brings them, as in Lidarr's own Add.
+                    final r = setup.roots.where((r) => r.path == v);
+                    if (r.isNotEmpty && r.first.defaults != null) {
+                      arrApplyRootDefaults(d, r.first.defaults!, setup);
+                    }
+                  })
+                : null,
           ),
         ArrDropdownField<int>(
           label: l.arrQualityProfile,
@@ -1084,6 +1095,27 @@ class ArrChoiceFields extends StatelessWidget {
       ],
     );
   }
+}
+
+/// What a Lidarr root folder starts an artist with, onto [d]: each that
+/// the server still has.
+void arrApplyRootDefaults(
+  ArrChoiceDraft d,
+  ArrRootDefaults r,
+  ArrAddSetup setup,
+) {
+  if (setup.profiles.any((p) => p.id == r.qualityProfileId)) {
+    d.qualityProfileId = r.qualityProfileId;
+    d.profileSource = ArrChoiceSource.rootFolder;
+  }
+  if (setup.metadataProfiles.any((p) => p.id == r.metadataProfileId)) {
+    d.metadataProfileId = r.metadataProfileId;
+  }
+  if (lidarrMonitorChoices.contains(r.monitor)) d.monitor = r.monitor!;
+  if (lidarrNewItemChoices.contains(r.monitorNewItems)) {
+    d.monitorNewItems = r.monitorNewItems!;
+  }
+  if (r.tags != null) d.tags = [...r.tags!];
 }
 
 /// Sonarr's choices for which episodes of a new show to monitor.
