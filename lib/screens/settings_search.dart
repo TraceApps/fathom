@@ -63,6 +63,7 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   // General — Notifications
   SettingResult(title: l.searchDesktopNotifications, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'notify', 'alerts', 'popup', 'toast', 'os', 'system', 'bell', 'background', 'push']),
   SettingResult(title: l.searchNewRequest, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'pending', 'approval', 'new']),
+  SettingResult(title: l.prefsNotifArrImported, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'downloaded', 'imported', 'failed', 'grabbed', 'health', 'manage', 'arr']),
   SettingResult(title: l.prefsNotifUpdates, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'update', 'version', 'upgrade', 'available', 'new version']),
   SettingResult(title: l.searchRequestApproved, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'approved']),
   SettingResult(title: l.searchRequestDeclined, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'declined', 'rejected']),

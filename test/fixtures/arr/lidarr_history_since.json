@@ -1,0 +1,276 @@
+[
+ {
+  "albumId": 1,
+  "artistId": 1,
+  "trackId": 6,
+  "sourceTitle": "06 - Humming",
+  "quality": {
+   "quality": {
+    "id": 6,
+    "name": "FLAC"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T17:02:20Z",
+  "eventType": "trackFileImported",
+  "data": {
+   "fileId": "1",
+   "droppedPath": "/downloads/Portishead - Portishead (1997) [FLAC]/06 - Humming.flac",
+   "importedPath": "/music/Portishead/06 - Humming.flac",
+   "downloadClient": null,
+   "releaseGroup": null,
+   "size": "256557",
+   "indexerFlags": "0"
+  },
+  "album": {
+   "id": 1,
+   "title": "Portishead"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 1
+ },
+ {
+  "albumId": 1,
+  "artistId": 1,
+  "trackId": 6,
+  "sourceTitle": "/music/Portishead/06 - Humming.flac",
+  "quality": {
+   "quality": {
+    "id": 6,
+    "name": "FLAC"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T17:26:18Z",
+  "eventType": "trackFileRenamed",
+  "data": {
+   "sourcePath": "/music/Portishead/06 - Humming.flac",
+   "path": "/music/Portishead/Portishead (1997)/12 Vinyl 02/Portishead - Portishead - 01 - Humming.flac",
+   "releaseGroup": null,
+   "size": "256557",
+   "indexerFlags": "0"
+  },
+  "album": {
+   "id": 1,
+   "title": "Portishead"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 12
+ },
+ {
+  "albumId": 1,
+  "artistId": 1,
+  "trackId": 1,
+  "sourceTitle": "/music/Portishead/Portishead (1997)/12 Vinyl 01/Portishead - Portishead - 01 - Cowboys.flac",
+  "quality": {
+   "quality": {
+    "id": 6,
+    "name": "FLAC"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T17:26:18Z",
+  "eventType": "trackFileDeleted",
+  "data": {
+   "reason": "Manual",
+   "releaseGroup": null,
+   "size": "200734",
+   "indexerFlags": "0"
+  },
+  "album": {
+   "id": 1,
+   "title": "Portishead"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 23
+ },
+ {
+  "albumId": 2,
+  "artistId": 1,
+  "trackId": 0,
+  "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+  "quality": {
+   "quality": {
+    "id": 4,
+    "name": "MP3-320"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T22:58:51Z",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Rig",
+   "nzbInfoUrl": null,
+   "releaseGroup": "GRP",
+   "age": "10",
+   "ageHours": "240.0036036828889",
+   "ageMinutes": "14400.216221226667",
+   "publishedDate": "2026-11-12T22:58:39Z",
+   "downloadClient": "Usenet Blackhole",
+   "size": "120000000",
+   "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+   "guid": "1_http://host.docker.internal:19696/getnzb?id=Portishead-Dummy-1994-WEB-MP3-320-GRP",
+   "protocol": "UsenetDownloadProtocol",
+   "downloadForced": "False",
+   "customFormatScore": "0",
+   "releaseSource": "InteractiveSearch",
+   "indexerFlags": "0"
+  },
+  "album": {
+   "id": 2,
+   "title": "Dummy"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 28
+ },
+ {
+  "albumId": 2,
+  "artistId": 1,
+  "trackId": 0,
+  "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+  "quality": {
+   "quality": {
+    "id": 4,
+    "name": "MP3-320"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T23:00:10Z",
+  "downloadId": "Blackhole_Portishead-Dummy-1994-WEB-MP3-320-GRP_639309851474342075",
+  "eventType": "albumImportIncomplete",
+  "data": {
+   "statusMessages": "[\n  {\n    \"title\": \"One or more tracks expected in this release were not imported or missing from the release\",\n    \"messages\": []\n  },\n  {\n    \"title\": \"01 - Mysterons.mp3\",\n    \"messages\": [\n      \"Couldn't find similar album for [/downloads/watch-music/Portishead-Dummy-1994-WEB-MP3-320-GRP]\"\n    ]\n  }\n]",
+   "releaseGroup": "GRP",
+   "indexerFlags": null
+  },
+  "album": {
+   "id": 2,
+   "title": "Dummy"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 29
+ },
+ {
+  "albumId": 2,
+  "artistId": 1,
+  "trackId": 0,
+  "sourceTitle": "Portishead-Dummy-1994-WEB-MP3-320-GRP",
+  "quality": {
+   "quality": {
+    "id": 4,
+    "name": "MP3-320"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T23:00:31Z",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "Usenet Blackhole",
+   "message": "Manually marked as failed",
+   "releaseGroup": "GRP",
+   "size": "120000000",
+   "indexer": "Rig"
+  },
+  "album": {
+   "id": 2,
+   "title": "Dummy"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 30
+ },
+ {
+  "albumId": 3,
+  "artistId": 1,
+  "trackId": 0,
+  "sourceTitle": "Portishead-Third-2008-WEB-MP3-V0-GRP",
+  "quality": {
+   "quality": {
+    "id": 0,
+    "name": "Unknown"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-22T23:51:47Z",
+  "downloadId": "Blackhole_Portishead-Third-2008-WEB-MP3-V0-GRP_639309859101222853",
+  "eventType": "downloadImported",
+  "data": {
+   "releaseGroup": "GRP"
+  },
+  "album": {
+   "id": 3,
+   "title": "Third"
+  },
+  "artist": {
+   "id": 1,
+   "artistName": "Portishead"
+  },
+  "id": 36
+ }
+]

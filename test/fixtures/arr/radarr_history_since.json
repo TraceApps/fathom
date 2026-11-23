@@ -1,0 +1,190 @@
+[
+ {
+  "movieId": 2,
+  "sourceTitle": "Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 18,
+    "name": "WEBDL-2160p",
+    "source": "webdl",
+    "resolution": 2160,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-13T07:22:08Z",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Rig",
+   "nzbInfoUrl": null,
+   "releaseGroup": "NTb",
+   "age": "5",
+   "ageHours": "120.00057434247222",
+   "ageMinutes": "7200.034460893334",
+   "publishedDate": "2026-11-08T07:22:06Z",
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": "Blackhole",
+   "size": "15000000000",
+   "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+   "guid": "http://host.docker.internal:19696/getnzb?id=Project.Hail.Mary.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+   "tmdbId": "0",
+   "imdbId": "0",
+   "protocol": "1",
+   "customFormatScore": "0",
+   "movieMatchType": "Title",
+   "releaseSource": "UserInvokedSearch",
+   "indexerFlags": "0",
+   "indexerId": "1"
+  },
+  "movie": {
+   "id": 2,
+   "title": "Project Hail Mary",
+   "year": 2026
+  },
+  "id": 1
+ },
+ {
+  "movieId": 3,
+  "sourceTitle": "Spider-Man.Brand.New.Day.2026.2160p.WEB-DL.DDP5.1.H.265-NTb",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 18,
+    "name": "WEBDL-2160p",
+    "source": "webdl",
+    "resolution": 2160,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-13T08:31:30Z",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": null,
+   "message": "Manually marked as failed",
+   "releaseGroup": "NTb",
+   "size": "15000000000",
+   "indexer": "Rig"
+  },
+  "movie": {
+   "id": 3,
+   "title": "Spider-Man: Brand New Day",
+   "year": 2026
+  },
+  "id": 5
+ },
+ {
+  "movieId": 2,
+  "sourceTitle": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+  "languages": [
+   {
+    "id": 0,
+    "name": "Unknown"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 4,
+    "name": "HDTV-720p",
+    "source": "tv",
+    "resolution": 720,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-14T07:15:07Z",
+  "downloadId": "Blackhole_Breaking.Bad.S01E01.720p.HDTV.x264-LOL_639302361885226826",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "2",
+   "droppedPath": "/downloads/watch/Breaking.Bad.S01E01.720p.HDTV.x264-LOL/Breaking.Bad.S01E01.720p.HDTV.x264-LOL.mkv",
+   "importedPath": "/movies/Project Hail Mary (2026)/Breaking.Bad.S01E01.720p.HDTV.x264-LOL.mkv",
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": "Blackhole",
+   "releaseGroup": "LOL",
+   "customFormatScore": "0",
+   "size": "124078",
+   "indexerFlags": "0"
+  },
+  "movie": {
+   "id": 2,
+   "title": "Project Hail Mary",
+   "year": 2026
+  },
+  "id": 9
+ },
+ {
+  "movieId": 2,
+  "sourceTitle": "/movies/Project Hail Mary (2026)/Breaking.Bad.S01E01.720p.HDTV.x264-LOL.mkv",
+  "languages": [
+   {
+    "id": 0,
+    "name": "Unknown"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 4,
+    "name": "HDTV-720p",
+    "source": "tv",
+    "resolution": 720,
+    "modifier": "none"
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-14T07:24:37Z",
+  "eventType": "movieFileDeleted",
+  "data": {
+   "reason": "Upgrade",
+   "releaseGroup": "LOL",
+   "size": "124078",
+   "indexerFlags": "0"
+  },
+  "movie": {
+   "id": 2,
+   "title": "Project Hail Mary",
+   "year": 2026
+  },
+  "id": 10
+ }
+]

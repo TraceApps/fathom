@@ -135,10 +135,11 @@ Future<void> pushAppNotification(
 }
 
 SnackKind _snackKindFor(AppNotifKind kind) => switch (kind) {
-      AppNotifKind.seerrDeclined => SnackKind.error,
+      AppNotifKind.seerrDeclined || AppNotifKind.arrFailed => SnackKind.error,
       AppNotifKind.seerrApproved ||
       AppNotifKind.seerrAvailable ||
-      AppNotifKind.downloadComplete =>
+      AppNotifKind.downloadComplete ||
+      AppNotifKind.arrImported =>
         SnackKind.success,
       _ => SnackKind.info,
     };

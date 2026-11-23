@@ -472,6 +472,23 @@ abstract class ArrClient {
     ];
   }
 
+  /// What the app did since [since], oldest first, each with its title
+  /// (series and episode, movie, or artist and album), for notifications.
+  Future<List<Map<String, dynamic>>> historySince(DateTime since) async {
+    final data = await _get('history/since', {
+      'date': since.toUtc().toIso8601String(),
+      ...switch (kind) {
+        ArrKind.sonarr => {'includeSeries': true, 'includeEpisode': true},
+        ArrKind.radarr => {'includeMovie': true},
+        ArrKind.lidarr => {'includeArtist': true, 'includeAlbum': true},
+      },
+    });
+    return [
+      for (final m in (data as List?) ?? const [])
+        if (m is Map) Map<String, dynamic>.from(m),
+    ];
+  }
+
   ArrPage<T> _page<T>(Object? data, T Function(Map<String, dynamic> m) parse) {
     final map = data is Map ? data : const {};
     final records = [

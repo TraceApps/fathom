@@ -1,0 +1,266 @@
+[
+ {
+  "episodeId": 909,
+  "seriesId": 2,
+  "sourceTitle": "/tv/Breaking Bad (2008)/Season 1/Breaking Bad - S01E01 - Pilot Bluray-1080p.mkv",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 7,
+    "name": "Bluray-1080p",
+    "source": "bluray",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-13T06:58:18Z",
+  "eventType": "episodeFileDeleted",
+  "data": {
+   "reason": "Manual",
+   "releaseGroup": null,
+   "size": "291970",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "episode": {
+   "id": 909,
+   "seasonNumber": 1,
+   "episodeNumber": 1,
+   "title": "Pilot"
+  },
+  "series": {
+   "id": 2,
+   "title": "Breaking Bad",
+   "year": 2008
+  },
+  "id": 1
+ },
+ {
+  "episodeId": 1001,
+  "seriesId": 3,
+  "sourceTitle": "Severance.S02E01.1080p.WEB-DL.DD5.1.H.264-NTb",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "WEBDL-1080p",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-13T07:07:07Z",
+  "eventType": "grabbed",
+  "data": {
+   "indexer": "Rig",
+   "nzbInfoUrl": null,
+   "releaseGroup": "NTb",
+   "age": "1",
+   "ageHours": "24.000723454583333",
+   "ageMinutes": "1440.043407365",
+   "publishedDate": "2026-11-12T07:07:05Z",
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": "Blackhole",
+   "size": "3000000000",
+   "downloadUrl": "http://host.docker.internal:19696/getnzb?id=Severance.S02E01.1080p.WEB-DL.DD5.1.H.264-NTb",
+   "guid": "http://host.docker.internal:19696/getnzb?id=Severance.S02E01.1080p.WEB-DL.DD5.1.H.264-NTb",
+   "tvdbId": "0",
+   "tvRageId": "0",
+   "imdbId": null,
+   "protocol": "1",
+   "customFormatScore": "0",
+   "seriesMatchType": "Title",
+   "releaseSource": "Rss",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "episode": {
+   "id": 1001,
+   "seasonNumber": 2,
+   "episodeNumber": 1,
+   "title": "Hello, Ms. Cobel"
+  },
+  "series": {
+   "id": 3,
+   "title": "Severance",
+   "year": 2022
+  },
+  "id": 3
+ },
+ {
+  "episodeId": 1010,
+  "seriesId": 3,
+  "sourceTitle": "Severance.S02.1080p.BluRay.x264-GRP",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 7,
+    "name": "Bluray-1080p",
+    "source": "bluray",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-13T08:31:30Z",
+  "eventType": "downloadFailed",
+  "data": {
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": null,
+   "message": "Manually marked as failed",
+   "releaseGroup": null,
+   "size": null
+  },
+  "episode": {
+   "id": 1010,
+   "seasonNumber": 2,
+   "episodeNumber": 10,
+   "title": "Cold Harbor"
+  },
+  "series": {
+   "id": 3,
+   "title": "Severance",
+   "year": 2022
+  },
+  "id": 18
+ },
+ {
+  "episodeId": 918,
+  "seriesId": 2,
+  "sourceTitle": "Breaking.Bad.Ressurreicao.S02E03.1080p.WEB-DL.x264-PT",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 3,
+    "name": "WEBDL-1080p",
+    "source": "web",
+    "resolution": 1080
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-14T06:59:20Z",
+  "downloadId": "Blackhole_Breaking.Bad.Ressurreicao.S02E03.1080p.WEB-DL.x264-PT_639302361893446943",
+  "eventType": "downloadFolderImported",
+  "data": {
+   "fileId": "10",
+   "droppedPath": "/downloads/watch/Breaking.Bad.Ressurreicao.S02E03.1080p.WEB-DL.x264-PT/Breaking.Bad.Ressurreicao.S02E03.1080p.WEB-DL.x264-PT.mkv",
+   "importedPath": "/tv/Breaking Bad/Season 2/Breaking.Bad.Ressurreicao.S02E03.1080p.WEB-DL.x264-PT.mkv",
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": "Blackhole",
+   "releaseGroup": "PT",
+   "customFormatScore": "0",
+   "size": "124078",
+   "indexerFlags": "0",
+   "releaseType": "SingleEpisode"
+  },
+  "episode": {
+   "id": 918,
+   "seasonNumber": 2,
+   "episodeNumber": 3,
+   "title": "Bit by a Dead Bee"
+  },
+  "series": {
+   "id": 2,
+   "title": "Breaking Bad",
+   "year": 2008
+  },
+  "id": 167
+ },
+ {
+  "episodeId": 909,
+  "seriesId": 2,
+  "sourceTitle": "Breaking.Bad.S01E01.720p.HDTV.x264-LOL",
+  "languages": [
+   {
+    "id": 1,
+    "name": "English"
+   }
+  ],
+  "quality": {
+   "quality": {
+    "id": 4,
+    "name": "HDTV-720p",
+    "source": "television",
+    "resolution": 720
+   },
+   "revision": {
+    "version": 1,
+    "real": 0,
+    "isRepack": false
+   }
+  },
+  "customFormats": [],
+  "customFormatScore": 0,
+  "qualityCutoffNotMet": false,
+  "date": "2026-11-14T07:40:43Z",
+  "downloadId": "Blackhole_Breaking.Bad.S01E01.720p.HDTV.x264-LOL_639302387518579520",
+  "eventType": "downloadIgnored",
+  "data": {
+   "downloadClient": "Usenet Blackhole",
+   "downloadClientName": "Blackhole",
+   "message": "Manually ignored",
+   "releaseGroup": "LOL",
+   "size": "124078",
+   "releaseType": "SingleEpisode"
+  },
+  "episode": {
+   "id": 909,
+   "seasonNumber": 1,
+   "episodeNumber": 1,
+   "title": "Pilot"
+  },
+  "series": {
+   "id": 2,
+   "title": "Breaking Bad",
+   "year": 2008
+  },
+  "id": 173
+ }
+]

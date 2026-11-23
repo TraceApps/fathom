@@ -13,6 +13,7 @@ import '../state/library_providers.dart';
 import '../state/notifications_controller.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
+import '../state/arr_event_watcher.dart';
 import '../state/seerr_request_watcher.dart';
 import '../state/session_controller.dart';
 import '../state/syncplay.dart';
@@ -140,6 +141,8 @@ class AppShell extends ConsumerWidget {
     // Keep the Seerr request poller alive for the app's lifetime (no-op until
     // Seerr is configured), so request status changes fire notifications.
     ref.watch(seerrRequestWatcherProvider);
+    // What Sonarr, Radarr and Lidarr did, into the bell.
+    ref.watch(arrEventWatcherProvider);
     // On a TV the bottom mini-player is hard to drive with a remote, so when
     // music actually starts (nothing → a track) open the full Now Playing
     // screen, which is fully D-pad operable. Track-to-track changes don't

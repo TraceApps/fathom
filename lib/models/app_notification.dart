@@ -5,6 +5,12 @@ enum AppNotifKind {
   seerrDeclined,
   seerrAvailable,
   downloadComplete,
+  // Manage: Sonarr, Radarr or Lidarr downloaded, failed, grabbed, or found a
+  // health problem.
+  arrImported,
+  arrFailed,
+  arrGrabbed,
+  arrHealth,
   updateAvailable,
   info,
 }

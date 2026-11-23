@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../state/arr_providers.dart';
 import '../state/interface_scale.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/shared_files.dart';
@@ -99,7 +100,13 @@ class PreferencesScreen extends ConsumerWidget {
         data: (p) => ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: switch (section) {
-            'general' => _general(context, p, c),
+            'general' => _general(
+              context,
+              p,
+              c,
+              // Sonarr, Radarr or Lidarr: what the notifications watch.
+              manage: ref.watch(arrLibraryKindsProvider).isNotEmpty,
+            ),
             'appearance' => _appearance(context, p, c),
             'home' => _home(context, p, c),
             'player' => _player(context, p, c),
@@ -518,7 +525,8 @@ class PreferencesScreen extends ConsumerWidget {
   }
 
   List<Widget> _general(
-      BuildContext context, Prefs p, PreferencesController c) {
+      BuildContext context, Prefs p, PreferencesController c,
+      {bool manage = false}) {
     final l = AppLocalizations.of(context);
     return [
       SettingsSectionHeader(l.prefsHeaderStartup, first: true),
@@ -592,6 +600,54 @@ class PreferencesScreen extends ConsumerWidget {
               c.edit((x) => x.copyWith(seerrPollMinutes: int.tryParse(v) ?? 5)),
         ),
       ),
+      // What Sonarr, Radarr and Lidarr did, once one is connected.
+      if (manage) ...[
+        SwitchListTile(
+          secondary: const Icon(Icons.download_done_rounded),
+          title: Text(l.prefsNotifArrImported),
+          subtitle: Text(l.prefsNotifArrImportedSub),
+          value: p.notifArrImported,
+          onChanged: (v) => c.edit((x) => x.copyWith(notifArrImported: v)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.error_outline_rounded),
+          title: Text(l.prefsNotifArrFailed),
+          subtitle: Text(l.prefsNotifArrFailedSub),
+          value: p.notifArrFailed,
+          onChanged: (v) => c.edit((x) => x.copyWith(notifArrFailed: v)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.file_download_outlined),
+          title: Text(l.prefsNotifArrGrabbed),
+          subtitle: Text(l.prefsNotifArrGrabbedSub),
+          value: p.notifArrGrabbed,
+          onChanged: (v) => c.edit((x) => x.copyWith(notifArrGrabbed: v)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.health_and_safety_outlined),
+          title: Text(l.prefsNotifArrHealth),
+          subtitle: Text(l.prefsNotifArrHealthSub),
+          value: p.notifArrHealth,
+          onChanged: (v) => c.edit((x) => x.copyWith(notifArrHealth: v)),
+        ),
+        ListTile(
+          leading: const Icon(Icons.schedule_rounded),
+          title: Text(l.prefsCheckArr),
+          subtitle: Text(l.prefsCheckArrSub),
+          trailing: _Dropdown(
+            value: '${p.arrPollMinutes}',
+            options: {
+              '0': l.commonOff,
+              '1': l.prefsEveryMinute,
+              '5': l.prefsEvery5Minutes,
+              '15': l.prefsEvery15Minutes,
+              '30': l.prefsEvery30Minutes,
+            },
+            onChanged: (v) =>
+                c.edit((x) => x.copyWith(arrPollMinutes: int.tryParse(v) ?? 5)),
+          ),
+        ),
+      ],
       SwitchListTile(
         secondary: const Icon(Icons.download_done_rounded),
         title: Text(l.prefsDownloadComplete),

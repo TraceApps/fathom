@@ -116,6 +116,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           scheme.primary
         ),
       AppNotifKind.info => (Icons.info_rounded, scheme.onSurfaceVariant),
+      AppNotifKind.arrImported => (Icons.download_done_rounded, Colors.green),
+      AppNotifKind.arrFailed => (Icons.error_outline_rounded, scheme.error),
+      AppNotifKind.arrGrabbed => (Icons.file_download_rounded, scheme.primary),
+      AppNotifKind.arrHealth => (Icons.health_and_safety_rounded, Colors.orange),
     };
     return CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.15),

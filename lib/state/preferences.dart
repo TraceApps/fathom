@@ -237,6 +237,15 @@ class Prefs {
   final bool notifSeerrApproved;
   final bool notifSeerrDeclined;
   final bool notifSeerrAvailable;
+  // Manage: what Sonarr, Radarr and Lidarr did, watched while Fathom runs
+  // (no relay server): downloaded, failed, grabbed (off by default: every
+  // grab of a busy library), new health problems; checked every
+  // arrPollMinutes in the background (0: never), faster while showing.
+  final bool notifArrImported;
+  final bool notifArrFailed;
+  final bool notifArrGrabbed;
+  final bool notifArrHealth;
+  final int arrPollMinutes;
   final bool notifDownloads;
   final bool notifUpdates;
 
@@ -473,6 +482,11 @@ class Prefs {
     this.notifSeerrApproved = true,
     this.notifSeerrDeclined = true,
     this.notifSeerrAvailable = true,
+    this.notifArrImported = true,
+    this.notifArrFailed = true,
+    this.notifArrGrabbed = false,
+    this.notifArrHealth = true,
+    this.arrPollMinutes = 5,
     this.notifDownloads = true,
     this.notifUpdates = true,
     this.seerrPollMinutes = 5,
@@ -622,6 +636,11 @@ class Prefs {
     bool? notifSeerrApproved,
     bool? notifSeerrDeclined,
     bool? notifSeerrAvailable,
+    bool? notifArrImported,
+    bool? notifArrFailed,
+    bool? notifArrGrabbed,
+    bool? notifArrHealth,
+    int? arrPollMinutes,
     bool? notifDownloads,
     bool? notifUpdates,
     int? seerrPollMinutes,
@@ -773,6 +792,11 @@ class Prefs {
         notifSeerrApproved: notifSeerrApproved ?? this.notifSeerrApproved,
         notifSeerrDeclined: notifSeerrDeclined ?? this.notifSeerrDeclined,
         notifSeerrAvailable: notifSeerrAvailable ?? this.notifSeerrAvailable,
+        notifArrImported: notifArrImported ?? this.notifArrImported,
+        notifArrFailed: notifArrFailed ?? this.notifArrFailed,
+        notifArrGrabbed: notifArrGrabbed ?? this.notifArrGrabbed,
+        notifArrHealth: notifArrHealth ?? this.notifArrHealth,
+        arrPollMinutes: arrPollMinutes ?? this.arrPollMinutes,
         notifDownloads: notifDownloads ?? this.notifDownloads,
         notifUpdates: notifUpdates ?? this.notifUpdates,
         seerrPollMinutes: seerrPollMinutes ?? this.seerrPollMinutes,
@@ -934,6 +958,11 @@ class Prefs {
         'notifSeerrApproved': notifSeerrApproved,
         'notifSeerrDeclined': notifSeerrDeclined,
         'notifSeerrAvailable': notifSeerrAvailable,
+        'notifArrImported': notifArrImported,
+        'notifArrFailed': notifArrFailed,
+        'notifArrGrabbed': notifArrGrabbed,
+        'notifArrHealth': notifArrHealth,
+        'arrPollMinutes': arrPollMinutes,
         'notifDownloads': notifDownloads,
         'notifUpdates': notifUpdates,
         'seerrPollMinutes': seerrPollMinutes,
@@ -1094,6 +1123,11 @@ class Prefs {
         notifSeerrApproved: j['notifSeerrApproved'] as bool? ?? true,
         notifSeerrDeclined: j['notifSeerrDeclined'] as bool? ?? true,
         notifSeerrAvailable: j['notifSeerrAvailable'] as bool? ?? true,
+        notifArrImported: j['notifArrImported'] as bool? ?? true,
+        notifArrFailed: j['notifArrFailed'] as bool? ?? true,
+        notifArrGrabbed: j['notifArrGrabbed'] as bool? ?? false,
+        notifArrHealth: j['notifArrHealth'] as bool? ?? true,
+        arrPollMinutes: (j['arrPollMinutes'] as num?)?.toInt() ?? 5,
         notifDownloads: j['notifDownloads'] as bool? ?? true,
         notifUpdates: j['notifUpdates'] as bool? ?? true,
         seerrPollMinutes: (j['seerrPollMinutes'] as num?)?.toInt() ?? 5,
