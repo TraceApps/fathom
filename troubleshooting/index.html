@@ -865,6 +865,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#manage-notifications-arrive-late-on-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manage notifications arrive late on Android
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1140,6 +1151,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#manage-notifications-arrive-late-on-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manage notifications arrive late on Android
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1247,6 +1269,8 @@
 <h2 id="manage">Manage<a class="headerlink" href="#manage" title="Permanent link">&para;</a></h2>
 <h3 id="qbittorrent-refuses-the-sign-in">qBittorrent refuses the sign-in<a class="headerlink" href="#qbittorrent-refuses-the-sign-in" title="Permanent link">&para;</a></h3>
 <p>Check the username and password first; they're the ones for qBittorrent's Web UI. If they're right, qBittorrent may be refusing the address Fathom used: it checks that the address matches its own, which fails behind a reverse proxy or when Docker maps its port to another number. Turn off <strong>Enable Host header validation</strong> in qBittorrent's <strong>Options → WebUI</strong>, or reach it at the address and port it expects. After too many failed sign-ins in a row, qBittorrent also blocks the device for a while (an hour, by default); wait, then try again. Fathom tries a refused sign-in only once until you change the username or password, so it doesn't run into that block on its own.</p>
+<h3 id="manage-notifications-arrive-late-on-android">Manage notifications arrive late on Android<a class="headerlink" href="#manage-notifications-arrive-late-on-android" title="Permanent link">&para;</a></h3>
+<p>With Fathom closed, Android lets it check Sonarr, Radarr and Lidarr at most every 15 minutes, and only with a network. Battery saving can stretch that further, mostly when the phone has been still for a while. To get them sooner, set Fathom's battery use to <strong>Unrestricted</strong> in Android's app settings, or open Fathom: it checks every minute while it's showing, and catches up on anything missed.</p>
 <h2 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p>For anything harder to pin down, open <strong>Settings → System → Diagnostics</strong>, turn on <strong>Diagnostic Logging</strong>, reproduce the problem, then tap <strong>Copy Diagnostics</strong>. It captures app errors and playback details in one place, with credentials removed, which is the best thing to attach to a bug report.</p>
 <h2 id="still-stuck">Still stuck?<a class="headerlink" href="#still-stuck" title="Permanent link">&para;</a></h2>
@@ -1271,7 +1295,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 23, 2026 06:42:30 UTC">November 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 06:15:21 UTC">November 24, 2026</span>
   </span>
 
     
