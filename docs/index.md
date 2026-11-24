@@ -12,7 +12,7 @@
 [![Stars](https://img.shields.io/github/stars/TraceApps/fathom)](https://github.com/TraceApps/fathom/stargazers)
 [![License](https://img.shields.io/github/license/TraceApps/fathom?color=blue)](https://github.com/TraceApps/fathom/blob/main/LICENSE)
 
-Fathom is an all-in-one client for [Jellyfin](https://jellyfin.org), on desktop and Android. It brings your whole setup into one window: movies, shows, music, and Live TV, plus most of Jellyfin's server-side management, so you rarely need the web dashboard. Two optional integrations, [Seerr](features.md#requests-ratings-and-watch-together) requests and a full [YouTube](youtube.md) client, live right inside the app.
+Fathom is an all-in-one client for [Jellyfin](https://jellyfin.org), on desktop and Android. It brings your whole setup into one window: movies, shows, music, and Live TV, plus most of Jellyfin's server-side management, so you rarely need the web dashboard. Optional integrations live right inside the app: [Seerr](features.md#requests-ratings-and-watch-together) requests, a full [YouTube](youtube.md) client, and [Sonarr, Radarr and Lidarr](features.md#sonarr-radarr-and-lidarr) with the apps behind them.
 
 Everything plays through mpv (via [media_kit](https://github.com/media-kit/media-kit) / libmpv), so you get direct play, hardware decoding, and real subtitle and audio track control.
 
@@ -36,6 +36,7 @@ Everything plays through mpv (via [media_kit](https://github.com/media-kit/media
 - **Run your server from the app**: users (with every permission the web dashboard offers), libraries, scheduled tasks, transcoding, Live TV and DVR, backups, and more, without opening the web dashboard.
 - **Ready for Jellyfin 12**, while still working with older servers.
 - **YouTube, built in** (optional): search, subscriptions, local playlists, SponsorBlock, DeArrow, downloads, theater mode. Nothing is sent to YouTube.
+- **Sonarr, Radarr and Lidarr** (optional): your shows, movies and music, the calendar, the download queue, what's missing, and the apps' history and health, with Prowlarr's indexers, Bazarr's subtitles and qBittorrent or SABnzbd beside them. Search, add, monitor, edit and import from Fathom, keep more than one server of an app, and get notified when something downloads or fails (on Android, even with Fathom closed).
 - **Requests and ratings**: Seerr browse-and-request with approve / decline / manage in place, plus Rotten Tomatoes, IMDb, and more.
 - **Take it offline**: download movies, episodes, whole series, recordings, and music, and browse them as a real library when the server is out of reach.
 - **Internet radio** with live time-shift, so you can pause and rewind a live station.

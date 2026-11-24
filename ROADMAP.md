@@ -1,14 +1,13 @@
 # Roadmap
 
-What's done, what's next, and what's parked. The client is feature-complete for day-to-day use; the road to 1.0 is about stability and trust, plus one new feature: managing Sonarr and Radarr.
+What's done, what's next, and what's parked. The client is feature-complete for day-to-day use; the road to 1.0 is about stability and trust, plus one new feature: managing Sonarr, Radarr and Lidarr and the apps behind them.
 
 ## Road to 1.0
 
 - [x] **0.13.1 stable**: released, now getting real use.
 - [ ] **Real-server tests**: run the core flows (sign in, browse, play, resume, mark watched, subtitles) in CI against real Jellyfin servers, old and current, so a break is caught by a failing check rather than by a user.
 - [ ] **Decide 1.0's scope**: Linux, Windows, and Android phones and tablets are in. Android TV is either finished or stays marked experimental.
-- [x] **Translations**: open to everyone on Weblate.
-- [ ] **Sonarr and Radarr in Fathom**: Calendar, Queue, Wanted, History, Health, the libraries with detail pages, searches (automatic and interactive), adding, monitoring (with the apps' own episode options), editing (path and tags too), renaming, deleting files a season or a pick at a time, picking several titles to change together, the blocklist, Manual Import (from the queue or a folder), Import Library and correcting a file's episodes, quality and languages, Radarr's collections, and shortcuts from Jellyfin's own pages are in. A design pass remains.
+- [x] **Translations- [x] **Sonarr, Radarr and Lidarr in Fathom**: Library, Calendar, Activity (queue, history, blocklist) and Wanted, with detail pages, searches (automatic and interactive), adding, monitoring (with the apps' own options), editing, renaming, deleting, picking several titles to change together, Manual Import, Import Library, Radarr's collections, shortcuts from Jellyfin's own pages, and Seerr requests in Discover. Also Prowlarr's indexers, Bazarr's subtitles, the download clients (qBittorrent and SABnzbd), more than one server of an app, notifications (on Android, while Fathom is closed too), right-click menus and keyboard shortcuts on a desktop, and Android TV.es are in. A design pass remains.
 - [ ] **1.0.0 release candidate**: bug fixes only, for a few weeks.
 - [ ] **1.0.0**
 

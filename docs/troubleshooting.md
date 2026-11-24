@@ -82,6 +82,10 @@ This allowance is per device and gets cleared when you switch phones, reinstall 
 
 Check the username and password first; they're the ones for qBittorrent's Web UI. If they're right, qBittorrent may be refusing the address Fathom used: it checks that the address matches its own, which fails behind a reverse proxy or when Docker maps its port to another number. Turn off **Enable Host header validation** in qBittorrent's **Options → WebUI**, or reach it at the address and port it expects. After too many failed sign-ins in a row, qBittorrent also blocks the device for a while (an hour, by default); wait, then try again. Fathom tries a refused sign-in only once until you change the username or password, so it doesn't run into that block on its own.
 
+### Manage notifications arrive late on Android
+
+With Fathom closed, Android lets it check Sonarr, Radarr and Lidarr at most every 15 minutes, and only with a network. Battery saving can stretch that further, mostly when the phone has been still for a while. To get them sooner, set Fathom's battery use to **Unrestricted** in Android's app settings, or open Fathom: it checks every minute while it's showing, and catches up on anything missed.
+
 ## Diagnostics
 
 For anything harder to pin down, open **Settings → System → Diagnostics**, turn on **Diagnostic Logging**, reproduce the problem, then tap **Copy Diagnostics**. It captures app errors and playback details in one place, with credentials removed, which is the best thing to attach to a bug report.
