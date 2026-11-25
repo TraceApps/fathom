@@ -16,6 +16,13 @@ typedef MdbRatings = ({
   int? myAnimeList,
 });
 
+class MdbListException implements Exception {
+  final String message;
+  MdbListException(this.message);
+  @override
+  String toString() => message;
+}
+
 /// Reads aggregated ratings from MDBList by TMDB id. Best-effort: any failure
 /// (bad key, no match, network) returns null so the UI simply shows nothing
 /// extra, never an error.
@@ -23,11 +30,35 @@ class MdbListClient {
   final String apiKey;
   final Dio _dio;
 
-  MdbListClient(this.apiKey)
-      : _dio = Dio(BaseOptions(
+  MdbListClient(this.apiKey, {Dio? dio})
+      : _dio = dio ?? Dio(BaseOptions(
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
         ));
+
+  static const appName = 'MDBList';
+
+  /// Asks MDBList whether it takes the key; throws with why when it doesn't.
+  Future<void> check() async {
+    try {
+      await _dio.get<dynamic>(
+        'https://api.mdblist.com/user',
+        queryParameters: {'apikey': apiKey},
+      );
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        throw MdbListException('$appName rejected the API key.');
+      }
+      if (code == 429) {
+        throw MdbListException("$appName's limit for today is used up.");
+      }
+      if (e.response == null) {
+        throw MdbListException('Could not reach $appName.');
+      }
+      throw MdbListException('$appName error ($code).');
+    }
+  }
 
   Future<MdbRatings?> ratings({
     required String mediaType, // 'movie' | 'tv'

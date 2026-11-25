@@ -552,6 +552,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/arr-settings',
               pageBuilder: (_, _) => _managePage(const ArrSettingsScreen())),
           GoRoute(
+              path: '/connections/:app',
+              pageBuilder: (_, state) => _landingPage(ConnectionScreen(
+                  ConnApp.values.asNameMap()[state.pathParameters['app']] ??
+                      ConnApp.mdblist))),
+          GoRoute(
               path: '/arr/movie/:id',
               pageBuilder: (_, state) => _managePage(ArrMovieScreen(
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),

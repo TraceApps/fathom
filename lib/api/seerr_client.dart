@@ -90,7 +90,13 @@ class SeerrClient {
 
   SeerrClient(this.baseUrl, this.apiKey, {this.cookie, Dio? dio})
     : _dio =
-          dio ?? Dio(BaseOptions(connectTimeout: const Duration(seconds: 10)));
+          dio ??
+              Dio(
+                BaseOptions(
+                  connectTimeout: const Duration(seconds: 10),
+                  receiveTimeout: const Duration(seconds: 30),
+                ),
+              );
 
   Options get _opts => Options(
     headers: cookie != null && cookie!.isNotEmpty
@@ -763,13 +769,46 @@ class SeerrClient {
     }
   }
 
-  /// Validates the URL + key by hitting the status endpoint.
-  Future<bool> testConnection() async {
+  /// Seerr's version, after checking this address really is Seerr and that
+  /// it takes the API key (or the sign-in). Its status answers anyone, so
+  /// only asking who is signed in tells whether the key is right.
+  Future<String> version() async {
     try {
-      await _dio.get('$baseUrl/api/v1/status', options: _opts);
-      return true;
-    } on DioException {
-      return false;
+      final r = await _dio.get('$baseUrl/api/v1/status');
+      final data = r.data;
+      final v = data is Map ? data['version'] : null;
+      if (v is! String) {
+        throw SeerrException("This address doesn't answer as Seerr.");
+      }
+      try {
+        await _dio.get('$baseUrl/api/v1/auth/me', options: _opts);
+      } on DioException catch (e) {
+        final code = e.response?.statusCode;
+        if (code == 401 || code == 403) {
+          throw SeerrException(
+            cookie != null && cookie!.isNotEmpty
+                ? 'Your sign-in to Seerr has ended. Sign in again.'
+                : 'Seerr rejected the API key.',
+          );
+        }
+        rethrow;
+      }
+      return v;
+    } on DioException catch (e) {
+      switch (e.type) {
+        case DioExceptionType.connectionError:
+        case DioExceptionType.connectionTimeout:
+          throw SeerrException('Could not reach Seerr.');
+        case DioExceptionType.receiveTimeout:
+          throw SeerrException('Seerr took too long to answer.');
+        default:
+          break;
+      }
+      final code = e.response?.statusCode;
+      if (code == 404) {
+        throw SeerrException("Seerr isn't at this address (404).");
+      }
+      throw SeerrException('Seerr error (${code ?? 'unknown'}).');
     }
   }
 

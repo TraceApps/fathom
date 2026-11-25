@@ -21,19 +21,21 @@ Once connected, your libraries, Home layout, resume list, and Next Up appear str
 
 Each of these lives in **Settings** and is off by default. Turn on only what you use.
 
+Everything Fathom connects to besides your Jellyfin server is in one place, **Settings → Connections**: Seerr, the Manage apps (Sonarr, Radarr, Lidarr, Prowlarr, Bazarr), the download clients and MDBList. **Add Connection** lists them all with what each is for, and they all work the same way: **Save & Test** tries a connection before saving it, the list says how each one is doing, and **Disconnect** asks first.
+
 ### Seerr (requests)
 
-Point Fathom at your [Jellyseerr / Overseerr](https://docs.jellyseerr.dev) instance to browse and request titles, then approve, decline, or manage requests without leaving the detail page. Download progress shows right on the page. You will need your Seerr URL and API key (or sign in), set in **Settings → Seerr**. Once connected, a **Discover** section appears in the navigation, under the Seerr logo.
+Point Fathom at your [Jellyseerr / Overseerr](https://docs.jellyseerr.dev) instance to browse and request titles, then approve, decline, or manage requests without leaving the detail page. Download progress shows right on the page. In **Settings → Connections**, press **Add Connection** and pick **Seerr**. Give its address (for example `http://192.168.1.10:5055`), then either its API key (in Seerr under **Settings → General**; requests are then made as the admin) or switch to **Sign In** and use your Jellyfin or Seerr account, so requests are made as you. **Save & Test** checks the address really is Seerr and that it takes the key before saving; when it doesn't, the page says why and nothing is saved, and **Save Anyway** keeps it all the same. Once connected, a **Discover** section appears in the navigation, under the Seerr logo.
 
 Discover follows your Seerr server's own display settings: with **Hide Available**, **Hide Already Requested** (Seerr 3.5 and later), or **Hide Blocklisted** turned on in Seerr, those titles stay out of Fathom's Discover rows too, just as on Seerr's web page. Search still finds them.
 
 ### Sonarr, Radarr and Lidarr
 
-Connect [Sonarr](https://sonarr.tv) for shows, [Radarr](https://radarr.video) for movies and [Lidarr](https://lidarr.audio) for music, any of them, in **Settings → Manage Connections**. Press **Add Connection** and pick the app. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, `:8686` for Lidarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. Once one app is connected, the next one's address starts on the same computer at that app's usual port, so often only the key is left to paste (not when the address you gave has a URL base: behind a reverse proxy the next app's place can't be guessed).
+Connect [Sonarr](https://sonarr.tv) for shows, [Radarr](https://radarr.video) for movies and [Lidarr](https://lidarr.audio) for music, any of them, in **Settings → Connections**. Press **Add Connection** and pick the app. Each needs the server address (for example `http://192.168.1.10:8989` for Sonarr, `:7878` for Radarr, `:8686` for Lidarr, plus any URL base you set, such as `/sonarr`) and its API key, found in that app under **Settings → General → Security**. Once one app is connected, the next one's address starts on the same computer at that app's usual port, so often only the key is left to paste (not when the address you gave has a URL base: behind a reverse proxy the next app's place can't be guessed).
 
 **Save & Test** checks the address really is that app before saving and shows its version. When it can't connect, the page says why (the app refused the API key, nothing answered, or the address is another app) and nothing is saved; **Save Anyway** keeps it all the same, for a server that's off right now.
 
-Manage Connections then lists what's connected, Apps above Download Clients, each with its address, its version and how it's doing: **Connected**, **Can't connect**, or **Needs API key** (after a restore, see below). Pick one for its page: its address and key, **Defaults for New Titles** for Sonarr, Radarr and Lidarr, and **Disconnect**, which asks first. In a wide window the page opens beside the list. Under **Settings**, Manage Connections says how many are connected.
+Connections then lists what's connected, by kind (Requests, Apps, Download Clients, Ratings), each with its address, its version and how it's doing: **Connected**, **Can't connect**, or **Needs API key** (after a restore, see below). Pick one for its page: its address and key, **Defaults for New Titles** for Sonarr, Radarr and Lidarr, and **Disconnect**, which asks first. In a wide window the page opens beside the list. Under **Settings**, Connections says how many are connected.
 
 [Prowlarr](https://prowlarr.com), the indexer manager behind them, is under **Add Connection** too (`:9696`). It adds an **Indexers** page to the Manage section; with only Prowlarr connected, Manage opens straight on it.
 
@@ -55,7 +57,7 @@ Add stations by URL or search the built-in [radio-browser.info](https://www.radi
 
 ### Ratings
 
-Optionally enrich detail pages with Rotten Tomatoes, IMDb, and community scores, plus Letterboxd, Metacritic, Trakt, and others through [MDBList](https://mdblist.com). Configure the sources you want in **Settings**.
+Optionally enrich detail pages with Rotten Tomatoes, IMDb, and community scores, plus Letterboxd, Metacritic, Trakt, and others through [MDBList](https://mdblist.com). Choose the sources you want in **Settings → Ratings**. The MDBList ones need MDBList connected: **Settings → Connections → Add Connection → MDBList** (the Ratings page links there too), with the free API key from your Preferences on mdblist.com. **Save & Test** checks that MDBList takes the key.
 
 ## Make it yours
 

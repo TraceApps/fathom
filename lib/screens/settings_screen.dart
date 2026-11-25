@@ -181,14 +181,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       const Divider(height: 24),
       _sectionLabel(context, l.settingsSectionIntegrations),
       ListTile(
-        leading: _leading(context, Icons.travel_explore_rounded),
-        title: Text(l.settingsSeerr),
-        subtitle: Text(l.settingsSeerrSubtitle),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.push('/seerr-settings'),
-      ),
-      ListTile(
-        leading: _leading(context, Icons.dns_rounded),
+        leading: _leading(context, Icons.hub_rounded),
         title: Text(l.settingsArr),
         subtitle: Text(switch (ref.watch(connCountProvider)) {
           0 => l.settingsArrSubtitle,

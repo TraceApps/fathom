@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../api/mdblist_client.dart';
 import '../state/arr_providers.dart';
 import '../state/interface_scale.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -17,7 +18,6 @@ import '../state/preferences.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/score_pills.dart';
 import '../widgets/tv_focus.dart';
-import '../widgets/tv_keyboard.dart';
 import '../widgets/ui_common.dart';
 import '../state/youtube_providers.dart';
 import '../services/youtube_download.dart';
@@ -488,12 +488,22 @@ class PreferencesScreen extends ConsumerWidget {
           style: const TextStyle(fontSize: 13),
         ),
       ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-        child: _MdbListKeyField(
-          initial: p.mdbListApiKey,
-          onChanged: (v) => c.edit((x) => x.copyWith(mdbListApiKey: v.trim())),
+      // The key is a connection like the others: its page tests it.
+      ListTile(
+        leading: const SizedBox(
+          width: 40,
+          child: Center(child: Icon(Icons.star_rounded)),
         ),
+        title: Text(
+          p.mdbListApiKey.isEmpty ? l.prefsMdbConnect : MdbListClient.appName,
+        ),
+        subtitle: Text(
+          p.mdbListApiKey.isEmpty
+              ? l.prefsMdbConnectSub
+              : l.arrStatusConnected,
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push('/connections/mdblist'),
       ),
       _mdbToggle(l, c, p, 'Letterboxd', const LetterboxdLogo(),
           p.showLetterboxd, (v) => p.copyWith(showLetterboxd: v)),
@@ -1202,45 +1212,6 @@ const _subtitleColors = <int>[
   0xFF69F0AE, // green
   0xFFFF8A65, // orange
 ];
-
-/// The MDBList API key field. Stateful so it owns a controller (needed by the
-/// TV keyboard, which edits the controller rather than firing per-keystroke
-/// onChanged); the listener mirrors the old onChanged on every edit.
-class _MdbListKeyField extends StatefulWidget {
-  const _MdbListKeyField({required this.initial, required this.onChanged});
-  final String initial;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_MdbListKeyField> createState() => _MdbListKeyFieldState();
-}
-
-class _MdbListKeyFieldState extends State<_MdbListKeyField> {
-  late final TextEditingController _c =
-      TextEditingController(text: widget.initial);
-
-  @override
-  void initState() {
-    super.initState();
-    _c.addListener(() => widget.onChanged(_c.text.trim()));
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return TvTextField(
-      controller: _c,
-      label: l.prefsMdbListApiKey,
-      hint: l.prefsMdbListApiKeyHint,
-    );
-  }
-}
 
 class _SubtitleSwatch extends StatelessWidget {
   final Color color;

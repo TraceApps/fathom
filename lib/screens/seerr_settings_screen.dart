@@ -10,11 +10,31 @@ import '../state/session_controller.dart';
 import '../widgets/tv_keyboard.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/tv_focus.dart';
+import 'arr_settings_screen.dart';
 
 /// Configure the Seerr connection: an admin API key, or sign in so requests are
 /// attributed to you, either with your Jellyfin account or a local Seerr one.
+///
+/// One of the connections: it opens from the Connections list (beside it, in
+/// a wide window) and works as the others do. Save & Test tries the key
+/// before saving it, and Disconnect asks first.
 class SeerrSettingsScreen extends ConsumerStatefulWidget {
-  const SeerrSettingsScreen({super.key});
+  /// Beside the Connections list, rather than a page of its own.
+  final bool embedded;
+
+  /// Saved or signed in, for the list beside it.
+  final VoidCallback? onSaved;
+
+  /// Done with it: disconnected.
+  final void Function(BuildContext page)? onClose;
+
+  const SeerrSettingsScreen({
+    super.key,
+    this.embedded = false,
+    this.onSaved,
+    this.onClose,
+  });
 
   @override
   ConsumerState<SeerrSettingsScreen> createState() =>
@@ -31,6 +51,9 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
   // Which sign-in method: 'jellyfin' (Jellyfin account) or 'local' (Seerr account).
   String _loginKind = 'jellyfin';
   bool _busy = false;
+
+  /// Why the last Save & Test failed; nothing was saved.
+  String? _failed;
 
   @override
   void initState() {
@@ -57,34 +80,91 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _saveApiKey() async {
+  /// A bare host:port is the usual thing to type.
+  String get _address {
+    final raw = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
+    return raw.isEmpty || raw.contains('://') ? raw : 'http://$raw';
+  }
+
+  Future<void> _saveApiKey({bool anyway = false}) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
+    final url = _address;
     final key = _key.text.trim();
-    setState(() => _busy = true);
-    var ok = true;
-    if (url.isNotEmpty && key.isNotEmpty) {
-      ok = await SeerrClient(url, key).testConnection();
+    final lastFailure = _failed;
+    if (url.isEmpty || key.isEmpty) {
+      showSnack(context, l.arrEnterBoth);
+      return;
     }
-    await ref.read(preferencesProvider.notifier).edit((x) => x.copyWith(
+    _url.text = url;
+    setState(() {
+      _busy = true;
+      _failed = null;
+    });
+    // Kept before the wait: the page may be left while Seerr answers, and
+    // what was asked is still saved.
+    final tester = ref.read(connTesterProvider);
+    final notifier = ref.read(preferencesProvider.notifier);
+    String? version;
+    if (!anyway) {
+      try {
+        version = await tester(ConnApp.seerr, url, '', key);
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _failed = e.toString();
+          });
+        } else {
+          showSnackOn(
+            messenger,
+            'Seerr: ${l.arrTestFailed(e.toString())}',
+            kind: SnackKind.error,
+          );
+        }
+        return;
+      }
+    }
+    await notifier.edit((x) => x.copyWith(
           seerrUrl: url,
           seerrApiKey: key,
           seerrAuthMode: 'apikey',
         ));
+    if (mounted) {
+      setState(() => _busy = false);
+      widget.onSaved?.call();
+    }
+    showSnackOn(
+      messenger,
+      version != null
+          ? l.arrConnectedTo('Seerr', version)
+          : l.arrSavedTestFailed(lastFailure ?? l.arrStatusFailed),
+      kind: version != null ? SnackKind.success : SnackKind.info,
+    );
+  }
+
+  Future<void> _disconnect() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmDisconnect(context, 'Seerr') || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(preferencesProvider.notifier).edit((x) => x.copyWith(
+          seerrUrl: '',
+          seerrApiKey: '',
+          seerrCookie: '',
+          seerrAuthMode: 'apikey',
+        ));
+    showSnackOn(messenger, l.arrDisconnected('Seerr'));
     if (!mounted) return;
-    setState(() => _busy = false);
-    showSnackOn(messenger, url.isEmpty
-            ? l.seerrDisconnected
-            : ok
-                ? l.seerrConnected
-                : l.seerrSavedTestFailed, kind: SnackKind.error);
+    _url.clear();
+    _key.clear();
+    setState(() => _failed = null);
+    widget.onClose?.call(context);
   }
 
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
+    final url = _address;
     final local = _loginKind == 'local';
     final user = _username.text.trim();
     final email = _email.text.trim();
@@ -94,23 +174,30 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
           local ? l.seerrEnterCredentialsLocal : l.seerrEnterCredentials);
       return;
     }
+    _url.text = url;
     setState(() => _busy = true);
+    final notifier = ref.read(preferencesProvider.notifier);
     try {
       final cookie = local
           ? await seerrLocalLogin(url, email: email, password: pass)
           : await seerrJellyfinLogin(url, username: user, password: pass);
       final name = await SeerrClient(url, '', cookie: cookie).me();
-      await ref.read(preferencesProvider.notifier).edit((x) => x.copyWith(
+      await notifier.edit((x) => x.copyWith(
             seerrUrl: url,
             seerrAuthMode: 'cookie',
             seerrCookie: cookie,
           ));
+      showSnackOn(
+        messenger,
+        l.seerrSignedInAs(name ?? (local ? email : user)),
+        kind: SnackKind.success,
+      );
       if (!mounted) return;
+      widget.onSaved?.call();
       // Let the password manager offer to save these credentials before we
       // clear the field.
       TextInput.finishAutofillContext();
       _password.clear();
-      showSnackOn(messenger, l.seerrSignedInAs(name ?? (local ? email : user)));
     } catch (e) {
       showErrorOn(messenger, e);
     } finally {
@@ -132,19 +219,62 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
     final p = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
     final signedIn = p.seerrAuthMode == 'cookie' && p.seerrCookie.isNotEmpty;
     final l = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Seerr')),
-      body: ListView(
+    final theme = Theme.of(context);
+    final c = findConn(p, ConnApp.seerr, null);
+    final check = c != null && c.ready
+        ? ref.watch(connCheckProvider(c.check))
+        : null;
+    final state = c == null ? null : connStateOf(c, check);
+    final body = ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(l.seerrIntro,
-              style: Theme.of(context).textTheme.bodyMedium),
+          Row(
+            children: [
+              Icon(ConnApp.seerr.icon, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.embedded)
+                      Text(
+                        'Seerr',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    Text(
+                      state == ConnState.connected && check?.value != null
+                          ? 'Seerr ${check!.value!}'
+                          : l.seerrIntro,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (state != null) ...[
+                const SizedBox(width: 12),
+                ConnStateChip(state),
+              ],
+            ],
+          ),
+          if (state == ConnState.failed && check?.error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              '${check!.error}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           TvTextField(
             controller: _url,
             keyboardType: TextInputType.url,
-            label: l.seerrServerUrl,
-            hint: 'https://requests.example.com',
+            label: l.arrServerAddress,
+            hint: 'http://192.168.1.10:5055',
             icon: Icons.link_rounded,
           ),
           const SizedBox(height: 20),
@@ -171,17 +301,33 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
               helperText: l.seerrApiKeyHelper,
               icon: Icons.key_rounded,
             ),
-            const SizedBox(height: 24),
+            if (_failed != null) ...[
+              const SizedBox(height: 16),
+              ConnFailedBox(_failed!),
+            ],
+            const SizedBox(height: 18),
+            // As on the other connections: busy, the buttons ignore presses
+            // rather than switch off (that drops the TV remote's focus), and
+            // they are keyed, as the error above them comes and goes.
             FilledButton(
-              onPressed: _busy ? null : _saveApiKey,
-              child: _busy ? _spinner() : Text(l.seerrSaveTest),
+              key: const ValueKey('save'),
+              onPressed: _busy ? () {} : _saveApiKey,
+              child: _busy ? _spinner() : Text(l.arrSaveTest),
             ),
+            if (_failed != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                key: const ValueKey('anyway'),
+                onPressed: _busy ? () {} : () => _saveApiKey(anyway: true),
+                child: Text(l.arrSaveAnyway),
+              ),
+            ],
           ] else ...[
             if (signedIn)
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.check_circle_rounded,
-                      color: Colors.green),
+                      color: Color(0xFF22C55E)),
                   title: Text(l.seerrSignedIn),
                   subtitle: Text(l.seerrRequestsAttributed),
                   trailing: TextButton(
@@ -248,8 +394,48 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
               ),
             ],
           ],
+          if (c != null) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            TvFocusRing(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.link_off_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  l.arrDisconnect,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                enabled: !_busy,
+                onTap: _disconnect,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            l.arrKeysStayHere,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
+    );
+    // The same form width as the other connections.
+    final page = TvFocusKeeper(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: body,
+        ),
       ),
+    );
+    if (widget.embedded) return page;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Seerr')),
+      body: page,
     );
   }
 

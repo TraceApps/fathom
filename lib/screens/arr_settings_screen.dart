@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/arr_client.dart';
 import '../api/bazarr_client.dart';
 import '../api/download_clients.dart';
+import '../api/mdblist_client.dart';
+import '../api/seerr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../models/download_client.dart';
@@ -14,29 +16,35 @@ import '../state/download_providers.dart';
 import '../state/preferences.dart';
 import '../theme/app_theme.dart';
 import 'arr_add_screen.dart';
+import 'seerr_settings_screen.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_servers_ui.dart';
 import '../widgets/tv_focus.dart';
 import '../widgets/tv_keyboard.dart';
 
-// Manage Connections: what's connected, each with how it's doing, and Add
-// Connection for the rest. A connection opens on a page of its own (beside
+// Connections: what's connected, each with how it's doing, and Add
+// Connection for the rest. Seerr, the Manage apps, the download clients and
+// MDBList are all here. A connection opens on a page of its own (beside
 // the list in a wide window), with its address, its sign-in, and what else
 // belongs to it. A second server of an app (a 4K Radarr) is a row of its
 // own.
 
 /// Everything Fathom can connect to here.
 enum ConnApp {
+  seerr,
   sonarr,
   radarr,
   lidarr,
   prowlarr,
   bazarr,
   qbittorrent,
-  sabnzbd;
+  sabnzbd,
+  mdblist;
 
   String get appName => switch (this) {
+    seerr => 'Seerr',
+    mdblist => MdbListClient.appName,
     sonarr => ArrKind.sonarr.appName,
     radarr => ArrKind.radarr.appName,
     lidarr => ArrKind.lidarr.appName,
@@ -56,11 +64,24 @@ enum ConnApp {
 
   bool get isDownloadClient => this == qbittorrent || this == sabnzbd;
 
+  /// Where it stands in the list and in Add Connection.
+  ConnGroup get group => switch (this) {
+    seerr => ConnGroup.requests,
+    qbittorrent || sabnzbd => ConnGroup.clients,
+    mdblist => ConnGroup.ratings,
+    _ => ConnGroup.apps,
+  };
+
+  /// MDBList is a web service: a key, and no address of the user's own.
+  bool get hasAddress => this != mdblist;
+
   IconData get icon => switch (this) {
+    seerr => Icons.travel_explore_rounded,
+    mdblist => Icons.star_rounded,
     sonarr => Icons.live_tv_rounded,
     radarr => Icons.movie_rounded,
     lidarr => Icons.library_music_rounded,
-    prowlarr => Icons.travel_explore_rounded,
+    prowlarr => Icons.manage_search_rounded,
     bazarr => Icons.subtitles_rounded,
     qbittorrent => Icons.hub_rounded,
     sabnzbd => Icons.dns_rounded,
@@ -68,6 +89,8 @@ enum ConnApp {
 
   /// The port it answers on out of the box (as the address hints show).
   int get port => switch (this) {
+    seerr => 5055,
+    mdblist => 443,
     sonarr => 8989,
     radarr => 7878,
     lidarr => 8686,
@@ -78,6 +101,8 @@ enum ConnApp {
   };
 
   String forWhat(AppLocalizations l) => switch (this) {
+    seerr => l.connForRequests,
+    mdblist => l.connForRatings,
     sonarr => l.arrForShows,
     radarr => l.arrForMovies,
     lidarr => l.arrForMusic,
@@ -94,6 +119,24 @@ enum ConnApp {
   };
 }
 
+enum ConnGroup {
+  requests,
+  apps,
+  clients,
+  ratings;
+
+  String title(AppLocalizations l) => switch (this) {
+    requests => l.connGroupRequests,
+    apps => l.arrConnApps,
+    clients => l.dlSettingsHeading,
+    ratings => l.connGroupRatings,
+  };
+}
+
+/// In a Seerr connection's [Conn.user]: signed in with an account, so
+/// [Conn.secret] is that session and not an API key.
+const seerrSession = 'session';
+
 /// One saved connection.
 class Conn {
   final ConnApp app;
@@ -105,7 +148,8 @@ class Conn {
   final String name;
   final String url;
 
-  /// qBittorrent's username; empty for the others.
+  /// qBittorrent's username; [seerrSession] for a Seerr account sign-in;
+  /// empty for the others.
   final String user;
 
   /// The API key, or qBittorrent's password.
@@ -149,6 +193,15 @@ class Conn {
 
 /// Every saved connection, the library apps' servers each on their own.
 List<Conn> connectionsOf(Prefs p) => [
+  if (p.seerrUrl.isNotEmpty)
+    p.seerrAuthMode == 'cookie'
+        ? Conn(
+            app: ConnApp.seerr,
+            url: p.seerrUrl,
+            user: seerrSession,
+            secret: p.seerrCookie,
+          )
+        : Conn(app: ConnApp.seerr, url: p.seerrUrl, secret: p.seerrApiKey),
   for (final k in ArrKind.values)
     for (final s in arrServersByName(arrServersOf(p, k)))
       Conn(
@@ -173,6 +226,8 @@ List<Conn> connectionsOf(Prefs p) => [
     ),
   if (p.sabUrl.isNotEmpty)
     Conn(app: ConnApp.sabnzbd, url: p.sabUrl, secret: p.sabApiKey),
+  if (p.mdbListApiKey.isNotEmpty)
+    Conn(app: ConnApp.mdblist, url: '', secret: p.mdbListApiKey),
 ];
 
 /// The saved connection [app] / [serverId] names, if it's still there.
@@ -194,8 +249,8 @@ typedef ConnCheck = ({
   bool active,
 });
 
-/// Asks [app] at an address what version it is; throws when it isn't that
-/// app or won't take the key.
+/// Asks [app] at an address what version it is (nothing, for MDBList, which
+/// has none to tell); throws when it isn't that app or won't take the key.
 Future<String> testConnection(
   ConnApp app,
   String url,
@@ -211,6 +266,10 @@ Future<String> testConnection(
   ConnApp.bazarr => BazarrClient(url, secret).version(),
   ConnApp.qbittorrent => QbitClient(url, user, secret).version(),
   ConnApp.sabnzbd => SabClient(url, secret).version(),
+  ConnApp.seerr => user == seerrSession
+      ? SeerrClient(url, '', cookie: secret).version()
+      : SeerrClient(url, secret).version(),
+  ConnApp.mdblist => MdbListClient(secret).check().then((_) => ''),
 };
 
 typedef ConnTester =
@@ -236,41 +295,41 @@ final connCheckProvider = FutureProvider.autoDispose.family<String, ConnCheck>((
 }, retry: (_, _) => null);
 
 /// What a connection shows for how it's doing: a word and its color.
-enum _State { connected, checking, failed, needsKey }
+enum ConnState { connected, checking, failed, needsKey }
 
-_State _stateOf(Conn c, AsyncValue<String>? check) {
-  if (!c.ready) return _State.needsKey;
+ConnState connStateOf(Conn c, AsyncValue<String>? check) {
+  if (!c.ready) return ConnState.needsKey;
   if (check == null || check.isLoading && !check.hasValue) {
-    return _State.checking;
+    return ConnState.checking;
   }
-  return check.hasValue && !check.hasError ? _State.connected : _State.failed;
+  return check.hasValue && !check.hasError ? ConnState.connected : ConnState.failed;
 }
 
 const _green = Color(0xFF22C55E);
 
-class _StateChip extends StatelessWidget {
-  final _State state;
-  const _StateChip(this.state);
+class ConnStateChip extends StatelessWidget {
+  final ConnState state;
+  const ConnStateChip(this.state, {super.key});
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final (label, color) = switch (state) {
-      _State.connected => (l.arrStatusConnected, _green),
-      _State.checking => (l.arrStatusChecking, scheme.onSurfaceVariant),
-      _State.failed => (l.arrStatusFailed, scheme.error),
-      _State.needsKey => (l.arrStatusNeedsKey, const Color(0xFFF59E0B)),
+      ConnState.connected => (l.arrStatusConnected, _green),
+      ConnState.checking => (l.arrStatusChecking, scheme.onSurfaceVariant),
+      ConnState.failed => (l.arrStatusFailed, scheme.error),
+      ConnState.needsKey => (l.arrStatusNeedsKey, const Color(0xFFF59E0B)),
     };
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           switch (state) {
-            _State.connected => Icons.check_circle_rounded,
-            _State.checking => Icons.more_horiz_rounded,
-            _State.failed => Icons.error_rounded,
-            _State.needsKey => Icons.key_off_rounded,
+            ConnState.connected => Icons.check_circle_rounded,
+            ConnState.checking => Icons.more_horiz_rounded,
+            ConnState.failed => Icons.error_rounded,
+            ConnState.needsKey => Icons.key_off_rounded,
           },
           size: 16,
           color: color,
@@ -284,6 +343,87 @@ class _StateChip extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Why a Save & Test failed, above the buttons.
+class ConnFailedBox extends StatelessWidget {
+  final String error;
+  const ConnFailedBox(this.error, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            color: theme.colorScheme.onErrorContainer,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).arrTestFailed(error),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks before a connection is removed; true to go ahead.
+Future<bool> confirmDisconnect(BuildContext context, String title) async {
+  final l = AppLocalizations.of(context);
+  final yes = await showDialog<bool>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text(l.arrDisconnectTitle(title)),
+      content: Text(l.arrDisconnectBody),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.pop(d, false),
+          child: Text(MaterialLocalizations.of(d).cancelButtonLabel),
+        ),
+        FilledButton(
+          style: kInlineButtonStyle,
+          onPressed: () => Navigator.pop(d, true),
+          child: Text(l.arrDisconnect),
+        ),
+      ],
+    ),
+  );
+  return yes == true;
+}
+
+/// One connection's page on its own, for a link from elsewhere in Settings
+/// (Ratings to MDBList).
+class ConnectionScreen extends ConsumerWidget {
+  final ConnApp app;
+  const ConnectionScreen(this.app, {super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Once the settings are read: before that, a saved one looks new.
+    final p = ref.watch(preferencesProvider).asData?.value;
+    if (p == null) return const Scaffold(body: Center(child: AppSpinner()));
+    return _ConnectionPage(
+      app: app,
+      serverId: null,
+      isNew: findConn(p, app, null) == null,
+      onClose: (page) => Navigator.of(page).maybePop(),
     );
   }
 }
@@ -319,12 +459,16 @@ class _ArrSettingsScreenState extends ConsumerState<ArrSettingsScreen> {
     }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _ConnectionPage(
-          app: o.app,
-          serverId: o.serverId,
-          isNew: o.isNew,
-          onClose: (page) => Navigator.of(page).maybePop(),
-        ),
+        builder: (_) => o.app == ConnApp.seerr
+            ? SeerrSettingsScreen(
+                onClose: (page) => Navigator.of(page).maybePop(),
+              )
+            : _ConnectionPage(
+                app: o.app,
+                serverId: o.serverId,
+                isNew: o.isNew,
+                onClose: (page) => Navigator.of(page).maybePop(),
+              ),
       ),
     );
   }
@@ -382,6 +526,19 @@ class _ArrSettingsScreenState extends ConsumerState<ArrSettingsScreen> {
                           ),
                         ),
                       )
+                    : open.app == ConnApp.seerr
+                    ? SeerrSettingsScreen(
+                        key: ValueKey(_pick),
+                        embedded: true,
+                        onSaved: () => setState(
+                          () => _open = (
+                            app: ConnApp.seerr,
+                            serverId: null,
+                            isNew: false,
+                          ),
+                        ),
+                        onClose: (_) => setState(() => _open = null),
+                      )
                     : _ConnectionPage(
                         key: ValueKey(_pick),
                         app: open.app,
@@ -417,8 +574,6 @@ class _List extends ConsumerWidget {
     final theme = Theme.of(context);
     final p = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
     final all = connectionsOf(p);
-    final apps = [for (final c in all) if (!c.app.isDownloadClient) c];
-    final clients = [for (final c in all) if (c.app.isDownloadClient) c];
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
       child: Text(
@@ -461,16 +616,15 @@ class _List extends ConsumerWidget {
           Text(l.arrSettingsIntro, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 20),
         ],
-        if (apps.isNotEmpty) ...[
-          heading(l.arrConnApps),
-          KeyedSubtree(key: const ValueKey('apps'), child: group(apps)),
-          const SizedBox(height: 20),
-        ],
-        if (clients.isNotEmpty) ...[
-          heading(l.dlSettingsHeading),
-          KeyedSubtree(key: const ValueKey('clients'), child: group(clients)),
-          const SizedBox(height: 20),
-        ],
+        for (final g in ConnGroup.values)
+          if (all.any((c) => c.app.group == g)) ...[
+            heading(g.title(l)),
+            KeyedSubtree(
+              key: ValueKey(g.name),
+              child: group([for (final c in all) if (c.app.group == g) c]),
+            ),
+            const SizedBox(height: 20),
+          ],
         // Keyed, as are the groups: the intro above comes and goes, and an
         // element that moves keeps its focus only by its key.
         Align(
@@ -514,8 +668,10 @@ class _Row extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final check = conn.ready ? ref.watch(connCheckProvider(conn.check)) : null;
-    final state = _stateOf(conn, check);
-    final version = state == _State.connected ? _shortVersion(check?.value) : null;
+    final state = connStateOf(conn, check);
+    final version = state == ConnState.connected && (check?.value ?? '') != ''
+        ? _shortVersion(check?.value)
+        : null;
     // On TV the row's own focus tint is too faint across a room.
     return TvFocusRing(
       child: ListTile(
@@ -546,14 +702,20 @@ class _Row extends ConsumerWidget {
         ],
       ),
       subtitle: Text(
-        [_shortUrl(conn.url), ?version].join(' · '),
+        [
+          conn.app.hasAddress ? _shortUrl(conn.url) : _mdblistSite,
+          ?version,
+        ].join(' · '),
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: _StateChip(state),
+      trailing: ConnStateChip(state),
       ),
     );
   }
 }
+
+/// Where MDBList is, shown where the others show their address.
+const _mdblistSite = 'mdblist.com';
 
 /// A version as far as people tell them apart: 5.28.0, not 5.28.0.10274.
 String? _shortVersion(String? v) =>
@@ -613,12 +775,11 @@ class _AddDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              heading(l.arrConnApps),
-              for (final a in ConnApp.values)
-                if (!a.isDownloadClient) option(a),
-              heading(l.dlSettingsHeading),
-              for (final a in ConnApp.values)
-                if (a.isDownloadClient) option(a),
+              for (final g in ConnGroup.values) ...[
+                heading(g.title(l)),
+                for (final a in ConnApp.values)
+                  if (a.group == g) option(a),
+              ],
             ],
           ),
         ),
@@ -744,6 +905,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
           qbitPassword: secret,
         ),
         ConnApp.sabnzbd => p.copyWith(sabUrl: url, sabApiKey: secret),
+        ConnApp.mdblist => p.copyWith(mdbListApiKey: secret),
         _ => p,
       };
 
@@ -757,10 +919,12 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
     // A password is kept as typed: spaces can be part of it.
     final secret = _qbit ? _secret.text : _secret.text.trim();
     final lastFailure = _failed;
-    if (raw.isEmpty || (!_qbit && secret.isEmpty)) {
+    if ((_app.hasAddress && raw.isEmpty) || (!_qbit && secret.isEmpty)) {
       showSnack(
         context,
-        _qbit
+        !_app.hasAddress
+            ? l.connEnterKey
+            : _qbit
             ? l.dlEnterAddress
             : _app == ConnApp.sabnzbd
             ? l.dlEnterSabBoth
@@ -770,7 +934,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
     }
     // A bare host:port is the usual thing to type; the apps speak plain
     // HTTP on a home network unless set up otherwise.
-    final url = raw.contains('://') ? raw : 'http://$raw';
+    final url = raw.isEmpty || raw.contains('://') ? raw : 'http://$raw';
     _url.text = url;
     if (kind != null) {
       final others = ref
@@ -855,7 +1019,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
     showSnackOn(
       messenger,
       version != null
-          ? l.arrConnectedTo(app.appName, version)
+          ? l.arrConnectedTo(app.appName, version).trim()
           : l.arrSavedTestFailed(lastFailure ?? l.arrStatusFailed),
       kind: version != null ? SnackKind.success : SnackKind.info,
     );
@@ -864,25 +1028,8 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
   Future<void> _disconnect(Conn c) async {
     final l = AppLocalizations.of(context);
     final title = c.title(l);
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: Text(l.arrDisconnectTitle(title)),
-        content: Text(l.arrDisconnectBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(d, false),
-            child: Text(MaterialLocalizations.of(d).cancelButtonLabel),
-          ),
-          FilledButton(
-            style: kInlineButtonStyle,
-            onPressed: () => Navigator.pop(d, true),
-            child: Text(l.arrDisconnect),
-          ),
-        ],
-      ),
-    );
-    if (yes != true || !mounted) return;
+    final yes = await confirmDisconnect(context, title);
+    if (!yes || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final kind = _app.kind;
     // The server in use: another saved server of the app takes its place.
@@ -909,7 +1056,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
     final check = c != null && c.ready
         ? ref.watch(connCheckProvider(c.check))
         : null;
-    final state = c == null ? null : _stateOf(c, check);
+    final state = c == null ? null : connStateOf(c, check);
     final server = kind == null || c == null
         ? null
         : arrServersOf(p, kind).where((s) => s.id == c.serverId).firstOrNull;
@@ -934,7 +1081,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
                       ),
                     ),
                   Text(
-                    state == _State.connected && check?.value != null
+                    state == ConnState.connected && (check?.value ?? '') != ''
                         ? '${_app.appName} ${check!.value!}'
                         : _app.forWhat(l),
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -944,10 +1091,10 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
                 ],
               ),
             ),
-            if (state != null) _StateChip(state),
+            if (state != null) ConnStateChip(state),
           ],
         ),
-        if (state == _State.failed && check?.error != null) ...[
+        if (state == ConnState.failed && check?.error != null) ...[
           const SizedBox(height: 12),
           Text(
             '${check!.error}',
@@ -957,15 +1104,17 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
           ),
         ],
         const SizedBox(height: 20),
-        TvTextField(
-          controller: _url,
-          keyboardType: TextInputType.url,
-          label: l.arrServerAddress,
-          hint: hint,
-          icon: Icons.link_rounded,
-          autofocus: _isNew && _url.text.isEmpty,
-        ),
-        const SizedBox(height: 14),
+        if (_app.hasAddress) ...[
+          TvTextField(
+            controller: _url,
+            keyboardType: TextInputType.url,
+            label: l.arrServerAddress,
+            hint: hint,
+            icon: Icons.link_rounded,
+            autofocus: _isNew && _url.text.isEmpty,
+          ),
+          const SizedBox(height: 14),
+        ],
         if (_qbit) ...[
           TvTextField(
             controller: _user,
@@ -982,10 +1131,11 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
           helperText: switch (_app) {
             ConnApp.qbittorrent => l.dlQbitHelp,
             ConnApp.sabnzbd => l.dlSabKeyHelp,
+            ConnApp.mdblist => l.connMdblistKeyHelp,
             _ => l.arrApiKeyHelp(_app.appName),
           },
           icon: _qbit ? Icons.password_rounded : Icons.key_rounded,
-          autofocus: _isNew && _url.text.isNotEmpty,
+          autofocus: _isNew && (_url.text.isNotEmpty || !_app.hasAddress),
           onSubmitted: (_) => _busy ? null : _save(),
         ),
         // What tells this server from the app's others (4K): last, as
@@ -1001,31 +1151,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
         ],
         if (_failed != null) ...[
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.error_outline_rounded,
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    l.arrTestFailed(_failed!),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ConnFailedBox(_failed!),
         ],
         const SizedBox(height: 18),
         // Busy, the buttons ignore presses rather than switch off: a button
@@ -1061,7 +1187,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
           if (kind != null &&
               server != null &&
               server.active &&
-              state == _State.connected)
+              state == ConnState.connected)
             TvFocusRing(child: _DefaultsTile(kind: kind)),
           TvFocusRing(
             child: ListTile(

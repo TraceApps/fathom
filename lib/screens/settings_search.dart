@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/mdblist_client.dart';
 import '../state/interface_scale.dart';
 import '../l10n/generated/app_localizations.dart';
 
@@ -70,9 +71,10 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.searchNowAvailable, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'available', 'downloaded', 'ready']),
   SettingResult(title: l.searchCheckForRequestUpdates, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['seerr', 'poll', 'interval', 'refresh', 'status', 'updates', 'requests']),
   // Integrations — Seerr connection / sign-in
-  SettingResult(title: l.searchSeerrConnection, section: l.settingsSectionIntegrations, icon: _integrations, route: '/seerr-settings', keywords: ['seerr', 'jellyseerr', 'overseerr', 'discover', 'connect', 'connection', 'login', 'log in', 'sign in', 'signin', 'account', 'jellyfin', 'local', 'api key', 'apikey', 'token', 'email', 'password', 'url', 'server', 'requests']),
+  SettingResult(title: l.searchSeerrConnection, section: l.settingsArr, icon: _integrations, route: '/seerr-settings', keywords: ['seerr', 'jellyseerr', 'overseerr', 'discover', 'connect', 'connection', 'login', 'log in', 'sign in', 'signin', 'account', 'jellyfin', 'local', 'api key', 'apikey', 'token', 'email', 'password', 'url', 'server', 'requests']),
   // Integrations: Sonarr, Radarr and Lidarr connections
-  SettingResult(title: l.settingsArr, section: l.settingsSectionIntegrations, icon: Icons.dns_rounded, route: '/arr-settings', keywords: ['sonarr', 'radarr', 'lidarr', 'prowlarr', 'bazarr', 'subtitles', 'subtitle', 'indexers', 'indexer', 'qbittorrent', 'sabnzbd', 'download client', 'download clients', 'torrent', 'torrents', 'usenet', 'nzb', 'speed limit', 'password', 'music', 'artists', 'albums', 'arr', 'servarr', 'manage', 'library', 'activity', 'history', 'blocklist', 'wanted', 'shows', 'series', 'movies', 'calendar', 'queue', 'downloads', 'api key', 'apikey', 'connect', 'connection', 'url', 'server']),
+  SettingResult(title: l.settingsArr, section: l.settingsSectionIntegrations, icon: Icons.dns_rounded, route: '/arr-settings', keywords: ['connections', 'seerr', 'jellyseerr', 'overseerr', 'requests', 'mdblist', 'ratings', 'sonarr', 'radarr', 'lidarr', 'prowlarr', 'bazarr', 'subtitles', 'subtitle', 'indexers', 'indexer', 'qbittorrent', 'sabnzbd', 'download client', 'download clients', 'torrent', 'torrents', 'usenet', 'nzb', 'speed limit', 'password', 'music', 'artists', 'albums', 'arr', 'servarr', 'manage', 'library', 'activity', 'history', 'blocklist', 'wanted', 'shows', 'series', 'movies', 'calendar', 'queue', 'downloads', 'api key', 'apikey', 'connect', 'connection', 'url', 'server']),
+  SettingResult(title: MdbListClient.appName, section: l.settingsArr, icon: Icons.star_rounded, route: '/connections/mdblist', keywords: ['mdblist', 'api key', 'apikey', 'ratings', 'letterboxd', 'metacritic', 'trakt', 'connect', 'connection']),
   SettingResult(title: l.arrNewTitleDefaults, section: l.settingsArr, icon: Icons.tune_rounded, route: '/arr-settings', keywords: ['sonarr', 'radarr', 'default', 'defaults', 'quality', 'quality profile', 'profile', 'root folder', 'folder', 'monitor', 'add', 'new', 'minimum availability', 'series type', 'season folders', '1080p', '4k']),
   // System — updates, backup, diagnostics
   SettingResult(title: l.settingsUpdates, section: l.settingsSectionSystem, icon: Icons.system_update_alt_rounded, route: '/updates', keywords: ['update', 'updates', 'upgrade', 'auto update', 'auto-update', 'version', 'new version', 'release', 'check for updates', 'download', 'channel', 'dev', 'beta', 'stable', 'latest', 'frequency', 'daily', 'weekly', 'launch', 'how often']),
