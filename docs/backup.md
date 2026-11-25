@@ -12,11 +12,15 @@ Everything is organized into groups, and every group is selected by default. You
 - **Appearance:** theme, accent color, AMOLED, Interface Size, and Home layout.
 - **Player:** playback, subtitles, and keyboard shortcuts.
 - **YouTube:** client toggles and download preferences.
-- **General:** notifications, update channel, language, and anything else.
+- **General:** notifications, update channel, language, the addresses of your Seerr and Manage connections (Sonarr, Radarr, Lidarr, Prowlarr, Bazarr, qBittorrent, SABnzbd), and anything else.
 - **Internet radio:** your saved stations, groups, and favorites.
 - **Servers:** your home and remote server addresses, and username.
 
 Passwords, Jellyfin tokens, and API keys are **never** exported, so after importing you sign in to your server again (your address and username are already filled in from the Servers group).
+
+The same goes for every connection: on a new device, give Seerr, each Manage app, SABnzbd and MDBList its API key again, and qBittorrent its password. Each one says **Needs API key** in **Settings → Manage Connections** until you do.
+
+On a device that already has those keys, an import keeps each key only while its address stays the same. When the backup has a different address for a connection, that connection's key or password is cleared and asked for again, so a key is never sent to a server it wasn't given for.
 
 ## Export
 

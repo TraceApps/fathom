@@ -164,6 +164,59 @@ class ImportSummary {
   });
 }
 
+/// The settings after the [selectedGroups] of a backup's [backup] settings
+/// are laid over [local]; null when the backup changes nothing.
+///
+/// Secrets never come from a backup, and the ones on this device stay only
+/// with the server they were given for: a key or password kept beside an
+/// address the backup changed would be sent to that address, which may be
+/// another server of the user's, or someone else's (a backup passed along).
+/// Those are dropped, and the connection asks for its key again.
+Prefs? restoredPrefs(
+  Prefs local,
+  Map<String, dynamic> backup,
+  Set<String> selectedGroups,
+) {
+  var changed = false;
+  final current = local.toJson();
+  for (final entry in backup.entries) {
+    if (secretPrefKeys.contains(entry.key)) continue;
+    if (selectedGroups.contains(_prefGroup(entry.key))) {
+      current[entry.key] = entry.value;
+      changed = true;
+    }
+  }
+  if (!changed) return null;
+  // A value the backup has in a form this build can't read costs that
+  // setting, not the restore.
+  final (restored, _) = prefsFromSaved(current);
+  // Sonarr, Radarr and Lidarr (more than one server each): keys are paired
+  // with the restored servers by address.
+  return _keysFollowAddresses(local, arrReconcileRestore(local, restored));
+}
+
+/// [restored] without the secrets of any connection whose address (or, for
+/// qBittorrent, user) is no longer the one on this device.
+Prefs _keysFollowAddresses(Prefs local, Prefs restored) {
+  String at(String url) =>
+      url.trim().replaceAll(RegExp(r'/+$'), '').toLowerCase();
+  bool moved(String was, String now) => at(was) != at(now);
+  var p = restored;
+  if (moved(local.prowlarrUrl, p.prowlarrUrl)) {
+    p = p.copyWith(prowlarrApiKey: '');
+  }
+  if (moved(local.bazarrUrl, p.bazarrUrl)) p = p.copyWith(bazarrApiKey: '');
+  if (moved(local.sabUrl, p.sabUrl)) p = p.copyWith(sabApiKey: '');
+  if (moved(local.qbitUrl, p.qbitUrl) ||
+      local.qbitUsername.trim() != p.qbitUsername.trim()) {
+    p = p.copyWith(qbitPassword: '');
+  }
+  if (moved(local.seerrUrl, p.seerrUrl)) {
+    p = p.copyWith(seerrApiKey: '', seerrCookie: '');
+  }
+  return p;
+}
+
 /// Applies only the [selectedGroups] from [data]. Preferences MERGE over the
 /// current ones (so importing just one group leaves the others untouched);
 /// radio replaces the library; servers re-apply home/remote addresses to a
@@ -174,18 +227,13 @@ Future<ImportSummary> applySettingsImport(
   final prefsJson = data['preferences'];
   if (prefsJson is Map) {
     final local = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    final current = local.toJson();
-    for (final entry in Map<String, dynamic>.from(prefsJson).entries) {
-      if (secretPrefKeys.contains(entry.key)) continue;
-      if (selectedGroups.contains(_prefGroup(entry.key))) {
-        current[entry.key] = entry.value;
-        prefsChanged = true;
-      }
-    }
-    if (prefsChanged) {
-      // Keys stay on this device: pair them with the restored servers by
-      // address.
-      final merged = arrReconcileRestore(local, Prefs.fromJson(current));
+    final merged = restoredPrefs(
+      local,
+      Map<String, dynamic>.from(prefsJson),
+      selectedGroups,
+    );
+    if (merged != null) {
+      prefsChanged = true;
       await ref.read(preferencesProvider.notifier).edit((_) => merged);
     }
   }
