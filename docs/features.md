@@ -205,6 +205,6 @@ Fathom keeps an in-app notification centre (the bell), and shows an in-app toast
 - **Seerr requests**: a new request (pending approval), or one of yours being approved, declined, or becoming available.
 - **Download complete**: when a download to this device finishes.
 - **Update available**: when a new version of Fathom is released.
-- **Sonarr, Radarr and Lidarr**: **Downloaded**, **Download Failed**, **Grabbed** and **Health Problems**, with **Check Manage** for how often Fathom asks them; see [Notifications in the Manage section](#sonarr-radarr-and-lidarr).
+- **Sonarr, Radarr and Lidarr**: **Downloaded**, **Download Failed**, **Grabbed** and **Health Problems**, with **Check the Manage Apps** for how often Fathom asks them; see [Notifications in the Manage section](#sonarr-radarr-and-lidarr).
 
 While the app is open, Fathom checks Seerr for status changes every minute or so, so updates surface almost immediately as a toast and land in the bell. On **desktop**, when Fathom is in the background these also appear as system (OS) pop-ups, toggled by the master switch at the top of the section. On **mobile**, backgrounded events wait quietly in the bell rather than raising a system notification, except an available update and, on Android, what Sonarr, Radarr and Lidarr did while Fathom was closed. Either way, the per-event toggles decide what gets recorded in the first place.

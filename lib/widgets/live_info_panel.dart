@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/base_item.dart';
 import 'cached_image.dart';
 import 'glass.dart';
+import 'format.dart';
 
 /// The "now playing" panel for a live channel, shown in the player overlay: the
 /// channel number and network, the current show, its episode, a progress bar
@@ -57,11 +58,7 @@ class _LiveInfoPanelState extends State<LiveInfoPanel> {
     return (done / total).clamp(0.0, 1.0);
   }
 
-  String _clock(DateTime t) {
-    final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
-    final m = t.minute.toString().padLeft(2, '0');
-    return '$h:$m ${t.hour < 12 ? 'AM' : 'PM'}';
-  }
+  String _clock(DateTime t) => clockTime(context, t);
 
   String? _episodeLine(BaseItemDto p) {
     final parts = <String>[];
@@ -233,11 +230,7 @@ class _LiveBottomInfoState extends State<LiveBottomInfo> {
     super.dispose();
   }
 
-  String _clock(DateTime t) {
-    final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
-    final m = t.minute.toString().padLeft(2, '0');
-    return '$h:$m ${t.hour < 12 ? 'AM' : 'PM'}';
-  }
+  String _clock(DateTime t) => clockTime(context, t);
 
   String? _episodeLine(BaseItemDto p) {
     final parts = <String>[];

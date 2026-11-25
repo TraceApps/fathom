@@ -15,6 +15,7 @@ import 'cached_image.dart';
 import 'context_menu.dart';
 import 'tv_focus.dart';
 import 'window_frame.dart';
+import 'format.dart';
 
 /// The Manage section's icon, in the navigation and on its empty state.
 const kManageIcon = Icons.video_settings_rounded;
@@ -62,8 +63,7 @@ String arrSize(num bytes) {
 String arrDate(BuildContext context, DateTime d) =>
     DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(d);
 
-String arrTime(BuildContext context, DateTime d) =>
-    DateFormat.jm(Localizations.localeOf(context).toString()).format(d);
+String arrTime(BuildContext context, DateTime d) => clockTime(context, d);
 
 /// "2h 14m", "47m".
 String arrDuration(Duration d) {

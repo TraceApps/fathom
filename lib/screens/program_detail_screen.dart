@@ -13,6 +13,7 @@ import '../state/session_controller.dart';
 import '../widgets/record_dialog.dart';
 import '../widgets/app_snack.dart';
 import '../api/jellyfin_client.dart';
+import '../widgets/format.dart';
 
 typedef ProgramArgs = ({BaseItemDto channel, BaseItemDto program, bool isNow});
 
@@ -59,15 +60,9 @@ class ProgramDetailScreen extends ConsumerWidget {
     }
   }
 
-  static String _fmtTime(DateTime d) {
-    final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
-    final m = d.minute.toString().padLeft(2, '0');
-    return '$h:$m ${d.hour < 12 ? 'AM' : 'PM'}';
-  }
-
-  static String _range(DateTime? a, DateTime? b) {
+  static String _range(BuildContext context, DateTime? a, DateTime? b) {
     if (a == null || b == null) return '';
-    return '${_fmtTime(a)} – ${_fmtTime(b)}';
+    return '${clockTime(context, a)} – ${clockTime(context, b)}';
   }
 
   static double? _progress(DateTime? start, DateTime? end) {
@@ -117,7 +112,7 @@ class ProgramDetailScreen extends ConsumerWidget {
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ],
           const SizedBox(height: 6),
-          Text('${args.channel.name}  ·  ${_range(p.startDate, p.endDate)}',
+          Text('${args.channel.name}  ·  ${_range(context, p.startDate, p.endDate)}',
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           // Live progress as a slim standalone bar under the channel/time line.

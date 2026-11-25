@@ -14,6 +14,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/media_image.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/format.dart';
 
 // The floor; the guide stretches wider than this when the window is short
 // enough to leave empty space on a wide screen.
@@ -293,7 +294,7 @@ class _TimeRuler extends StatelessWidget {
           padding: const EdgeInsets.only(left: 6),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(_fmtTime(t),
+            child: Text(clockTime(context, t),
                 style: theme.textTheme.labelSmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ),
@@ -302,14 +303,6 @@ class _TimeRuler extends StatelessWidget {
       t = t.add(const Duration(minutes: 30));
     }
     return Stack(children: marks);
-  }
-
-  static String _fmtTime(DateTime t) {
-    final lt = t.toLocal(); // server sends UTC; show the viewer's local time
-    final h = lt.hour % 12 == 0 ? 12 : lt.hour % 12;
-    final m = lt.minute.toString().padLeft(2, '0');
-    final ap = lt.hour < 12 ? 'AM' : 'PM';
-    return '$h:$m $ap';
   }
 }
 

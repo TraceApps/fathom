@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../api/mdblist_client.dart';
@@ -65,6 +67,10 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.searchDesktopNotifications, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'notify', 'alerts', 'popup', 'toast', 'os', 'system', 'bell', 'background', 'push']),
   SettingResult(title: l.searchNewRequest, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'pending', 'approval', 'new']),
   SettingResult(title: l.prefsNotifArrImported, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'downloaded', 'imported', 'failed', 'grabbed', 'health', 'manage', 'arr']),
+  SettingResult(title: l.prefsNotifArrFailed, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'failed', 'failure', 'download failed', 'error']),
+  SettingResult(title: l.prefsNotifArrGrabbed, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'grabbed', 'grab', 'release', 'sent']),
+  SettingResult(title: l.prefsNotifArrHealth, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'health', 'problem', 'problems', 'warning', 'check']),
+  SettingResult(title: l.prefsCheckArr, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'check', 'interval', 'how often', 'poll', 'background', 'frequency']),
   SettingResult(title: l.prefsNotifUpdates, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'update', 'version', 'upgrade', 'available', 'new version']),
   SettingResult(title: l.searchRequestApproved, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'approved']),
   SettingResult(title: l.searchRequestDeclined, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'declined', 'rejected']),
@@ -77,6 +83,10 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: MdbListClient.appName, section: l.settingsArr, icon: Icons.star_rounded, route: '/connections/mdblist', keywords: ['mdblist', 'api key', 'apikey', 'ratings', 'letterboxd', 'metacritic', 'trakt', 'connect', 'connection']),
   SettingResult(title: l.arrNewTitleDefaults, section: l.settingsArr, icon: Icons.tune_rounded, route: '/arr-settings', keywords: ['sonarr', 'radarr', 'default', 'defaults', 'quality', 'quality profile', 'profile', 'root folder', 'folder', 'monitor', 'add', 'new', 'minimum availability', 'series type', 'season folders', '1080p', '4k']),
   // System — updates, backup, diagnostics
+  SettingResult(title: l.settingsAccounts, section: l.settingsSectionAccount, icon: Icons.switch_account_rounded, route: '/accounts', keywords: ['account', 'accounts', 'user', 'users', 'switch', 'server', 'servers', 'add account', 'another server', 'sign in', 'login', 'remove']),
+  // Desktop only, as the Settings row is: nothing to bind on a phone or a TV.
+  if (!Platform.isAndroid && !Platform.isIOS)
+    SettingResult(title: l.settingsShortcuts, section: l.settingsSectionPreferences, icon: Icons.keyboard_rounded, route: '/shortcuts', keywords: ['shortcut', 'shortcuts', 'keyboard', 'keys', 'hotkey', 'hotkeys', 'key binding', 'bindings', 'rebind']),
   SettingResult(title: l.settingsUpdates, section: l.settingsSectionSystem, icon: Icons.system_update_alt_rounded, route: '/updates', keywords: ['update', 'updates', 'upgrade', 'auto update', 'auto-update', 'version', 'new version', 'release', 'check for updates', 'download', 'channel', 'dev', 'beta', 'stable', 'latest', 'frequency', 'daily', 'weekly', 'launch', 'how often']),
   SettingResult(title: l.settingsBackup, section: l.settingsSectionSystem, icon: Icons.settings_backup_restore_rounded, route: '/backup', keywords: ['backup', 'restore', 'export', 'import', 'settings', 'save settings', 'transfer', 'migrate', 'move', 'sync', 'json', 'share', 'download settings']),
   SettingResult(title: l.settingsSupport, section: l.settingsSectionAbout, icon: Icons.volunteer_activism_rounded, route: '/support', keywords: ['support', 'donate', 'donation', 'sponsor', 'github sponsors', 'ko-fi', 'kofi', 'tip', 'star', 'report a bug', 'bug', 'translate', 'translation', 'help']),
@@ -171,7 +181,7 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.settingsMovieWheel, section: l.searchIntegrations, icon: Icons.movie_filter_rounded, route: '/settings', keywords: ['wheel', 'movie wheel', 'movie night', 'spin', 'decide', 'elimination', 'random', 'randomize', 'picker', 'enable', 'watchlist', 'watch together', 'syncplay']),
 ];
 
-// Admin section icons, mirroring the Server Admin hub.
+// Admin section icons, mirroring the Administration hub.
 const _aGeneral = Icons.tune_rounded;
 const _aPlayback = Icons.play_circle_outline_rounded;
 const _aBranding = Icons.brush_rounded;

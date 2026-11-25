@@ -162,7 +162,7 @@
   "@settingsMovieWheel": { "description": "Settings toggle for the Movie Night Wheel feature." },
   "settingsMovieWheelSubtitle": "Can't decide? Spin an elimination wheel from Watchlist or Watch Together",
   "@settingsMovieWheelSubtitle": { "description": "Subtitle under the Movie Night Wheel settings toggle." },
-  "settingsRadio": "Internet Radio",
+  "settingsRadio": "Radio",
   "settingsRadioSubtitle": "Search, save, and play radio stations from the sidebar",
   "settingsProfileSubtitle": "View profile, change picture",
   "settingsAccounts": "Accounts",
@@ -4945,7 +4945,7 @@
   "@appNoPlaylistsYet": {
     "description": "Add-to-playlist sheet: message when the user has no playlists to add to."
   },
-  "adminTitle": "Server Admin",
+  "adminTitle": "Administration",
   "@adminTitle": {
     "description": "AppBar title for the server administration hub."
   },
@@ -7292,7 +7292,7 @@
   "@backupGroupYoutube": { "description": "Backup group: YouTube client settings." },
   "backupGroupGeneral": "General",
   "@backupGroupGeneral": { "description": "Backup group: everything else (notifications, updates, language)." },
-  "backupGroupRadio": "Internet Radio",
+  "backupGroupRadio": "Radio",
   "@backupGroupRadio": { "description": "Backup group: saved radio stations, groups, favorites." },
   "backupGroupServers": "Servers",
   "@backupGroupServers": { "description": "Backup group: server addresses and username." },
@@ -8662,7 +8662,7 @@
   "@prefsNotifArrHealth": {"description": "Switch: notify of a new health problem in an app."},
   "prefsNotifArrHealthSub": "When an app's own health check finds something new",
   "@prefsNotifArrHealthSub": {"description": "Under prefsNotifArrHealth."},
-  "prefsCheckArr": "Check Manage",
+  "prefsCheckArr": "Check the Manage Apps",
   "@prefsCheckArr": {"description": "How often to ask Sonarr, Radarr and Lidarr what they did."},
   "prefsCheckArrSub": "How often to ask the apps what they did while Fathom isn't showing (every minute while it shows); Off stops these notifications",
   "@prefsCheckArrSub": {"description": "Under prefsCheckArr."},
