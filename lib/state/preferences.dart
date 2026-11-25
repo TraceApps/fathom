@@ -1259,27 +1259,91 @@ class Prefs {
       );
 }
 
+/// The settings as saved, read as far as they can be read. One value of the
+/// wrong kind (a file edited by hand, an older or newer build's idea of a
+/// setting) costs that one setting its default, not all of them.
+///
+/// Returns the settings and whether anything had to be left out.
+(Prefs, bool) prefsFromSaved(Map<String, dynamic> saved) {
+  try {
+    return (Prefs.fromJson(saved), false);
+  } catch (_) {
+    // Something in there can't be read: take the settings one at a time and
+    // keep each that reads.
+    final good = <String, dynamic>{};
+    for (final e in saved.entries) {
+      try {
+        Prefs.fromJson({e.key: e.value});
+        good[e.key] = e.value;
+      } catch (_) {
+        // This one: left at its default.
+      }
+    }
+    try {
+      return (Prefs.fromJson(good), true);
+    } catch (_) {
+      return (const Prefs(), true);
+    }
+  }
+}
+
 class PreferencesController extends AsyncNotifier<Prefs> {
   static const _key = 'fathom_prefs';
 
+  /// Where settings that couldn't be read (all, or in part) are kept as they
+  /// were, before anything is saved over them: the next save writes what was
+  /// understood, and what wasn't would be gone for good.
+  static const badKey = 'fathom_prefs_bad';
+
   @override
   Future<Prefs> build() async {
-    final raw = await ref.read(secureStorageProvider).read(key: _key);
+    final storage = ref.read(secureStorageProvider);
+    final raw = await storage.read(key: _key);
     if (raw == null) return const Prefs();
+    Object? decoded;
     try {
-      return Prefs.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      decoded = jsonDecode(raw);
     } catch (_) {
+      decoded = null;
+    }
+    if (decoded is! Map) {
+      await _keepBad(raw);
       return const Prefs();
+    }
+    final (prefs, partly) = prefsFromSaved(Map<String, dynamic>.from(decoded));
+    if (partly) await _keepBad(raw);
+    return prefs;
+  }
+
+  Future<void> _keepBad(String raw) async {
+    try {
+      await ref.read(secureStorageProvider).write(key: badKey, value: raw);
+    } catch (_) {
+      // Nowhere to keep it: the settings still open.
     }
   }
 
-  Future<void> edit(Prefs Function(Prefs) change) async {
-    final current = state.asData?.value ?? const Prefs();
-    final next = change(current);
-    await ref
-        .read(secureStorageProvider)
-        .write(key: _key, value: jsonEncode(next.toJson()));
-    state = AsyncData(next);
+  /// The edits still being saved, in the order they were asked for.
+  Future<void> _saving = Future<void>.value();
+
+  /// Changes the settings and saves them. One at a time, each from what the
+  /// one before it left: two changes made together both hold (the second
+  /// used to start from the settings as they were before the first, and save
+  /// that over it). And from the settings as saved, never from nothing: a
+  /// change made before they finished loading used to save defaults plus
+  /// that one change over everything.
+  Future<void> edit(Prefs Function(Prefs) change) {
+    final done = _saving.then((_) async {
+      final current = state.asData?.value ?? await future;
+      final next = change(current);
+      await ref
+          .read(secureStorageProvider)
+          .write(key: _key, value: jsonEncode(next.toJson()));
+      state = AsyncData(next);
+    });
+    // A save that failed doesn't hold up the ones after it.
+    _saving = done.then((_) {}, onError: (_) {});
+    return done;
   }
 }
 
