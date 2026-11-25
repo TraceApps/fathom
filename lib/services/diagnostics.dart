@@ -8,8 +8,12 @@ import 'dart:io';
 /// the whole report into a bug report, so playback/streaming issues can be read
 /// from a real log instead of guessed from a description.
 ///
-/// Nothing captured here carries credentials: stream URLs are passed through
-/// [redactUrl] first, and callers pass already-safe header values.
+/// Nothing kept here carries credentials, whoever wrote the line: [add] hides
+/// them itself (see [redactSecrets]), and the secrets the app knows (the
+/// sign-in token, API keys, passwords) are hidden by value too ([protect]).
+/// The report is made to be pasted into a public issue, and a stream's
+/// address carries the token: libmpv, a cast or an image error can each quote
+/// it in a line of their own.
 class Diagnostics {
   Diagnostics._();
   static final Diagnostics instance = Diagnostics._();
@@ -24,16 +28,58 @@ class Diagnostics {
   /// (which has a real cost).
   bool enabled = false;
 
+  /// The secrets the app holds, hidden wherever they turn up in a line.
+  Set<String> _secrets = const {};
+
+  /// The names of the user's own servers: where they live says who they are.
+  Set<String> _hosts = const {};
+
+  /// Tells the log which values must never appear in it: the sign-in token,
+  /// API keys, passwords. Short ones are left out (they'd blank ordinary
+  /// words). [addresses] are the user's servers: their host names are hidden
+  /// too, and the rest of an address (scheme, port, path) stays readable.
+  void protect(
+    Iterable<String?> secrets, {
+    Iterable<String?> addresses = const [],
+  }) {
+    _secrets = {
+      for (final s in secrets)
+        if (s != null && s.trim().length >= 6) s.trim(),
+    };
+    _hosts = {
+      for (final a in addresses)
+        if (a != null && a.trim().isNotEmpty)
+          if (Uri.tryParse(a.contains('://') ? a.trim() : 'http://${a.trim()}')
+              case final Uri u when u.host.length >= 4 && u.host != 'localhost')
+            u.host,
+    };
+  }
+
   /// Append a line. No-ops unless [enabled], so global callers (error hooks,
   /// a teed debugPrint) can call unconditionally without leaking data or cost
   /// when diagnostics are off.
   void add(String source, String message) {
     if (!enabled) return;
-    final line = '${DateTime.now().toIso8601String()} [$source] $message';
+    final line =
+        '${DateTime.now().toIso8601String()} [$source] ${_safe(message)}';
     _lines.add(line);
     while (_lines.length > _max) {
       _lines.removeFirst();
     }
+  }
+
+  /// [text] with every credential in it hidden: by its shape, then by value.
+  String _safe(String text) {
+    var safe = redactSecrets(text);
+    for (final s in _secrets) {
+      safe = safe.replaceAll(s, '<redacted>');
+      final encoded = Uri.encodeQueryComponent(s);
+      if (encoded != s) safe = safe.replaceAll(encoded, '<redacted>');
+    }
+    for (final h in _hosts) {
+      safe = safe.replaceAll(h, '<host>');
+    }
+    return safe;
   }
 
   bool get isEmpty => _lines.isEmpty;
@@ -50,7 +96,7 @@ class Diagnostics {
     b.writeln('Captured: ${DateTime.now().toIso8601String()}');
     b.writeln(
         'Platform: ${Platform.operatingSystem} (${Platform.operatingSystemVersion})');
-    header.forEach((k, v) => b.writeln('$k: $v'));
+    header.forEach((k, v) => b.writeln('$k: ${_safe('$v')}'));
     b.writeln('');
     b.writeln('--- Log (${_lines.length} lines) ---');
     for (final l in _lines) {
@@ -79,3 +125,29 @@ String redactUrl(String url) {
     return url;
   }
 }
+
+/// [text] with the credentials in it hidden, in whatever it quotes: an
+/// address's query (`api_key=`, `apikey=`, `token=`, `password=`...), a
+/// request header (`X-Api-Key:`, `X-Emby-Token:`, `Authorization:`,
+/// `Cookie:`), or Jellyfin's `Token="..."`. What's around them stays, so the
+/// line still says what was asked for.
+String redactSecrets(String text) => text
+    .replaceAllMapped(_secretHeader, (m) => '${m[1]}<redacted>')
+    .replaceAllMapped(_secretQuoted, (m) => '${m[1]}<redacted>${m[2]}')
+    .replaceAllMapped(_secretParam, (m) => '${m[1]}<redacted>');
+
+final _secretParam = RegExp(
+  r'((?<![A-Za-z])(?:api_?key|apikey|access_?token|token|passkey|password|passwd|pass|pwd|secret|sid|session_?id|auth)=)'
+  r'''[^&\s"'<>\]\)]+''',
+  caseSensitive: false,
+);
+
+final _secretQuoted = RegExp(
+  r'((?:token|api_?key|password)\s*[=:]\s*")[^"]*(")',
+  caseSensitive: false,
+);
+
+final _secretHeader = RegExp(
+  r'((?:x-api-key|x-emby-token|x-mediabrowser-token|x-emby-authorization|authorization|proxy-authorization|cookie|set-cookie)\s*[:=]\s*)[^\r\n]+',
+  caseSensitive: false,
+);

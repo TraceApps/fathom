@@ -14,6 +14,7 @@ import 'l10n/generated/app_localizations.dart';
 import 'l10n/l10n.dart';
 import 'routing/app_router.dart';
 import 'services/diagnostics.dart';
+import 'services/settings_backup.dart' show secretPrefKeys;
 import 'services/live_players.dart';
 import 'services/tv_mode.dart';
 import 'services/live_streams.dart';
@@ -27,6 +28,7 @@ import 'state/smtc_integration.dart';
 import 'state/pip_controller.dart';
 import 'state/popout_controller.dart';
 import 'state/preferences.dart';
+import 'state/session_controller.dart';
 import 'state/server_address.dart';
 import 'theme/app_theme.dart';
 import 'widgets/app_snack.dart';
@@ -242,6 +244,29 @@ class _FathomAppState extends ConsumerState<FathomApp> with WindowListener {
     // Mirror the diagnostic-logging pref into the app-wide capture flag, so
     // global error hooks and app logs record from launch when it's on.
     Diagnostics.instance.enabled = prefs.diagnosticLogging;
+    // And what it must never repeat, by value: the sign-in token and every
+    // key and password in the settings.
+    final secretPrefs = prefs.toJson();
+    final session = ref.watch(sessionControllerProvider).asData?.value;
+    Diagnostics.instance.protect(
+      [
+        session?.accessToken,
+        for (final k in secretPrefKeys)
+          if (secretPrefs[k] case final String v)
+            v
+          else if (secretPrefs[k] case final Map m)
+            ...m.values.whereType<String>(),
+      ],
+      // Where the user's servers are: every address in the settings.
+      addresses: [
+        session?.baseUrl,
+        session?.internalUrl,
+        session?.externalUrl,
+        for (final e in secretPrefs.entries)
+          if (e.key.endsWith('Url') && e.value is String) e.value as String,
+        for (final s in prefs.arrServers) '${s['url'] ?? ''}',
+      ],
+    );
     final accent = Color(prefs.accentColor);
     final mode = switch (prefs.themeMode) {
       'dark' => ThemeMode.dark,
