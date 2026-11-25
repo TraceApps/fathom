@@ -47,7 +47,7 @@ It works in both the Jellyfin and YouTube players, and stays put when you enter 
 
 Download a movie, an episode, a whole season or series, a Live TV recording, a track, or an entire album, and watch or listen with the server out of reach.
 
-- **Downloads is a real library**, not a list of files: Movies, TV Shows, Recordings, and Music sections with the same artwork and rating badges as your online library.
+- **Downloads is a real library**, not a list of files, with its own place in the side menu: Movies, TV Shows, Recordings, and Music sections with the same artwork and rating badges as your online library.
 - **Detail pages work offline** too, scoped to what you actually have: only the episodes on the device, with local Play, Mark Watched, and Remove that never touch the server.
 - **Pick a scope** when downloading a series (everything, or a single season), and watch progress on a floating pill with a Cancel All action.
 - **Choose where it lands** under **Settings → Downloads**.
@@ -193,7 +193,7 @@ Run most of Jellyfin from the app, without opening the web dashboard: manage use
 
 ## Personalization
 
-Light, dark, and AMOLED themes with a custom accent color, an Interface Size setting for high-resolution screens (desktop), a Home layout you can rearrange, a sidebar whose items you can reorder or hide, in-app updates with a Stable or Dev channel, system and in-app notifications, a Settings screen you can search, and a fully translatable interface.
+Light, dark, and AMOLED themes with a custom accent color, an Interface Size setting for high-resolution screens (desktop), a Home layout you can rearrange, a sidebar whose items you can reorder or hide (Libraries, Browse and Downloads each on their own), in-app updates with a Stable or Dev channel, system and in-app notifications, a Settings screen you can search, and a fully translatable interface.
 
 - **Several accounts**: keep more than one Jellyfin account (or server) signed in and switch between them without re-entering anything.
 - **Screen readers**: cards announce themselves as a single item with their title and year, every icon-only button carries a label, and the Movie Night Wheel names its titles and reads out each result.

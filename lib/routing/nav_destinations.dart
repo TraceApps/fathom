@@ -40,6 +40,14 @@ List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
       label: l.appNavLibraries,
       fixed: false
     ),
+    // A group, not a page: Playlists, Genres, Studios and Artists fold out
+    // of it. On its own in the list, so hiding Libraries leaves it be.
+    (
+      route: navBrowseGroup,
+      icon: Icons.grid_view_rounded,
+      label: l.miscBrowse,
+      fixed: false
+    ),
     (
       route: '/favorites',
       icon: Icons.favorite_rounded,
@@ -50,6 +58,12 @@ List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
       route: '/watchlist',
       icon: Icons.bookmark_rounded,
       label: l.appNavWatchlist,
+      fixed: false
+    ),
+    (
+      route: '/downloads',
+      icon: Icons.download_done_rounded,
+      label: l.appDownloads,
       fixed: false
     ),
     if (hasLiveTv)
@@ -87,6 +101,28 @@ List<NavDest> availableNavDestinations(WidgetRef ref, AppLocalizations l) {
   ];
 }
 
+/// The Browse group's place in the list. No page answers to it.
+const navBrowseGroup = '/browse';
+
+/// [all] in the saved [order]. One the saved order doesn't know keeps its
+/// default place after the ordered ones; except Browse, which stood under
+/// Libraries before it had a place of its own, and stays there.
+List<NavDest> sortNavDestinations(List<NavDest> all, List<String> order) {
+  if (order.isEmpty) return all;
+  final rank = <String, double>{
+    for (var i = 0; i < order.length; i++) order[i]: i.toDouble(),
+  };
+  final libraries = rank['/libraries'];
+  if (libraries != null) rank.putIfAbsent(navBrowseGroup, () => libraries + 0.5);
+  final indexed = all.asMap().entries.toList();
+  indexed.sort((a, b) {
+    final ra = rank[a.value.route] ?? (1000.0 + a.key);
+    final rb = rank[b.value.route] ?? (1000.0 + b.key);
+    return ra.compareTo(rb);
+  });
+  return [for (final e in indexed) e.value];
+}
+
 /// A destination's icon as the navigation draws it: its own, except Discover,
 /// which keeps the Seerr logo.
 Widget navDestIcon(NavDest d, {required Color color, double size = 23}) =>
@@ -102,14 +138,5 @@ List<NavDest> orderNavDestinations(List<NavDest> all, Prefs p) {
   final hidden = p.navHidden.toSet();
   final visible =
       all.where((d) => d.fixed || !hidden.contains(d.route)).toList();
-  final order = p.navOrder;
-  if (order.isEmpty) return visible;
-  final rank = {for (var i = 0; i < order.length; i++) order[i]: i};
-  final indexed = visible.asMap().entries.toList();
-  indexed.sort((a, b) {
-    final ra = rank[a.value.route] ?? (1000 + a.key);
-    final rb = rank[b.value.route] ?? (1000 + b.key);
-    return ra.compareTo(rb);
-  });
-  return [for (final e in indexed) e.value];
+  return sortNavDestinations(visible, p.navOrder);
 }

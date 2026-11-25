@@ -337,7 +337,8 @@ class NavSidebar extends ConsumerWidget {
     // fall back to the first plain tile — never the expandable Libraries group —
     // so the node is ALWAYS attached and LEFT-from-content reliably reaches the
     // rail on every screen.
-    final plain = destinations.where((d) => d.route != '/libraries');
+    final plain = destinations.where(
+        (d) => d.route != '/libraries' && d.route != navBrowseGroup);
     final navAnchorRoute = plain
         .firstWhere((d) => location.startsWith(d.route),
             orElse: () => plain.isEmpty ? destinations.first : plain.first)
@@ -345,10 +346,11 @@ class NavSidebar extends ConsumerWidget {
     // The scrollable nav destinations (shared by both layouts).
     final navTiles = <Widget>[
       for (final d in destinations)
-        if (d.route == '/libraries') ...[
-          _LibrariesNav(extended: extended, location: location),
-          _BrowseNav(extended: extended, location: location),
-        ] else
+        if (d.route == '/libraries')
+          _LibrariesNav(extended: extended, location: location)
+        else if (d.route == navBrowseGroup)
+          _BrowseNav(extended: extended, location: location)
+        else
           _NavTile(
             label: d.label,
             extended: extended,
@@ -1279,7 +1281,6 @@ class _BrowseNav extends ConsumerWidget {
       (l.miscNavGenres, '/genres', Icons.category_rounded),
       (l.miscNavStudios, '/studios', Icons.business_rounded),
       (l.miscNavArtists, '/artists', Icons.groups_rounded),
-      (l.appDownloads, '/downloads', Icons.download_done_rounded),
     ];
     final selected = items.any((i) => location.startsWith(i.$2));
 
@@ -1379,14 +1380,15 @@ class _LibrariesNav extends ConsumerWidget {
           icon: Icons.video_library_rounded,
           extended: extended,
           selected: selected,
-          // Clicking the row expands the list (Fladder-style); collapsed rail
-          // has no room, so it opens the full Libraries screen instead.
+          // Always opens Libraries, whatever the menu's width; with room
+          // for it, the list of libraries folds out too. On Libraries
+          // already, it folds the list in and out.
           onTap: () {
-            if (canExpand) {
+            final onPage = location == '/libraries';
+            if (canExpand && (onPage || !expanded)) {
               ref.read(librariesNavExpandedProvider.notifier).toggle();
-            } else {
-              context.go('/libraries');
             }
+            if (!onPage) context.go('/libraries');
           },
           trailing: canExpand
               ? AnimatedRotation(

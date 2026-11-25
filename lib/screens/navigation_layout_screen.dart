@@ -23,13 +23,7 @@ class NavigationLayoutScreen extends ConsumerWidget {
     // matches the sidebar). Hidden ones still appear (with their switch off) so
     // they can be brought back.
     final available = availableNavDestinations(ref, l);
-    final byRoute = {for (final d in available) d.route: d};
-    final ordered = <NavDest>[
-      for (final route in p.navOrder)
-        if (byRoute.containsKey(route)) byRoute[route]!,
-      for (final d in available)
-        if (!p.navOrder.contains(d.route)) d,
-    ];
+    final ordered = sortNavDestinations(available, p.navOrder);
     final hidden = p.navHidden.toSet();
 
     return Scaffold(
