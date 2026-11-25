@@ -788,7 +788,7 @@
   "@prefsMetacriticUser": {
     "description": "Ratings toggle title: Metacritic user score."
   },
-  "prefsMdbAddKeyToEnable": "Add an MDBList API key to enable",
+  "prefsMdbAddKeyToEnable": "Connect MDBList to turn this on",
   "@prefsMdbAddKeyToEnable": {
     "description": "Subtitle shown on an MDBList rating toggle when no API key is set."
   },

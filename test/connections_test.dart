@@ -8,6 +8,7 @@ import 'package:fathom/api/seerr_client.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
 import 'package:fathom/models/session.dart';
 import 'package:fathom/screens/arr_settings_screen.dart';
+import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/session_controller.dart';
 import 'package:fathom/theme/app_theme.dart';
@@ -98,6 +99,15 @@ Future<ProviderContainer> _open(
         theme: AppTheme.dark(const Color(0xFF8AB4F8)),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        // As on a TV, when the test says it is one.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            navigationMode: isTvDevice
+                ? NavigationMode.directional
+                : NavigationMode.traditional,
+          ),
+          child: child!,
+        ),
         home: home,
       ),
     ),
@@ -259,6 +269,42 @@ void main() {
         reason: text,
       );
     }
+  });
+
+  testWidgets('on TV, Add Connection opens with the remote on its first app', (
+    t,
+  ) async {
+    isTvDevice = true;
+    addTearDown(() => isTvDevice = false);
+    await _open(t, tester: (_, _, _, _) async => '1', size: const Size(960, 540));
+    await t.tap(find.text('Add Connection'));
+    await _settle(t);
+    final focused = FocusManager.instance.primaryFocus?.context;
+    expect(focused, isNotNull);
+    expect(
+      find.descendant(
+        of: find.byWidget(focused!.findAncestorWidgetOfExactType<ListTile>()!),
+        matching: find.text('Seerr'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Seerr: a new one starts at the other apps\' computer', (t) async {
+    await _open(
+      t,
+      prefs: const Prefs(radarrUrl: 'http://10.0.0.5:7878', radarrApiKey: 'k'),
+      tester: (_, _, _, _) async => '1',
+    );
+    await _add(t, 'Seerr');
+    final address = t.widget<TextField>(find.byType(TextField).at(0));
+    expect(address.controller!.text, 'http://10.0.0.5:5055');
+    // The cursor is on what's left: the key.
+    expect(
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<TextField>(),
+      t.widget<TextField>(find.byType(TextField).at(1)),
+    );
   });
 
   testWidgets('Seerr: a failed test saves nothing, and says why', (t) async {

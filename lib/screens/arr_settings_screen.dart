@@ -738,6 +738,9 @@ class _AddDialog extends StatelessWidget {
       final there = saved.any((c) => c.app == app);
       return TvFocusRing(
         child: ListTile(
+        // On TV the list opens with the remote on its first app; left to
+        // itself, nothing is under the remote until Down is pressed.
+        autofocus: isTvDevice && app == ConnApp.values.first,
         leading: Icon(app.icon, color: theme.colorScheme.primary),
         title: Text(app.appName),
         subtitle: Text(

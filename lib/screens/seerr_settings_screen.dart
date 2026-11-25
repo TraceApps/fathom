@@ -52,6 +52,9 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
   String _loginKind = 'jellyfin';
   bool _busy = false;
 
+  /// Opened with nothing saved: the cursor starts on what's left to fill.
+  bool _isNew = false;
+
   /// Why the last Save & Test failed; nothing was saved.
   String? _failed;
 
@@ -59,7 +62,14 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
   void initState() {
     super.initState();
     final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    _url = TextEditingController(text: p.seerrUrl);
+    // A new one starts on the computer the other apps are on, at Seerr's
+    // usual port, as the other connections do.
+    _isNew = p.seerrUrl.isEmpty;
+    _url = TextEditingController(
+      text: _isNew
+          ? suggestAddress(connectionsOf(p), ConnApp.seerr)
+          : p.seerrUrl,
+    );
     _key = TextEditingController(text: p.seerrApiKey);
     // Pre-fill the Jellyfin username from the active session so signing in to
     // Seerr with the Jellyfin account is one password entry away.
@@ -276,6 +286,7 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
             label: l.arrServerAddress,
             hint: 'http://192.168.1.10:5055',
             icon: Icons.link_rounded,
+            autofocus: _isNew && _url.text.isEmpty,
           ),
           const SizedBox(height: 20),
           SegmentedButton<String>(
@@ -300,6 +311,8 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
               label: l.seerrApiKeyLabel,
               helperText: l.seerrApiKeyHelper,
               icon: Icons.key_rounded,
+              autofocus: _isNew && _url.text.isNotEmpty,
+              onSubmitted: (_) => _busy ? null : _saveApiKey(),
             ),
             if (_failed != null) ...[
               const SizedBox(height: 16),
