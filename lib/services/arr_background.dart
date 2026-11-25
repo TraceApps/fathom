@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../state/arr_event_watcher.dart';
+import '../state/retry.dart';
 import '../state/notifications_controller.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
@@ -30,7 +31,7 @@ void arrBackgroundDispatcher() {
     if (task != arrBackgroundTask) return true;
     WidgetsFlutterBinding.ensureInitialized();
     await AppNotifications.init();
-    final c = ProviderContainer();
+    final c = ProviderContainer(retry: fathomRetry);
     try {
       await arrBackgroundCheck(c);
     } catch (_) {

@@ -14,6 +14,7 @@ import 'package:audio_service/audio_service.dart';
 import 'app.dart';
 import 'services/secure_http.dart';
 import 'services/tv_mode.dart';
+import 'state/retry.dart';
 import 'widgets/tv_focus.dart' show tvPassInertRows;
 import 'services/app_installer.dart';
 import 'services/desktop_integration.dart';
@@ -167,6 +168,7 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
+      retry: fathomRetry,
       overrides: [
         deviceIdProvider.overrideWithValue(deviceId),
         audioHandlerProvider.overrideWithValue(audioHandler),
