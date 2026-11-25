@@ -39,6 +39,7 @@ import '../widgets/app_snack.dart';
 import '../widgets/arr_widgets.dart' show kManageIcon;
 import '../widgets/app_spinner.dart';
 import '../widgets/ui_common.dart';
+import '../widgets/error_view.dart';
 import '../api/jellyfin_client.dart';
 
 /// Item detail: backdrop, metadata, overview, a Play/Resume action, and — for
@@ -70,7 +71,22 @@ class DetailScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: detail.when(
         loading: () => const _DetailSkeleton(),
-        error: (e, _) => _ErrorState(message: '$e'),
+        error: (e, _) => SafeArea(
+          child: Column(
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: BackButton(),
+              ),
+              Expanded(
+                child: ErrorView(
+                  message: '$e',
+                  onRetry: () => ref.invalidate(itemDetailProvider(item.id)),
+                ),
+              ),
+            ],
+          ),
+        ),
         data: (full) => BackdropBackground(
           item: full,
           child: full.type == 'BoxSet'
@@ -663,7 +679,12 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
     final episodes = ref.watch(episodesProvider(widget.seriesId));
     return episodes.when(
       loading: () => const SliverToBoxAdapter(child: EpisodeListSkeleton()),
-      error: (e, _) => SliverToBoxAdapter(child: _ErrorState(message: '$e')),
+      error: (e, _) => SliverToBoxAdapter(
+        child: SectionError(
+          message: '$e',
+          onRetry: () => ref.invalidate(episodesProvider(widget.seriesId)),
+        ),
+      ),
       data: (items) =>
           items.isEmpty ? const SliverToBoxAdapter() : _buildList(items),
     );
@@ -2082,25 +2103,6 @@ class _DetailSkeleton extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final String message;
-  const _ErrorState({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-      ),
     );
   }
 }

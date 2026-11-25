@@ -158,11 +158,12 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
 Widget _async(
   BuildContext context,
   AsyncValue<List<Map<String, dynamic>>> async,
-  Widget Function(List<Map<String, dynamic>>) builder,
-) {
+  Widget Function(List<Map<String, dynamic>>) builder, {
+  required VoidCallback onRetry,
+}) {
   return async.when(
     loading: () => const Center(child: AppSpinner()),
-    error: (e, _) => ErrorView(message: '$e'),
+    error: (e, _) => ErrorView(message: '$e', onRetry: onRetry),
     data: (list) => list.isEmpty
         ? Center(child: Text(AppLocalizations.of(context).adminNothingHere))
         : builder(list),
@@ -210,7 +211,10 @@ class _SystemTab extends ConsumerWidget {
     final info = ref.watch(adminSystemProvider);
     return info.when(
       loading: () => const Center(child: AppSpinner()),
-      error: (e, _) => Center(child: Text('$e')),
+      error: (e, _) => ErrorView(
+        message: '$e',
+        onRetry: () => ref.invalidate(adminSystemProvider),
+      ),
       data: (m) => ListView(
         children: [
           ListTile(
@@ -375,7 +379,8 @@ class _UsersTab extends ConsumerWidget {
           },
         ),
       );
-    });
+    }, onRetry: () => ref.invalidate(adminUsersProvider),
+    );
   }
 }
 
@@ -452,7 +457,8 @@ class _LibrariesTab extends ConsumerWidget {
                 );
               },
             );
-          }),
+          }, onRetry: () => ref.invalidate(adminLibrariesProvider),
+    ),
         ),
       ],
     );
@@ -510,7 +516,8 @@ class _TasksTab extends ConsumerWidget {
           },
         ),
       );
-    });
+    }, onRetry: () => ref.invalidate(adminTasksProvider),
+    );
   }
 }
 
@@ -587,7 +594,8 @@ class _SessionsTab extends ConsumerWidget {
           },
         ),
       );
-    });
+    }, onRetry: () => ref.invalidate(adminSessionsProvider),
+    );
   }
 }
 
@@ -624,7 +632,8 @@ class _ActivityTab extends ConsumerWidget {
           },
         ),
       );
-    });
+    }, onRetry: () => ref.invalidate(adminActivityProvider),
+    );
   }
 }
 

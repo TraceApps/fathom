@@ -102,7 +102,10 @@ class _GuideViewState extends ConsumerState<GuideView> {
     final guide = ref.watch(guideProvider);
     return guide.when(
       loading: () => const Center(child: AppSpinner()),
-      error: (e, _) => ErrorView(message: '$e'),
+      error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(guideProvider),
+        ),
       data: (data) {
         if (data.channels.isEmpty) {
           return EmptyState(

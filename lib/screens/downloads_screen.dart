@@ -62,7 +62,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
       ),
       body: downloads.when(
         loading: () => const Center(child: AppSpinner()),
-        error: (e, _) => ErrorView(message: '$e'),
+        error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(downloadsProvider),
+        ),
         data: (map) {
           if (map.isEmpty) {
             return EmptyState(

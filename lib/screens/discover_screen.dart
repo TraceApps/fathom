@@ -1034,18 +1034,22 @@ class SeerrCategoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = switch (categoryKey) {
-      'popularMovies' => ref.watch(seerrMoviesProvider),
-      'popularSeries' => ref.watch(seerrTvProvider),
-      'upcomingMovies' => ref.watch(seerrUpcomingMoviesProvider),
-      'upcomingSeries' => ref.watch(seerrUpcomingTvProvider),
-      _ => ref.watch(seerrTrendingProvider),
+    final provider = switch (categoryKey) {
+      'popularMovies' => seerrMoviesProvider,
+      'popularSeries' => seerrTvProvider,
+      'upcomingMovies' => seerrUpcomingMoviesProvider,
+      'upcomingSeries' => seerrUpcomingTvProvider,
+      _ => seerrTrendingProvider,
     };
+    final async = ref.watch(provider);
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: async.when(
         loading: () => const PosterGridSkeleton(),
-        error: (e, _) => ErrorView(message: '$e'),
+        error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(provider),
+        ),
         data: (list) => list.isEmpty
             ? EmptyState(
                 icon: Icons.movie_filter_rounded,
@@ -1147,7 +1151,10 @@ class _SeerrGenreScreenState extends ConsumerState<SeerrGenreScreen> {
       ]),
       body: async.when(
         loading: () => const PosterGridSkeleton(),
-        error: (e, _) => ErrorView(message: '$e'),
+        error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(seerrGenreResultsProvider(( mediaType: widget.mediaType, genreId: widget.genreId, sortBy: _sortBy, ))),
+        ),
         data: (list) => list.isEmpty
             ? EmptyState(
                 icon: Icons.movie_filter_rounded,
@@ -1192,7 +1199,10 @@ class _SeerrCompanyScreenState extends ConsumerState<SeerrCompanyScreen> {
       ]),
       body: async.when(
         loading: () => const PosterGridSkeleton(),
-        error: (e, _) => ErrorView(message: '$e'),
+        error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(seerrCompanyResultsProvider((kind: widget.kind, id: widget.id, sortBy: _sortBy))),
+        ),
         data: (list) => list.isEmpty
             ? EmptyState(
                 icon: Icons.movie_filter_rounded,
@@ -1448,14 +1458,9 @@ class _SeerrSearchTabState extends ConsumerState<_SeerrSearchTab> {
                 )
               : async.when(
                   loading: () => const PosterGridSkeleton(),
-                  error: (e, _) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text('$e',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.error)),
-                    ),
+                  error: (e, _) => ErrorView(
+                    message: '$e',
+                    onRetry: () => ref.invalidate(seerrSearchProvider),
                   ),
                   data: (list) => list.isEmpty
                       ? EmptyState(
@@ -1625,7 +1630,10 @@ class _RequestsTab extends ConsumerWidget {
         Expanded(
           child: async.when(
             loading: () => const Center(child: AppSpinner()),
-            error: (e, _) => ErrorView(message: '$e'),
+            error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(seerrRequestsProvider),
+        ),
             data: (list) => list.isEmpty
                 ? EmptyState(
                     icon: Icons.inbox_rounded,

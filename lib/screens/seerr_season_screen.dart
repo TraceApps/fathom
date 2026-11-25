@@ -29,7 +29,10 @@ class SeerrSeasonScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(seasonName)),
       body: async.when(
         loading: () => const Center(child: AppSpinner()),
-        error: (e, _) => ErrorView(message: '$e'),
+        error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(seerrSeasonProvider((tvId: tvId, seasonNumber: seasonNumber))),
+        ),
         data: (episodes) => episodes.isEmpty
             ? Center(child: Text(l.detailNoEpisodes))
             : ListView.separated(

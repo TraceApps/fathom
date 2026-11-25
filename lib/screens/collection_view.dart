@@ -60,7 +60,10 @@ class CollectionView extends ConsumerWidget {
             child: SizedBox(height: 560, child: PosterGridSkeleton()),
           ),
           error: (e, _) =>
-              SliverToBoxAdapter(child: ErrorView(message: '$e')),
+              SliverToBoxAdapter(child: ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(collectionItemsProvider(collection.id)),
+        )),
           data: (list) {
             if (list.isEmpty) {
               return SliverToBoxAdapter(

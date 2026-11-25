@@ -25,6 +25,7 @@ import '../services/sponsorblock.dart';
 import '../services/track_languages.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/error_view.dart';
 
 // One list, shared with the player's online subtitle search (track_languages),
 // so the same codes and the same order appear everywhere.
@@ -96,7 +97,10 @@ class PreferencesScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(title)),
       body: prefsAsync.when(
         loading: () => const Center(child: AppSpinner()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(preferencesProvider),
+        ),
         data: (p) => ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: switch (section) {

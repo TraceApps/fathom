@@ -14,6 +14,7 @@ import '../widgets/tv_focus.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/ui_common.dart';
+import '../widgets/error_view.dart';
 
 /// Album detail: cover, artist, a play button, and the track list. Rendered by
 /// DetailScreen when the item is a MusicAlbum online; in [downloadScoped] mode
@@ -157,10 +158,9 @@ class AlbumView extends ConsumerWidget {
               ),
             ),
             error: (e, _) => SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text('$e',
-                    style: TextStyle(color: theme.colorScheme.error)),
+              child: SectionError(
+                message: '$e',
+                onRetry: () => ref.invalidate(albumTracksProvider(album.id)),
               ),
             ),
             data: (t) => _trackList(context, ref, t, playing, l, theme),

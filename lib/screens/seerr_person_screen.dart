@@ -35,7 +35,10 @@ class _SeerrPersonScreenState extends ConsumerState<SeerrPersonScreen> {
           child: Column(
             children: [
               const Align(alignment: Alignment.centerLeft, child: BackButton()),
-              Expanded(child: ErrorView(message: '$e')),
+              Expanded(child: ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(seerrPersonProvider(widget.personId)),
+        )),
             ],
           ),
         ),

@@ -11,6 +11,7 @@ import '../widgets/media_image.dart';
 import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../widgets/ui_common.dart';
+import '../widgets/error_view.dart';
 
 /// Hub listing the user's libraries (Movies, Shows, Music, Recordings, Live
 /// TV, ...) so they're reachable straight from the sidebar.
@@ -40,14 +41,9 @@ class LibrariesScreen extends ConsumerWidget {
             child: views.when(
               loading: () => const PosterGridSkeleton(
                   maxExtent: 300, aspectRatio: 16 / 10),
-              error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text('$e',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.error)),
-                ),
+              error: (e, _) => ErrorView(
+                message: '$e',
+                onRetry: () => ref.invalidate(userViewsProvider),
               ),
               data: (all) {
                 // Live TV has its own sidebar section; don't list it here.

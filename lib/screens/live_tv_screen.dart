@@ -63,7 +63,10 @@ class _RecordingsList extends ConsumerWidget {
     final recordings = ref.watch(recordingsProvider);
     return recordings.when(
       loading: () => const Center(child: AppSpinner()),
-      error: (e, _) => ErrorView(message: '$e'),
+      error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(recordingsProvider),
+        ),
       data: (items) {
         if (items.isEmpty) {
           return EmptyState(
@@ -124,7 +127,10 @@ class _ChannelsList extends ConsumerWidget {
     final channels = ref.watch(liveTvChannelsProvider);
     return channels.when(
       loading: () => const Center(child: AppSpinner()),
-      error: (e, _) => ErrorView(message: '$e'),
+      error: (e, _) => ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(liveTvChannelsProvider),
+        ),
       data: (items) {
         if (items.isEmpty) {
           return EmptyState(

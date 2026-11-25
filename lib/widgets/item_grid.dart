@@ -64,7 +64,7 @@ class _ItemGridBodyState extends ConsumerState<ItemGridBody> {
   Widget build(BuildContext context) {
     return widget.items.when(
       loading: () => const PosterGridSkeleton(),
-      error: (e, _) => ErrorView(message: '$e'),
+      error: (e, _) => ErrorView(message: '$e', onRetry: widget.onRefresh),
       data: (list) {
         if (list.isEmpty) {
           return EmptyState(icon: widget.emptyIcon, title: widget.emptyTitle);

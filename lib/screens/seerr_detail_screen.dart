@@ -17,6 +17,7 @@ import '../state/seerr_providers.dart';
 import '../state/session_controller.dart';
 import '../services/tv_mode.dart';
 import '../widgets/app_snack.dart';
+import '../widgets/error_view.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/tv_focus.dart';
@@ -50,7 +51,10 @@ class SeerrDetailScreen extends ConsumerWidget {
     return Scaffold(
       body: async.when(
         loading: () => _loadingHeader(context),
-        error: (e, _) => _ErrorView(message: '$e', title: result.title),
+        error: (e, _) => _ErrorView(
+          message: '$e',
+          onRetry: () => ref.invalidate(seerrDetailProvider(key)),
+        ),
         data: (d) => _DetailBody(detail: d),
       ),
     );
@@ -1121,28 +1125,19 @@ class _CastCardState extends State<_CastCard> {
   }
 }
 
+/// The page couldn't be read: the shared error view, under a Back button
+/// (this page has no app bar of its own).
 class _ErrorView extends StatelessWidget {
   final String message;
-  final String title;
-  const _ErrorView({required this.message, required this.title});
+  final VoidCallback onRetry;
+  const _ErrorView({required this.message, required this.onRetry});
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Column(
         children: [
-          Align(alignment: Alignment.centerLeft, child: BackButton()),
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            ),
-          ),
+          const Align(alignment: Alignment.centerLeft, child: BackButton()),
+          Expanded(child: ErrorView(message: message, onRetry: onRetry)),
         ],
       ),
     );
