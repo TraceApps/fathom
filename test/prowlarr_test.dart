@@ -700,14 +700,19 @@ void main() {
       expect(prowlarrAt, greaterThan(radarrAt));
     });
 
-    testWidgets('Settings has a Prowlarr card, saved on its own', (t) async {
+    testWidgets('Settings: Add Connection > Prowlarr, saved on its own', (t) async {
+      final tried = <ConnApp>{};
       final container = ProviderContainer(
         overrides: [
           preferencesProvider.overrideWith(() => _FakePrefs(const Prefs())),
+          connTesterProvider.overrideWithValue((app, url, user, key) async {
+            tried.add(app);
+            return '2.0.1';
+          }),
         ],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 4400);
+      t.view.physicalSize = const Size(500, 1400);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -722,28 +727,29 @@ void main() {
         ),
       );
       await _settle(t);
-      expect(find.text('Prowlarr'), findsOneWidget);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Prowlarr'),
+        ),
+      );
+      await _settle(t);
+      // Its own page, with its usual address as the hint.
       expect(find.text('http://192.168.1.10:9696'), findsOneWidget);
       final fields = find.byType(TextField);
-      // The five apps' address and key (Bazarr's too), then the download
-      // clients'.
-      expect(fields, findsNWidgets(15));
-      await t.enterText(fields.at(6), '10.0.0.5:9696');
-      await t.enterText(fields.at(7), 'pkey');
-      await t.tap(find.text('Save & Test').at(3));
+      await t.enterText(fields.at(0), '10.0.0.5:9696');
+      await t.enterText(fields.at(1), 'pkey');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
+      // The check is Prowlarr's, and it's saved on its own.
+      expect(tried, {ConnApp.prowlarr});
+      expect(find.text('Connected to Prowlarr 2.0.1'), findsOneWidget);
       final p = container.read(preferencesProvider).requireValue;
       expect(p.prowlarrUrl, 'http://10.0.0.5:9696');
       expect(p.prowlarrApiKey, 'pkey');
       expect(p.lidarrUrl, isEmpty);
-      // The check is Prowlarr's.
-      expect(
-        find.descendant(
-          of: find.byType(SnackBar),
-          matching: find.textContaining('Prowlarr'),
-        ),
-        findsOneWidget,
-      );
     });
   });
 }

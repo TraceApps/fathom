@@ -7,6 +7,7 @@ import '../api/download_clients.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../models/download_client.dart';
+import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../state/arr_servers.dart';
 import '../state/download_providers.dart';
@@ -18,343 +19,1032 @@ import '../widgets/app_spinner.dart';
 import '../widgets/arr_servers_ui.dart';
 import '../widgets/tv_keyboard.dart';
 
-/// Connect Sonarr, Radarr, Lidarr and Prowlarr (an address and an API key
-/// each) and the download clients, each checked on save.
-class ArrSettingsScreen extends StatelessWidget {
+// Manage Connections: what's connected, each with how it's doing, and Add
+// Connection for the rest. A connection opens on a page of its own (beside
+// the list in a wide window), with its address, its sign-in, and what else
+// belongs to it. A second server of an app (a 4K Radarr) is a row of its
+// own.
+
+/// Everything Fathom can connect to here.
+enum ConnApp {
+  sonarr,
+  radarr,
+  lidarr,
+  prowlarr,
+  bazarr,
+  qbittorrent,
+  sabnzbd;
+
+  String get appName => switch (this) {
+    sonarr => ArrKind.sonarr.appName,
+    radarr => ArrKind.radarr.appName,
+    lidarr => ArrKind.lidarr.appName,
+    prowlarr => ProwlarrClient.appName,
+    bazarr => BazarrClient.appName,
+    qbittorrent => DownloadClientKind.qbittorrent.appName,
+    sabnzbd => DownloadClientKind.sabnzbd.appName,
+  };
+
+  /// The library app, for the ones that can have more than one server.
+  ArrKind? get kind => switch (this) {
+    sonarr => ArrKind.sonarr,
+    radarr => ArrKind.radarr,
+    lidarr => ArrKind.lidarr,
+    _ => null,
+  };
+
+  bool get isDownloadClient => this == qbittorrent || this == sabnzbd;
+
+  IconData get icon => switch (this) {
+    sonarr => Icons.live_tv_rounded,
+    radarr => Icons.movie_rounded,
+    lidarr => Icons.library_music_rounded,
+    prowlarr => Icons.travel_explore_rounded,
+    bazarr => Icons.subtitles_rounded,
+    qbittorrent => Icons.hub_rounded,
+    sabnzbd => Icons.dns_rounded,
+  };
+
+  /// The port it answers on out of the box (as the address hints show).
+  int get port => switch (this) {
+    sonarr => 8989,
+    radarr => 7878,
+    lidarr => 8686,
+    prowlarr => 9696,
+    bazarr => 6767,
+    qbittorrent => 8080,
+    sabnzbd => 8085,
+  };
+
+  String forWhat(AppLocalizations l) => switch (this) {
+    sonarr => l.arrForShows,
+    radarr => l.arrForMovies,
+    lidarr => l.arrForMusic,
+    prowlarr => l.arrForIndexers,
+    bazarr => l.arrForSubtitles,
+    qbittorrent => l.dlForTorrents,
+    sabnzbd => l.dlForUsenet,
+  };
+
+  static ConnApp of(ArrKind k) => switch (k) {
+    ArrKind.sonarr => sonarr,
+    ArrKind.radarr => radarr,
+    ArrKind.lidarr => lidarr,
+  };
+}
+
+/// One saved connection.
+class Conn {
+  final ConnApp app;
+
+  /// The server, for an app that can have more than one; null otherwise.
+  final String? serverId;
+
+  /// What the user called the server ("4K"); empty for none.
+  final String name;
+  final String url;
+
+  /// qBittorrent's username; empty for the others.
+  final String user;
+
+  /// The API key, or qBittorrent's password.
+  final String secret;
+
+  /// The server of its app in use (always, for the apps with one).
+  final bool active;
+
+  /// How many servers its app has.
+  final int servers;
+
+  const Conn({
+    required this.app,
+    this.serverId,
+    this.name = '',
+    required this.url,
+    this.user = '',
+    required this.secret,
+    this.active = true,
+    this.servers = 1,
+  });
+
+  /// Has what it needs to try: a server brought back by a backup has no key
+  /// yet (qBittorrent can go without a password, but not with only a
+  /// username).
+  bool get ready => app == ConnApp.qbittorrent
+      ? user.isEmpty || secret.isNotEmpty
+      : secret.isNotEmpty;
+
+  /// What its row and page are called: the app, with the server's name once
+  /// there's more than one or it was given one.
+  String title(AppLocalizations l) => app.kind != null &&
+          (servers > 1 || name.trim().isNotEmpty)
+      ? '${app.appName}: ${name.trim().isEmpty ? l.arrServerMain : name.trim()}'
+      : app.appName;
+
+  /// What to check, for [connCheckProvider].
+  ConnCheck get check =>
+      (app: app, url: url, user: user, secret: secret, active: active);
+}
+
+/// Every saved connection, the library apps' servers each on their own.
+List<Conn> connectionsOf(Prefs p) => [
+  for (final k in ArrKind.values)
+    for (final s in arrServersByName(arrServersOf(p, k)))
+      Conn(
+        app: ConnApp.of(k),
+        serverId: s.id,
+        name: s.name,
+        url: s.url,
+        secret: s.apiKey,
+        active: s.active,
+        servers: arrServersOf(p, k).length,
+      ),
+  if (p.prowlarrUrl.isNotEmpty)
+    Conn(app: ConnApp.prowlarr, url: p.prowlarrUrl, secret: p.prowlarrApiKey),
+  if (p.bazarrUrl.isNotEmpty)
+    Conn(app: ConnApp.bazarr, url: p.bazarrUrl, secret: p.bazarrApiKey),
+  if (p.qbitUrl.isNotEmpty)
+    Conn(
+      app: ConnApp.qbittorrent,
+      url: p.qbitUrl,
+      user: p.qbitUsername,
+      secret: p.qbitPassword,
+    ),
+  if (p.sabUrl.isNotEmpty)
+    Conn(app: ConnApp.sabnzbd, url: p.sabUrl, secret: p.sabApiKey),
+];
+
+/// The saved connection [app] / [serverId] names, if it's still there.
+Conn? findConn(Prefs p, ConnApp app, String? serverId) => connectionsOf(p)
+    .where((c) => c.app == app && (app.kind == null || c.serverId == serverId))
+    .firstOrNull;
+
+/// How many connections there are, for Settings.
+final connCountProvider = Provider<int>((ref) {
+  final p = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
+  return connectionsOf(p).length;
+});
+
+typedef ConnCheck = ({
+  ConnApp app,
+  String url,
+  String user,
+  String secret,
+  bool active,
+});
+
+/// Asks [app] at an address what version it is; throws when it isn't that
+/// app or won't take the key.
+Future<String> testConnection(
+  ConnApp app,
+  String url,
+  String user,
+  String secret,
+) => switch (app) {
+  ConnApp.sonarr || ConnApp.radarr || ConnApp.lidarr => arrCheckServer(
+    app.kind!,
+    url,
+    secret,
+  ),
+  ConnApp.prowlarr => ProwlarrClient(url, secret).status().then((s) => s.version),
+  ConnApp.bazarr => BazarrClient(url, secret).version(),
+  ConnApp.qbittorrent => QbitClient(url, user, secret).version(),
+  ConnApp.sabnzbd => SabClient(url, secret).version(),
+};
+
+typedef ConnTester =
+    Future<String> Function(ConnApp app, String url, String user, String secret);
+
+/// How a connection is tried: [testConnection], or a stand-in in tests.
+final connTesterProvider = Provider<ConnTester>((_) => testConnection);
+
+/// A saved connection's version, asked when its row or page shows.
+final connCheckProvider = FutureProvider.autoDispose.family<String, ConnCheck>((
+  ref,
+  c,
+) {
+  // qBittorrent through the app's own client: one it has refused isn't
+  // sent to sign in again (repeated failures get a device banned).
+  if (c.app == ConnApp.qbittorrent) {
+    final q = ref.read(qbitClientProvider);
+    if (q != null && q.baseUrl == c.url) return q.version();
+  }
+  return ref.read(connTesterProvider)(c.app, c.url, c.user, c.secret);
+  // Asked once: a retry would be another sign-in qBittorrent may count
+  // against the device. Opening the page again asks again.
+}, retry: (_, _) => null);
+
+/// What a connection shows for how it's doing: a word and its color.
+enum _State { connected, checking, failed, needsKey }
+
+_State _stateOf(Conn c, AsyncValue<String>? check) {
+  if (!c.ready) return _State.needsKey;
+  if (check == null || check.isLoading && !check.hasValue) {
+    return _State.checking;
+  }
+  return check.hasValue && !check.hasError ? _State.connected : _State.failed;
+}
+
+const _green = Color(0xFF22C55E);
+
+class _StateChip extends StatelessWidget {
+  final _State state;
+  const _StateChip(this.state);
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final (label, color) = switch (state) {
+      _State.connected => (l.arrStatusConnected, _green),
+      _State.checking => (l.arrStatusChecking, scheme.onSurfaceVariant),
+      _State.failed => (l.arrStatusFailed, scheme.error),
+      _State.needsKey => (l.arrStatusNeedsKey, const Color(0xFFF59E0B)),
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          switch (state) {
+            _State.connected => Icons.check_circle_rounded,
+            _State.checking => Icons.more_horiz_rounded,
+            _State.failed => Icons.error_rounded,
+            _State.needsKey => Icons.key_off_rounded,
+          },
+          size: 16,
+          color: color,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A connection, as the list and the pane name it.
+typedef _Open = ({ConnApp app, String? serverId, bool isNew});
+
+class ArrSettingsScreen extends ConsumerStatefulWidget {
   const ArrSettingsScreen({super.key});
+
+  @override
+  ConsumerState<ArrSettingsScreen> createState() => _ArrSettingsScreenState();
+}
+
+class _ArrSettingsScreenState extends ConsumerState<ArrSettingsScreen> {
+  /// What the pane beside the list shows, in a wide window.
+  _Open? _open;
+
+  /// A new one for each pick, so the pane starts over for it.
+  int _pick = 0;
+
+  /// Whether the window has room for the pane: a TV keeps to pages, where
+  /// the remote's focus can't get lost between two.
+  static bool _wide(BoxConstraints box) => !isTvDevice && box.maxWidth >= 900;
+
+  void _show(BuildContext context, bool wide, _Open o) {
+    if (wide) {
+      setState(() {
+        _open = o;
+        _pick++;
+      });
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ConnectionPage(
+          app: o.app,
+          serverId: o.serverId,
+          isNew: o.isNew,
+          onClose: (page) => Navigator.of(page).maybePop(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _add(BuildContext context, bool wide) async {
+    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
+    final app = await showDialog<ConnApp>(
+      context: context,
+      builder: (_) => _AddDialog(saved: connectionsOf(p)),
+    );
+    if (app == null || !context.mounted) return;
+    // An app with room for one: the one there is.
+    final there = app.kind == null ? findConn(p, app, null) : null;
+    _show(
+      context,
+      wide,
+      (app: app, serverId: there?.serverId, isNew: there == null),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsArr)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            l.arrSettingsIntro,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          const _ArrConnectionCard(kind: ArrKind.sonarr),
-          const SizedBox(height: 16),
-          const _ArrConnectionCard(kind: ArrKind.radarr),
-          const SizedBox(height: 16),
-          const _ArrConnectionCard(kind: ArrKind.lidarr),
-          const SizedBox(height: 16),
-          const _ArrConnectionCard(kind: null),
-          const SizedBox(height: 16),
-          const _ArrConnectionCard(kind: null, bazarr: true),
-          const SizedBox(height: 28),
-          Text(
-            l.dlSettingsHeading,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          const _DownloadClientCard(kind: DownloadClientKind.qbittorrent),
-          const SizedBox(height: 16),
-          const _DownloadClientCard(kind: DownloadClientKind.sabnzbd),
-        ],
+      body: LayoutBuilder(
+        builder: (context, box) {
+          final wide = _wide(box);
+          final list = _List(
+            selected: wide ? _open : null,
+            onOpen: (o) => _show(context, wide, o),
+            onAdd: () => _add(context, wide),
+          );
+          if (!wide) return list;
+          final open = _open;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(width: (box.maxWidth * 0.42).clamp(340, 460), child: list),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: open == null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            l.arrPickConnection,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      )
+                    : _ConnectionPage(
+                        key: ValueKey(_pick),
+                        app: open.app,
+                        serverId: open.serverId,
+                        isNew: open.isNew,
+                        embedded: true,
+                        onSaved: (o) => setState(() => _open = o),
+                        onClose: (_) => setState(() => _open = null),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _ArrConnectionCard extends ConsumerStatefulWidget {
-  /// The app; null for Prowlarr or Bazarr, which aren't library apps.
-  final ArrKind? kind;
-
-  /// With no kind: Bazarr rather than Prowlarr.
-  final bool bazarr;
-  const _ArrConnectionCard({required this.kind, this.bazarr = false});
+/// The connections, by kind, with Add Connection under them.
+class _List extends ConsumerWidget {
+  final _Open? selected;
+  final ValueChanged<_Open> onOpen;
+  final VoidCallback onAdd;
+  const _List({
+    required this.selected,
+    required this.onOpen,
+    required this.onAdd,
+  });
 
   @override
-  ConsumerState<_ArrConnectionCard> createState() => _ArrConnectionCardState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final p = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
+    final all = connectionsOf(p);
+    final apps = [for (final c in all) if (!c.app.isDownloadClient) c];
+    final clients = [for (final c in all) if (c.app.isDownloadClient) c];
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+      child: Text(
+        text,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+    Widget group(List<Conn> conns) => Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final (i, c) in conns.indexed) ...[
+            if (i > 0) const Divider(height: 1, indent: 56),
+            _Row(
+              conn: c,
+              selected:
+                  selected != null &&
+                  !selected!.isNew &&
+                  selected!.app == c.app &&
+                  selected!.serverId == c.serverId,
+              onTap: () =>
+                  onOpen((app: c.app, serverId: c.serverId, isNew: false)),
+            ),
+          ],
+        ],
+      ),
+    );
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (all.isEmpty) ...[
+          Text(l.arrSettingsIntro, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 20),
+        ],
+        if (apps.isNotEmpty) ...[
+          heading(l.arrConnApps),
+          group(apps),
+          const SizedBox(height: 20),
+        ],
+        if (clients.isNotEmpty) ...[
+          heading(l.dlSettingsHeading),
+          group(clients),
+          const SizedBox(height: 20),
+        ],
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.tonalIcon(
+            autofocus: all.isEmpty,
+            onPressed: onAdd,
+            icon: const Icon(Icons.add_rounded),
+            label: Text(l.arrAddConnection),
+          ),
+        ),
+        if (all.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(
+            l.arrKeysStayHere,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
-class _ArrConnectionCardState extends ConsumerState<_ArrConnectionCard> {
-  late final TextEditingController _url;
-  late final TextEditingController _key;
+class _Row extends ConsumerWidget {
+  final Conn conn;
+  final bool selected;
+  final VoidCallback onTap;
+  const _Row({
+    required this.conn,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final check = conn.ready ? ref.watch(connCheckProvider(conn.check)) : null;
+    final state = _stateOf(conn, check);
+    final version = state == _State.connected ? _shortVersion(check?.value) : null;
+    return ListTile(
+      selected: selected,
+      onTap: onTap,
+      leading: Icon(conn.app.icon, color: theme.colorScheme.primary),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(conn.title(l), overflow: TextOverflow.ellipsis),
+          ),
+          if (conn.servers > 1 && conn.active) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                l.arrServerInUse,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Text(
+        [_shortUrl(conn.url), ?version].join(' · '),
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: _StateChip(state),
+    );
+  }
+}
+
+/// A version as far as people tell them apart: 5.28.0, not 5.28.0.10274.
+String? _shortVersion(String? v) =>
+    v?.split('.').take(3).join('.');
+
+/// An address without what every one of them has.
+String _shortUrl(String url) =>
+    url.replaceFirst(RegExp(r'^https?://'), '').replaceAll(RegExp(r'/+$'), '');
+
+/// Add Connection: every app, what it's for, and whether it's there.
+class _AddDialog extends StatelessWidget {
+  final List<Conn> saved;
+  const _AddDialog({required this.saved});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    Widget option(ConnApp app) {
+      final there = saved.any((c) => c.app == app);
+      return ListTile(
+        leading: Icon(app.icon, color: theme.colorScheme.primary),
+        title: Text(app.appName),
+        subtitle: Text(
+          !there
+              ? app.forWhat(l)
+              : app.kind != null
+              ? l.arrServersHint
+              : l.arrStatusConnected,
+        ),
+        trailing: there && app.kind == null
+            ? const Icon(Icons.check_rounded, color: _green)
+            : null,
+        onTap: () => Navigator.pop(context, app),
+      );
+    }
+
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+      child: Text(
+        text,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+    return AlertDialog(
+      title: Text(l.arrAddConnection),
+      contentPadding: const EdgeInsets.only(top: 8, bottom: 8),
+      content: SizedBox(
+        width: 460,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              heading(l.arrConnApps),
+              for (final a in ConnApp.values)
+                if (!a.isDownloadClient) option(a),
+              heading(l.dlSettingsHeading),
+              for (final a in ConnApp.values)
+                if (a.isDownloadClient) option(a),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+        ),
+      ],
+    );
+  }
+}
+
+/// A new connection's address, from the ones there are: the same computer,
+/// at the app's usual port. Only from an address that is a computer and a
+/// port; behind a reverse proxy ("/sonarr") the next app's place can't be
+/// guessed.
+String suggestAddress(List<Conn> saved, ConnApp app) {
+  final taken = {for (final c in saved) _shortUrl(c.url).toLowerCase()};
+  for (final c in saved) {
+    final u = Uri.tryParse(c.url);
+    if (u == null || !u.hasPort || u.host.isEmpty) continue;
+    if (u.path.isNotEmpty && u.path != '/') continue;
+    final guess = '${u.scheme}://${u.host}:${app.port}';
+    if (taken.contains(_shortUrl(guess).toLowerCase())) continue;
+    return guess;
+  }
+  return '';
+}
+
+/// A connection's own page: its address and sign-in, Save & Test, and what
+/// belongs to it (Defaults for New Titles, Use This One, Disconnect). For a
+/// new one, it becomes that connection once saved.
+class _ConnectionPage extends ConsumerStatefulWidget {
+  final ConnApp app;
+  final String? serverId;
+  final bool isNew;
+
+  /// Beside the list, rather than a page of its own.
+  final bool embedded;
+
+  /// A new one was saved, as this.
+  final ValueChanged<_Open>? onSaved;
+
+  /// Done with it: disconnected.
+  final void Function(BuildContext page) onClose;
+
+  const _ConnectionPage({
+    super.key,
+    required this.app,
+    required this.serverId,
+    required this.isNew,
+    this.embedded = false,
+    this.onSaved,
+    required this.onClose,
+  });
+
+  @override
+  ConsumerState<_ConnectionPage> createState() => _ConnectionPageState();
+}
+
+class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
+  late final _name = TextEditingController();
+  late final _url = TextEditingController();
+  late final _user = TextEditingController();
+  late final _secret = TextEditingController();
+  late String? _serverId = widget.serverId;
+  late bool _isNew = widget.isNew;
   bool _busy = false;
-  // What the last check said: "Sonarr 4.0.14", or null before any check.
-  String? _version;
+
+  /// Why the last Save & Test failed; nothing was saved.
+  String? _failed;
+
+  ConnApp get _app => widget.app;
+  bool get _qbit => _app == ConnApp.qbittorrent;
 
   @override
   void initState() {
     super.initState();
     final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    final (url, key) = _saved(p);
-    _url = TextEditingController(text: url);
-    _key = TextEditingController(text: key);
-    if (_url.text.isNotEmpty && _key.text.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => mounted ? _check(quiet: true) : null,
-      );
+    final c = _isNew ? null : findConn(p, _app, _serverId);
+    if (c != null) {
+      _name.text = c.name;
+      _url.text = c.url;
+      _user.text = c.user;
+      _secret.text = c.secret;
+    } else {
+      _url.text = suggestAddress(connectionsOf(p), _app);
     }
   }
 
   @override
   void dispose() {
+    _name.dispose();
     _url.dispose();
-    _key.dispose();
+    _user.dispose();
+    _secret.dispose();
     super.dispose();
   }
 
-  /// The address and key saved for this app.
-  String get _app =>
-      widget.kind?.appName ??
-      (widget.bazarr ? BazarrClient.appName : ProwlarrClient.appName);
+  Prefs _withSingle(Prefs p, String url, String user, String secret) =>
+      switch (_app) {
+        ConnApp.prowlarr => p.copyWith(
+          prowlarrUrl: url,
+          prowlarrApiKey: secret,
+        ),
+        ConnApp.bazarr => p.copyWith(bazarrUrl: url, bazarrApiKey: secret),
+        ConnApp.qbittorrent => p.copyWith(
+          qbitUrl: url,
+          qbitUsername: user,
+          qbitPassword: secret,
+        ),
+        ConnApp.sabnzbd => p.copyWith(sabUrl: url, sabApiKey: secret),
+        _ => p,
+      };
 
-  (String, String) _saved(Prefs p) => switch (widget.kind) {
-    null when widget.bazarr => (p.bazarrUrl, p.bazarrApiKey),
-    null => (p.prowlarrUrl, p.prowlarrApiKey),
-    ArrKind.sonarr => (p.sonarrUrl, p.sonarrApiKey),
-    ArrKind.radarr => (p.radarrUrl, p.radarrApiKey),
-    ArrKind.lidarr => (p.lidarrUrl, p.lidarrApiKey),
-  };
-
-  Prefs _withSaved(Prefs p, String url, String key) => switch (widget.kind) {
-    null when widget.bazarr => p.copyWith(bazarrUrl: url, bazarrApiKey: key),
-    null => p.copyWith(prowlarrUrl: url, prowlarrApiKey: key),
-    ArrKind.sonarr => p.copyWith(sonarrUrl: url, sonarrApiKey: key),
-    ArrKind.radarr => p.copyWith(radarrUrl: url, radarrApiKey: key),
-    ArrKind.lidarr => p.copyWith(lidarrUrl: url, lidarrApiKey: key),
-  };
-
-  Future<ArrStatus> _status(String url, String key) => switch (widget.kind) {
-    null when widget.bazarr => BazarrClient(url, key).version().then(
-      (v) => ArrStatus(appName: BazarrClient.appName, version: v),
-    ),
-    null => ProwlarrClient(url, key).status(),
-    ArrKind.sonarr => SonarrClient(url, key).status(),
-    ArrKind.radarr => RadarrClient(url, key).status(),
-    ArrKind.lidarr => LidarrClient(url, key).status(),
-  };
-
-  /// Asks the server what it is. Quiet on open, so a saved connection just
-  /// shows its version without a message.
-  Future<void> _check({bool quiet = false}) async {
+  Future<void> _save({bool anyway = false}) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    try {
-      final s = await _status(_url.text.trim(), _key.text.trim());
-      if (!mounted) return;
-      setState(() => _version = s.version);
-      if (!quiet) {
-        showSnackOn(
-          messenger,
-          l.arrConnectedTo(_app, s.version),
-          kind: SnackKind.success,
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _version = null);
-      if (!quiet) {
-        showSnackOn(
-          messenger,
-          l.arrSavedTestFailed(e.toString()),
-          kind: SnackKind.error,
-        );
-      }
-    }
-  }
-
-  Future<void> _save() async {
-    final l = AppLocalizations.of(context);
-    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
-    final key = _key.text.trim();
-    if (url.isEmpty || key.isEmpty) {
-      showSnack(context, l.arrEnterBoth);
+    final kind = _app.kind;
+    final name = _name.text.trim();
+    final raw = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
+    final user = _user.text.trim();
+    // A password is kept as typed: spaces can be part of it.
+    final secret = _qbit ? _secret.text : _secret.text.trim();
+    final lastFailure = _failed;
+    if (raw.isEmpty || (!_qbit && secret.isEmpty)) {
+      showSnack(
+        context,
+        _qbit
+            ? l.dlEnterAddress
+            : _app == ConnApp.sabnzbd
+            ? l.dlEnterSabBoth
+            : l.arrEnterBoth,
+      );
       return;
     }
     // A bare host:port is the usual thing to type; the apps speak plain
     // HTTP on a home network unless set up otherwise.
-    final address = url.contains('://') ? url : 'http://$url';
-    _url.text = address;
-    setState(() => _busy = true);
-    final kind = widget.kind;
-    await ref.read(preferencesProvider.notifier).edit((p) {
-      // The address of another saved server of the app: that one, put in
-      // use, rather than a second copy of it under this one's name.
-      final saved = kind == null
-          ? null
-          : arrServersOf(
-              p,
-              kind,
-            ).where((s) => !s.active && s.url == address).firstOrNull;
-      if (saved == null || kind == null) return _withSaved(p, address, key);
-      return arrSwitchServer(
-        arrEditServer(p, kind, saved.id, apiKey: key),
+    final url = raw.contains('://') ? raw : 'http://$raw';
+    _url.text = url;
+    if (kind != null) {
+      final others = ref
+          .read(arrServersProvider(kind))
+          .where((s) => _isNew || s.id != _serverId);
+      // Each by a name of its own, or two read "Main" in Switch Server.
+      final label = (name.isEmpty ? l.arrServerMain : name).toLowerCase();
+      if (others.any((o) => arrServerName(l, o).toLowerCase() == label)) {
+        showSnack(context, l.arrServerNameTaken, kind: SnackKind.error);
+        return;
+      }
+      final same = others.where((o) => o.url == url).firstOrNull;
+      if (same != null) {
+        showSnack(
+          context,
+          l.arrUrlTaken(arrServerName(l, same)),
+          kind: SnackKind.error,
+        );
+        return;
+      }
+    }
+    setState(() {
+      _busy = true;
+      _failed = null;
+    });
+    String? version;
+    if (!anyway) {
+      try {
+        version = await ref.read(connTesterProvider)(_app, url, user, secret);
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _failed = e.toString();
+          });
+        }
+        return;
+      }
+    }
+    final notifier = ref.read(preferencesProvider.notifier);
+    await notifier.edit((p) {
+      if (kind == null) return _withSingle(p, url, user, secret);
+      if (_isNew) {
+        return arrAddServer(p, kind, name: name, url: url, apiKey: secret);
+      }
+      return arrEditServer(
+        p,
         kind,
-        saved.id,
+        _serverId!,
+        name: name,
+        url: url,
+        apiKey: secret,
       );
     });
-    await _check();
-    if (mounted) setState(() => _busy = false);
+    if (!mounted) return;
+    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
+    if (_isNew && kind != null) {
+      _serverId = arrServersOf(
+        p,
+        kind,
+      ).where((s) => s.url == url).firstOrNull?.id;
+    }
+    final saved = (app: _app, serverId: _serverId, isNew: false);
+    setState(() {
+      _busy = false;
+      _isNew = false;
+    });
+    widget.onSaved?.call(saved);
+    showSnackOn(
+      messenger,
+      version != null
+          ? l.arrConnectedTo(_app.appName, version)
+          : l.arrSavedTestFailed(lastFailure ?? l.arrStatusFailed),
+      kind: version != null ? SnackKind.success : SnackKind.info,
+    );
   }
 
-  Future<void> _disconnect() async {
+  Future<void> _disconnect(Conn c) async {
     final l = AppLocalizations.of(context);
-    final kind = widget.kind;
-    // Another saved server of the app takes the place of the one
-    // disconnected.
+    final title = c.title(l);
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(l.arrDisconnectTitle(title)),
+        content: Text(l.arrDisconnectBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(d, false),
+            child: Text(MaterialLocalizations.of(d).cancelButtonLabel),
+          ),
+          FilledButton(
+            style: kInlineButtonStyle,
+            onPressed: () => Navigator.pop(d, true),
+            child: Text(l.arrDisconnect),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final kind = _app.kind;
+    // The server in use: another saved server of the app takes its place.
     await ref
         .read(preferencesProvider.notifier)
         .edit(
           (p) => kind == null
-              ? _withSaved(p, '', '')
-              : arrDisconnectActive(p, kind),
+              ? _withSingle(p, '', '', '')
+              : c.active
+              ? arrDisconnectActive(p, kind)
+              : arrRemoveServer(p, c.serverId!),
         );
-    if (!mounted) return;
-    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    final (url, key) = _saved(p);
-    _url.text = url;
-    _key.text = key;
-    setState(() => _version = null);
-    if (url.isNotEmpty) _check(quiet: true);
-    showSnack(context, l.arrDisconnected(_app));
+    showSnackOn(messenger, l.arrDisconnected(title));
+    if (mounted) widget.onClose(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final kind = widget.kind;
-    // Another server put in use (Manage's Switch Server, or the Servers
-    // dialog): the fields and the check follow it.
-    ref.listen(
-      preferencesProvider.select((p) {
-        final v = p.asData?.value;
-        return v == null ? ('', '') : _saved(v);
-      }),
-      (before, now) {
-        if (now.$1 == _url.text && now.$2 == _key.text) return;
-        _url.text = now.$1;
-        _key.text = now.$2;
-        setState(() => _version = null);
-        if (now.$1.isNotEmpty && now.$2.isNotEmpty) _check(quiet: true);
-      },
-    );
-    final servers = kind == null
-        ? const <ArrServer>[]
-        : ref.watch(arrServersProvider(kind));
-    final active = servers.where((s) => s.active).firstOrNull;
-    // Its name, once there's more than one or it was given one.
-    final title =
-        active != null && (servers.length > 1 || active.name.isNotEmpty)
-        ? '$_app: ${arrServerName(l, active)}'
-        : _app;
-    final saved = ref.watch(
-      preferencesProvider.select((p) {
-        final v = p.asData?.value;
-        return v != null && _saved(v).$1.isNotEmpty;
-      }),
-    );
-    final status = !saved
-        ? l.arrNotConnected
-        : _version != null
-        ? l.arrConnectedTo(_app, _version!)
+    final kind = _app.kind;
+    final p = ref.watch(preferencesProvider).asData?.value ?? const Prefs();
+    final c = _isNew ? null : findConn(p, _app, _serverId);
+    final check = c != null && c.ready
+        ? ref.watch(connCheckProvider(c.check))
         : null;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    final state = c == null ? null : _stateOf(c, check);
+    final server = kind == null || c == null
+        ? null
+        : arrServersOf(p, kind).where((s) => s.id == c.serverId).firstOrNull;
+    final title = c?.title(l) ?? _app.appName;
+    final hint = 'http://192.168.1.10:${_app.port}';
+    final body = ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(switch (widget.kind) {
-                  null when widget.bazarr => Icons.subtitles_rounded,
-                  null => Icons.travel_explore_rounded,
-                  ArrKind.sonarr => Icons.live_tv_rounded,
-                  ArrKind.radarr => Icons.movie_rounded,
-                  ArrKind.lidarr => Icons.library_music_rounded,
-                }, color: scheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+            Icon(_app.icon, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.embedded)
+                    Text(
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      if (status != null)
-                        Text(
-                          status,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _version != null
-                                ? const Color(0xFF22C55E)
-                                : scheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
+                    ),
+                  Text(
+                    state == _State.connected && check?.value != null
+                        ? '${_app.appName} ${check!.value!}'
+                        : _app.forWhat(l),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            TvTextField(
-              controller: _url,
-              keyboardType: TextInputType.url,
-              label: l.arrServerAddress,
-              hint: switch (widget.kind) {
-                null when widget.bazarr => 'http://192.168.1.10:6767',
-                null => 'http://192.168.1.10:9696',
-                ArrKind.sonarr => 'http://192.168.1.10:8989',
-                ArrKind.radarr => 'http://192.168.1.10:7878',
-                ArrKind.lidarr => 'http://192.168.1.10:8686',
-              },
-              icon: Icons.link_rounded,
-            ),
-            const SizedBox(height: 14),
-            TvTextField(
-              controller: _key,
-              obscure: true,
-              label: l.arrApiKey,
-              helperText: l.arrApiKeyHelp(_app),
-              icon: Icons.key_rounded,
-              onSubmitted: (_) => _busy ? null : _save(),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              alignment: WrapAlignment.end,
-              children: [
-                if (saved)
-                  TextButton(
-                    onPressed: _busy ? null : _disconnect,
-                    child: Text(l.arrDisconnect),
-                  ),
-                FilledButton(
-                  onPressed: _busy ? null : _save,
-                  child: _busy ? AppSpinner.inline() : Text(l.arrSaveTest),
-                ),
-              ],
-            ),
-            if (saved && _version != null && widget.kind != null) ...[
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              ?switch (widget.kind) {
-                final k? => _DefaultsTile(kind: k),
-                // Prowlarr adds nothing: no defaults to set.
-                null => null,
-              },
-            ],
-            // More servers of the app (a 4K one), once it's connected.
-            if (saved && kind != null) ArrServersTile(kind: kind),
+            if (state != null) _StateChip(state),
           ],
         ),
+        if (state == _State.failed && check?.error != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            '${check!.error}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        TvTextField(
+          controller: _url,
+          keyboardType: TextInputType.url,
+          label: l.arrServerAddress,
+          hint: hint,
+          icon: Icons.link_rounded,
+          autofocus: _isNew && _url.text.isEmpty,
+        ),
+        const SizedBox(height: 14),
+        if (_qbit) ...[
+          TvTextField(
+            controller: _user,
+            label: l.dlUsername,
+            icon: Icons.person_rounded,
+            autofillHints: const [AutofillHints.username],
+          ),
+          const SizedBox(height: 14),
+        ],
+        TvTextField(
+          controller: _secret,
+          obscure: true,
+          label: _qbit ? l.dlPassword : l.arrApiKey,
+          helperText: switch (_app) {
+            ConnApp.qbittorrent => l.dlQbitHelp,
+            ConnApp.sabnzbd => l.dlSabKeyHelp,
+            _ => l.arrApiKeyHelp(_app.appName),
+          },
+          icon: _qbit ? Icons.password_rounded : Icons.key_rounded,
+          autofocus: _isNew && _url.text.isNotEmpty,
+          onSubmitted: (_) => _busy ? null : _save(),
+        ),
+        // What tells this server from the app's others (4K): last, as
+        // there's usually only the one.
+        if (kind != null) ...[
+          const SizedBox(height: 14),
+          TvTextField(
+            controller: _name,
+            label: l.arrServerName,
+            hint: l.arrServerNameHint,
+            icon: Icons.label_rounded,
+          ),
+        ],
+        if (_failed != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l.arrTestFailed(_failed!),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        FilledButton(
+          onPressed: _busy ? null : _save,
+          child: _busy ? AppSpinner.inline() : Text(l.arrSaveTest),
+        ),
+        if (_failed != null) ...[
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _busy ? null : () => _save(anyway: true),
+            child: Text(l.arrSaveAnyway),
+          ),
+        ],
+        if (c != null) ...[
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          if (server != null && !server.active && server.ready)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.check_circle_outline_rounded),
+              title: Text(l.arrServerUse),
+              onTap: () => arrUseServer(context, ref, server),
+            ),
+          // Defaults for New Titles: the server in use's, once it answers.
+          if (kind != null &&
+              server != null &&
+              server.active &&
+              state == _State.connected)
+            _DefaultsTile(kind: kind),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.link_off_rounded,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              l.arrDisconnect,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            enabled: !_busy,
+            onTap: () => _disconnect(c),
+          ),
+        ],
+      ],
+    );
+    // Fields and buttons at a width that reads as a form, however wide the
+    // window or pane.
+    final page = Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: body,
       ),
+    );
+    if (widget.embedded) return page;
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: page,
     );
   }
 }
@@ -486,237 +1176,6 @@ class _DefaultsDialogState extends ConsumerState<_DefaultsDialog> {
           child: Text(l.commonSave),
         ),
       ],
-    );
-  }
-}
-
-/// A download client's connection: its address and sign-in (qBittorrent's
-/// username and password, SABnzbd's API key), checked on save.
-class _DownloadClientCard extends ConsumerStatefulWidget {
-  final DownloadClientKind kind;
-  const _DownloadClientCard({required this.kind});
-
-  @override
-  ConsumerState<_DownloadClientCard> createState() =>
-      _DownloadClientCardState();
-}
-
-class _DownloadClientCardState extends ConsumerState<_DownloadClientCard> {
-  late final TextEditingController _url;
-
-  /// qBittorrent's username; unused for SABnzbd.
-  late final TextEditingController _user;
-
-  /// qBittorrent's password, or SABnzbd's API key.
-  late final TextEditingController _secret;
-  bool _busy = false;
-  String? _version;
-
-  bool get _qbit => widget.kind == DownloadClientKind.qbittorrent;
-  String get _app => widget.kind.appName;
-
-  (String, String, String) _saved(Prefs p) => _qbit
-      ? (p.qbitUrl, p.qbitUsername, p.qbitPassword)
-      : (p.sabUrl, '', p.sabApiKey);
-
-  Prefs _withSaved(Prefs p, String url, String user, String secret) => _qbit
-      ? p.copyWith(qbitUrl: url, qbitUsername: user, qbitPassword: secret)
-      : p.copyWith(sabUrl: url, sabApiKey: secret);
-
-  DownloadClient _client(String url, String user, String secret) => _qbit
-      ? QbitClient(url, user, secret)
-      : SabClient(url, secret);
-
-  @override
-  void initState() {
-    super.initState();
-    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    final (url, user, secret) = _saved(p);
-    _url = TextEditingController(text: url);
-    _user = TextEditingController(text: user);
-    _secret = TextEditingController(text: secret);
-    if (url.isNotEmpty && (_qbit || secret.isNotEmpty)) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => mounted ? _check(quiet: true) : null,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _url.dispose();
-    _user.dispose();
-    _secret.dispose();
-    super.dispose();
-  }
-
-  Future<void> _check({bool quiet = false}) async {
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      // On opening, the app's own client: one that qBittorrent has refused
-      // isn't sent to sign in again (repeated failures get a device banned).
-      final saved = quiet
-          ? (_qbit ? ref.read(qbitClientProvider) : ref.read(sabClientProvider))
-          : null;
-      final v = await (saved ??
-              _client(_url.text.trim(), _user.text.trim(), _secret.text))
-          .version();
-      if (!mounted) return;
-      setState(() => _version = v);
-      if (!quiet) {
-        showSnackOn(
-          messenger,
-          l.arrConnectedTo(_app, v),
-          kind: SnackKind.success,
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _version = null);
-      if (!quiet) {
-        showSnackOn(
-          messenger,
-          l.arrSavedTestFailed(e.toString()),
-          kind: SnackKind.error,
-        );
-      }
-    }
-  }
-
-  Future<void> _save() async {
-    final l = AppLocalizations.of(context);
-    final url = _url.text.trim().replaceAll(RegExp(r'/+$'), '');
-    final user = _user.text.trim();
-    // A password is kept as typed: spaces can be part of it.
-    final secret = _qbit ? _secret.text : _secret.text.trim();
-    if (url.isEmpty || (!_qbit && secret.isEmpty)) {
-      showSnack(context, _qbit ? l.dlEnterAddress : l.dlEnterSabBoth);
-      return;
-    }
-    final address = url.contains('://') ? url : 'http://$url';
-    _url.text = address;
-    setState(() => _busy = true);
-    await ref
-        .read(preferencesProvider.notifier)
-        .edit((p) => _withSaved(p, address, user, secret));
-    await _check();
-    if (mounted) setState(() => _busy = false);
-  }
-
-  Future<void> _disconnect() async {
-    final l = AppLocalizations.of(context);
-    await ref
-        .read(preferencesProvider.notifier)
-        .edit((p) => _withSaved(p, '', '', ''));
-    if (!mounted) return;
-    _url.clear();
-    _user.clear();
-    _secret.clear();
-    setState(() => _version = null);
-    showSnack(context, l.arrDisconnected(_app));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final saved = ref.watch(
-      preferencesProvider.select((p) {
-        final v = p.asData?.value;
-        return v != null && _saved(v).$1.isNotEmpty;
-      }),
-    );
-    final status = !saved
-        ? l.arrNotConnected
-        : _version != null
-        ? l.arrConnectedTo(_app, _version!)
-        : null;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  _qbit ? Icons.hub_rounded : Icons.dns_rounded,
-                  color: scheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _app,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (status != null)
-                        Text(
-                          status,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _version != null
-                                ? const Color(0xFF22C55E)
-                                : scheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TvTextField(
-              controller: _url,
-              keyboardType: TextInputType.url,
-              label: l.arrServerAddress,
-              hint: _qbit ? 'http://192.168.1.10:8080' : 'http://192.168.1.10:8085',
-              icon: Icons.link_rounded,
-            ),
-            const SizedBox(height: 14),
-            if (_qbit) ...[
-              TvTextField(
-                controller: _user,
-                label: l.dlUsername,
-                icon: Icons.person_rounded,
-                autofillHints: const [AutofillHints.username],
-              ),
-              const SizedBox(height: 14),
-            ],
-            TvTextField(
-              controller: _secret,
-              obscure: true,
-              label: _qbit ? l.dlPassword : l.arrApiKey,
-              helperText: _qbit ? l.dlQbitHelp : l.dlSabKeyHelp,
-              icon: _qbit ? Icons.password_rounded : Icons.key_rounded,
-              onSubmitted: (_) => _busy ? null : _save(),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              alignment: WrapAlignment.end,
-              children: [
-                if (saved)
-                  TextButton(
-                    onPressed: _busy ? null : _disconnect,
-                    child: Text(l.arrDisconnect),
-                  ),
-                FilledButton(
-                  onPressed: _busy ? null : _save,
-                  child: _busy ? AppSpinner.inline() : Text(l.arrSaveTest),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

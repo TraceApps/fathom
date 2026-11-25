@@ -14,6 +14,7 @@ import '../widgets/app_logo.dart';
 import '../widgets/search_field.dart';
 import '../widgets/tv_keyboard.dart';
 import '../widgets/user_avatar.dart';
+import 'arr_settings_screen.dart' show connCountProvider;
 import 'settings_search.dart';
 import 'support_screen.dart';
 
@@ -188,7 +189,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ListTile(
         leading: _leading(context, Icons.dns_rounded),
         title: Text(l.settingsArr),
-        subtitle: Text(l.settingsArrSubtitle),
+        subtitle: Text(switch (ref.watch(connCountProvider)) {
+          0 => l.settingsArrSubtitle,
+          final n => l.arrConnectedCount(n),
+        }),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => context.push('/arr-settings'),
       ),

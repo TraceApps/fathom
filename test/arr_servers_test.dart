@@ -316,16 +316,32 @@ void main() {
   });
 
   group('on screen', () {
-    testWidgets('Settings: the Servers dialog, Add, and Use This One', (
-      t,
-    ) async {
+    // Settings tries a connection through this: a Radarr at each address,
+    // taking its own key, and nothing else answering.
+    Future<String> radarrs(ConnApp app, String url, String user, String key) async {
+      final host = Uri.parse(url).host;
+      if ((host == 'radarr' && key == 'mainkey') ||
+          (host == 'radarr4k' && key == '4kkey') ||
+          (host == 'radarr3' && key == 'k3')) {
+        return '6.0.4';
+      }
+      throw ArrException('Radarr rejected the API key.');
+    }
+
+    Future<ProviderContainer> settings(
+      WidgetTester t,
+      Prefs p, {
+      Size size = const Size(500, 1400),
+    }) async {
       final container = ProviderContainer(
         overrides: [
-          preferencesProvider.overrideWith(() => _FakePrefs(_main)),
+          preferencesProvider.overrideWith(() => _FakePrefs(p)),
+          connTesterProvider.overrideWithValue(radarrs),
+          radarrClientProvider.overrideWithValue(null),
         ],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 4400);
+      t.view.physicalSize = size;
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -340,94 +356,204 @@ void main() {
         ),
       );
       await _settle(t);
-      expect(find.text('Servers'), findsOneWidget);
+      return container;
+    }
+
+    Finder field(int i) => find.byType(TextField).at(i);
+    Finder inDialog(String text) => find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.text(text),
+    );
+
+    testWidgets('Settings: each server a row, Add, and Use This One', (
+      t,
+    ) async {
+      final container = await settings(t, _main);
+      // One row: the app, its address, its version, how it's doing.
+      expect(find.text('Radarr'), findsOneWidget);
+      expect(find.text('radarr:7878 · 6.0.4'), findsOneWidget);
+      expect(find.text('Connected'), findsOneWidget);
+      // The one there always was has an id to be opened by.
+      var p = container.read(preferencesProvider).requireValue;
+      expect(arrServersOf(p, ArrKind.radarr).single.id, 'main-radarr');
+      // Add Connection: Radarr is there already, so it's another server.
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
       expect(find.text('Add another server, such as a 4K one'), findsOneWidget);
-      await t.tap(find.text('Servers'));
+      expect(find.text('Shows'), findsOneWidget);
+      await t.tap(inDialog('Radarr'));
       await _settle(t);
-      expect(find.text('Radarr Servers'), findsOneWidget);
-      expect(find.text('Main'), findsOneWidget);
-      // Adding needs the address and key; the check comes first.
-      await t.tap(find.text('Add Server'));
-      await _settle(t);
-      final form = find.byType(AlertDialog).last;
-      final fields = find.descendant(of: form, matching: find.byType(TextField));
-      await t.enterText(fields.at(0), '4K');
-      await t.tap(find.descendant(of: form, matching: find.text('Save & Test')));
+      // Its usual address is taken (that's the one there is): left empty.
+      expect(t.widget<TextField>(field(0)).controller!.text, '');
+      await t.enterText(field(2), '4K');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
       expect(
         find.text('Enter the server address and the API key'),
         findsOneWidget,
       );
-      // A real check, against nothing (tests have no network): refused,
-      // and nothing saved.
-      await t.enterText(fields.at(1), 'radarr4k:7878');
-      await t.enterText(fields.at(2), '4kkey');
-      await t.tap(find.descendant(of: form, matching: find.text('Save & Test')));
+      // A key the server refuses: said on the page, and nothing saved.
+      await t.enterText(field(0), 'radarr4k:7878');
+      await t.enterText(field(1), 'wrong');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
-      var p = container.read(preferencesProvider).requireValue;
+      expect(
+        find.text("Couldn't connect: Radarr rejected the API key."),
+        findsOneWidget,
+      );
+      expect(find.text('Save Anyway'), findsOneWidget);
+      p = container.read(preferencesProvider).requireValue;
       expect(p.arrServers, isEmpty);
-      // Saved another way (as the form does once its check passes): the
-      // dialog lists it, and Use This One swaps.
-      await container
-          .read(preferencesProvider.notifier)
-          .edit((p) => arrAddServer(
-                p,
-                ArrKind.radarr,
-                name: '4K',
-                url: 'http://radarr4k:7878',
-                apiKey: '4kkey',
-              ));
-      await t.tap(find.text('Cancel'));
+      // The right one: saved, and the page is that server now.
+      await t.enterText(field(1), '4kkey');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
-      expect(find.text('4K'), findsOneWidget);
-      await t.tap(find.text('4K'));
-      await _settle(t);
+      expect(find.text('Connected to Radarr 6.0.4'), findsOneWidget);
+      expect(find.text('Save Anyway'), findsNothing);
+      expect(find.text('Disconnect'), findsOneWidget);
+      p = container.read(preferencesProvider).requireValue;
+      expect([
+        for (final s in arrServersOf(p, ArrKind.radarr)) (s.name, s.url, s.active),
+      ], [
+        ('', 'http://radarr:7878', true),
+        ('4K', 'http://radarr4k:7878', false),
+      ]);
+      expect(find.text('Radarr: 4K'), findsOneWidget); // the page's title
+      // Not in use: it can be.
       await t.tap(find.text('Use This One'));
       await _settle(t);
       p = container.read(preferencesProvider).requireValue;
       expect(p.radarrUrl, 'http://radarr4k:7878');
       expect(find.text('Using 4K for Radarr'), findsOneWidget);
-      await t.tap(find.text('Close'));
+      expect(find.text('Use This One'), findsNothing);
+      // Back on the list: both servers, by name, the one in use marked.
+      await t.pageBack();
       await _settle(t);
-      // The card follows: its name, its address.
+      expect(find.text('Radarr: Main'), findsOneWidget);
       expect(find.text('Radarr: 4K'), findsOneWidget);
-      expect(find.text('http://radarr4k:7878'), findsOneWidget);
-      expect(find.text('2 servers, 4K in use'), findsOneWidget);
-      // A second server with a name already there isn't saved.
-      await t.tap(find.text('Servers'));
+      expect(find.text('In use'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('Radarr: 4K'),
+            matching: find.byType(ListTile),
+          ),
+          matching: find.text('In use'),
+        ),
+        findsOneWidget,
+      );
+      // Another with no name: "Main" is taken.
+      await t.tap(find.text('Add Connection'));
       await _settle(t);
-      await t.tap(find.text('Add Server'));
+      await t.tap(inDialog('Radarr'));
       await _settle(t);
-      final again = find.byType(AlertDialog).last;
-      final f = find.descendant(of: again, matching: find.byType(TextField));
-      await t.enterText(f.at(1), 'radarr3:7878');
-      await t.enterText(f.at(2), 'k3');
-      await t.tap(find.descendant(of: again, matching: find.text('Save & Test')));
+      await t.enterText(field(0), 'radarr3:7878');
+      await t.enterText(field(1), 'k3');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
       expect(
         find.text('Another server of this app has that name'),
         findsOneWidget,
       );
+      await t.pageBack();
+      await _settle(t);
+      // Main's address on 4K's page: that address is Main's.
+      await t.tap(find.text('Radarr: 4K'));
+      await _settle(t);
+      await t.enterText(field(0), 'http://radarr:7878');
+      await t.tap(find.text('Save & Test'));
+      await _settle(t);
+      expect(find.text('Main already uses this address'), findsOneWidget);
+      await t.pageBack();
+      await _settle(t);
+      // Disconnecting Main, not in use, asks first, then removes it.
+      await t.tap(find.text('Radarr: Main'));
+      await _settle(t);
+      await t.tap(find.text('Disconnect'));
+      await _settle(t);
+      expect(find.text('Disconnect Radarr: Main?'), findsOneWidget);
       await t.tap(find.text('Cancel'));
       await _settle(t);
-      await t.tap(find.text('Close'));
+      p = container.read(preferencesProvider).requireValue;
+      expect(arrServersOf(p, ArrKind.radarr), hasLength(2));
+      await t.tap(find.text('Disconnect'));
       await _settle(t);
-      // Typing a saved server's address on the card puts that one in use.
-      final card = find.ancestor(
-        of: find.text('Radarr: 4K'),
-        matching: find.byType(Card),
-      );
-      final cardFields = find.descendant(of: card, matching: find.byType(TextField));
-      await t.enterText(cardFields.at(0), 'http://radarr:7878');
-      await t.enterText(cardFields.at(1), 'mainkey');
-      await t.tap(find.descendant(of: card, matching: find.text('Save & Test')));
+      await t.tap(find.widgetWithText(FilledButton, 'Disconnect'));
       await _settle(t);
       p = container.read(preferencesProvider).requireValue;
-      final all = arrServersOf(p, ArrKind.radarr);
-      expect([for (final s in all) (s.name, s.active)], [
-        ('', true),
-        ('4K', false),
+      expect([
+        for (final s in arrServersOf(p, ArrKind.radarr)) (s.name, s.active),
+      ], [
+        ('4K', true),
       ]);
+      // Back on the list, with one server: just the app's name again.
+      expect(find.text('Radarr: 4K'), findsOneWidget);
+      expect(find.text('In use'), findsNothing);
+    });
+
+    testWidgets('Settings: nothing yet, then a first one next to another', (
+      t,
+    ) async {
+      final container = await settings(
+        t,
+        const Prefs(sonarrUrl: 'http://10.0.0.5:8989', sonarrApiKey: 'nope'),
+      );
+      // Sonarr refuses its key: the row says so.
+      expect(find.text("Can't connect"), findsOneWidget);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(inDialog('Radarr'));
+      await _settle(t);
+      // The same computer, at Radarr's usual port.
+      expect(
+        t.widget<TextField>(field(0)).controller!.text,
+        'http://10.0.0.5:7878',
+      );
+      await t.enterText(field(1), 'whatever');
+      await t.tap(find.text('Save & Test'));
+      await _settle(t);
+      // Saved anyway, on purpose: kept, and said so.
+      await t.tap(find.text('Save Anyway'));
+      await _settle(t);
+      final p = container.read(preferencesProvider).requireValue;
+      expect(p.radarrUrl, 'http://10.0.0.5:7878');
+      expect(p.radarrApiKey, 'whatever');
+      expect(
+        find.textContaining('Saved, but the test failed'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Settings: an empty list explains, and a wide window '
+        'opens a connection beside it', (t) async {
+      await settings(t, const Prefs(), size: const Size(1300, 900));
+      expect(find.textContaining('Your API keys and passwords'), findsOneWidget);
+      expect(find.text('Pick a connection to see it here, or add one.'),
+          findsOneWidget);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(inDialog('Radarr'));
+      await _settle(t);
+      // In the pane: the list stays.
+      expect(find.text('Add Connection'), findsOneWidget);
+      await t.enterText(field(0), 'radarr:7878');
+      await t.enterText(field(1), 'mainkey');
+      await t.tap(find.text('Save & Test'));
+      await _settle(t);
+      // The new row, picked.
+      final row = find.ancestor(
+        of: find.text('radarr:7878 · 6.0.4'),
+        matching: find.byType(ListTile),
+      );
+      expect(t.widget<ListTile>(row).selected, isTrue);
+      expect(find.textContaining('Your API keys and passwords'), findsNothing);
+      expect(
+        find.text(
+          'API keys and passwords stay on this device and are never '
+          'included in backups.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a server without its key yet isn\'t put in use', (t) async {

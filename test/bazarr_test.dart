@@ -706,14 +706,19 @@ void main() {
       expect(find.byType(BazarrScreen), findsOneWidget);
     });
 
-    testWidgets('Settings: a Bazarr card, saved on its own', (t) async {
+    testWidgets('Settings: Add Connection > Bazarr, saved on its own', (t) async {
+      final tried = <ConnApp>{};
       final container = ProviderContainer(
         overrides: [
           preferencesProvider.overrideWith(() => _FakePrefs(const Prefs())),
+          connTesterProvider.overrideWithValue((app, url, user, key) async {
+            tried.add(app);
+            return '2.0.1';
+          }),
         ],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 4800);
+      t.view.physicalSize = const Size(500, 1400);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -728,24 +733,28 @@ void main() {
         ),
       );
       await _settle(t);
-      expect(find.text('Bazarr'), findsOneWidget);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Bazarr'),
+        ),
+      );
+      await _settle(t);
+      // Its own page, with its usual address as the hint.
       expect(find.text('http://192.168.1.10:6767'), findsOneWidget);
       final fields = find.byType(TextField);
-      // After Prowlarr's address and key.
-      await t.enterText(fields.at(8), '10.0.0.5:6767');
-      await t.enterText(fields.at(9), 'bkey');
-      await t.tap(find.text('Save & Test').at(4));
+      await t.enterText(fields.at(0), '10.0.0.5:6767');
+      await t.enterText(fields.at(1), 'bkey');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
+      // The check is Bazarr's, and it's saved on its own.
+      expect(tried, {ConnApp.bazarr});
+      expect(find.text('Connected to Bazarr 2.0.1'), findsOneWidget);
       final p = container.read(preferencesProvider).requireValue;
       expect((p.bazarrUrl, p.bazarrApiKey), ('http://10.0.0.5:6767', 'bkey'));
       expect(p.prowlarrUrl, isEmpty);
-      expect(
-        find.descendant(
-          of: find.byType(SnackBar),
-          matching: find.textContaining('Bazarr'),
-        ),
-        findsOneWidget,
-      );
     });
 
     for (final phone in [true, false]) {

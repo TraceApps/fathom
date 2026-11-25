@@ -1324,16 +1324,32 @@ void main() {
       expect(_name(_sabMovie), findsOneWidget);
     });
 
-    testWidgets('Settings: qBittorrent and SABnzbd, saved on their own', (
-      t,
-    ) async {
+    testWidgets('Settings: a refused qBittorrent sign-in is asked once, '
+        'through the app\'s own client', (t) async {
+      final server = _Qbit()..login = '401';
+      var tested = 0;
       final container = ProviderContainer(
         overrides: [
-          preferencesProvider.overrideWith(() => _FakePrefs(const Prefs())),
+          preferencesProvider.overrideWith(
+            () => _FakePrefs(
+              const Prefs(
+                qbitUrl: 'http://qbit:8080',
+                qbitUsername: 'admin',
+                qbitPassword: 'wrong',
+              ),
+            ),
+          ),
+          qbitClientProvider.overrideWithValue(
+            _qbit(server, pass: 'wrong'),
+          ),
+          connTesterProvider.overrideWithValue((_, _, _, _) async {
+            tested++;
+            return '5.1.0';
+          }),
         ],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 4400);
+      t.view.physicalSize = const Size(500, 1400);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -1348,42 +1364,120 @@ void main() {
         ),
       );
       await _settle(t);
-      expect(find.text('Download Clients'), findsOneWidget);
-      expect(find.text('http://192.168.1.10:8080'), findsOneWidget);
-      expect(find.text('http://192.168.1.10:8085'), findsOneWidget);
+      expect(find.text("Can't connect"), findsOneWidget);
+      // Long enough for any retry to have come and gone.
+      for (var i = 0; i < 30; i++) {
+        await t.pump(const Duration(seconds: 1));
+      }
+      expect(server.logins, 1);
+      expect(tested, 0);
+      // Its page shares the same answer: no second sign-in.
+      await t.tap(find.text('qBittorrent'));
+      await _settle(t);
+      expect(server.logins, 1);
+    });
+
+    testWidgets('Settings: qBittorrent and SABnzbd, saved on their own', (
+      t,
+    ) async {
+      final tried = <(ConnApp, String, String)>[];
+      final container = ProviderContainer(
+        overrides: [
+          preferencesProvider.overrideWith(() => _FakePrefs(const Prefs())),
+          connTesterProvider.overrideWithValue((app, url, user, key) async {
+            tried.add((app, user, key));
+            return '5.1.0';
+          }),
+          // The rows ask qBittorrent through the app's own client.
+          qbitClientProvider.overrideWithValue(null),
+        ],
+      );
+      addTearDown(container.dispose);
+      t.view.physicalSize = const Size(500, 1400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.dark(const Color(0xFF8AB4F8)),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ArrSettingsScreen(),
+          ),
+        ),
+      );
+      await _settle(t);
+      Future<void> add(String app) async {
+        await t.tap(find.text('Add Connection'));
+        await _settle(t);
+        await t.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.text(app),
+          ),
+        );
+        await _settle(t);
+      }
+
       final fields = find.byType(TextField);
-      // Four apps (address and key each), then qBittorrent's three and
-      // SABnzbd's two.
-      expect(fields, findsNWidgets(15));
-      final saves = find.text('Save & Test');
       // qBittorrent with no sign-in: an address is enough.
-      await t.enterText(fields.at(10), '10.0.0.5:8080');
-      await t.tap(saves.at(5));
+      await add('qBittorrent');
+      expect(find.text('http://192.168.1.10:8080'), findsOneWidget);
+      expect(fields, findsNWidgets(3));
+      await t.enterText(fields.at(0), '10.0.0.5:8080');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
       var p = container.read(preferencesProvider).requireValue;
       expect(p.qbitUrl, 'http://10.0.0.5:8080');
       expect(p.qbitUsername, isEmpty);
-      // SABnzbd without its key isn't saved.
-      await t.enterText(fields.at(13), '10.0.0.5:8085');
-      await t.tap(saves.at(6));
+      expect(tried.first, (ConnApp.qbittorrent, '', ''));
+      await t.pageBack();
+      await _settle(t);
+      // SABnzbd without its key isn't saved. Its address starts on the
+      // same computer, at SABnzbd's port.
+      await add('SABnzbd');
+      expect(
+        t.widget<TextField>(fields.at(0)).controller!.text,
+        'http://10.0.0.5:8085',
+      );
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
       expect(
         find.text('Enter the server address and the API key'),
         findsOneWidget,
       );
-      await t.enterText(fields.at(14), ' skey ');
-      await t.tap(saves.at(6));
+      expect(container.read(preferencesProvider).requireValue.sabUrl, isEmpty);
+      await t.enterText(fields.at(1), ' skey ');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
       p = container.read(preferencesProvider).requireValue;
       expect(p.sabUrl, 'http://10.0.0.5:8085');
       expect(p.sabApiKey, 'skey');
+      await t.pageBack();
+      await _settle(t);
+      // Both under Download Clients.
+      expect(find.text('Download Clients'), findsOneWidget);
+      expect(find.text('10.0.0.5:8080 · 5.1.0'), findsOneWidget);
+      expect(find.text('10.0.0.5:8085 · 5.1.0'), findsOneWidget);
       // A password keeps its spaces.
-      await t.enterText(fields.at(11), 'admin');
-      await t.enterText(fields.at(12), ' pass word ');
-      await t.tap(saves.at(5));
+      await t.tap(find.text('qBittorrent'));
+      await _settle(t);
+      await t.enterText(fields.at(1), 'admin');
+      await t.enterText(fields.at(2), ' pass word ');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
       p = container.read(preferencesProvider).requireValue;
       expect((p.qbitUsername, p.qbitPassword), ('admin', ' pass word '));
+      // Add Connection knows they're there: they open, not again.
+      await t.pageBack();
+      await _settle(t);
+      await add('SABnzbd');
+      expect(find.text('Disconnect'), findsOneWidget);
+      expect(
+        t.widget<TextField>(fields.at(1)).controller!.text,
+        'skey',
+      );
     });
   });
 }

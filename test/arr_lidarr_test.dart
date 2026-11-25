@@ -739,12 +739,21 @@ void main() {
   });
 
   group('Settings', () {
-    testWidgets('a Lidarr card that saves its own address and key', (t) async {
+    testWidgets('Settings: Add Connection > Lidarr, its own address and key', (t) async {
+      final tried = <ConnApp>{};
       final container = ProviderContainer(
-        overrides: [preferencesProvider.overrideWith(() => _FakePrefs(const Prefs()))],
+        overrides: [
+          preferencesProvider.overrideWith(() => _FakePrefs(const Prefs())),
+          connTesterProvider.overrideWithValue((app, url, user, key) async {
+            tried.add(app);
+            return '2.0.1';
+          }),
+          // Defaults for New Titles shows once it's connected.
+          lidarrClientProvider.overrideWithValue(null),
+        ],
       );
       addTearDown(container.dispose);
-      t.view.physicalSize = const Size(900, 4400);
+      t.view.physicalSize = const Size(500, 1400);
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.reset);
       await t.pumpWidget(
@@ -759,25 +768,25 @@ void main() {
         ),
       );
       await _settle(t);
-      expect(find.text('Lidarr'), findsOneWidget);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Lidarr'),
+        ),
+      );
+      await _settle(t);
+      // Its own page, with its usual address as the hint.
       expect(find.text('http://192.168.1.10:8686'), findsOneWidget);
       final fields = find.byType(TextField);
-      // Sonarr's two fields, Radarr's, Lidarr's, then Prowlarr's.
-      // The five apps' address and key (Bazarr's too), then the download
-      // clients'.
-      expect(fields, findsNWidgets(15));
-      await t.enterText(fields.at(4), '10.0.0.5:8686');
-      await t.enterText(fields.at(5), 'lkey');
-      await t.tap(find.text('Save & Test').at(2));
+      await t.enterText(fields.at(0), '10.0.0.5:8686');
+      await t.enterText(fields.at(1), 'lkey');
+      await t.tap(find.text('Save & Test'));
       await _settle(t);
-      // The check is Lidarr's: a test has no network, so it says it failed.
-      expect(
-        find.descendant(
-          of: find.byType(SnackBar),
-          matching: find.textContaining('Lidarr'),
-        ),
-        findsOneWidget,
-      );
+      // The check is Lidarr's, and it's saved on its own.
+      expect(tried, {ConnApp.lidarr});
+      expect(find.text('Connected to Lidarr 2.0.1'), findsOneWidget);
       final p = container.read(preferencesProvider).requireValue;
       expect(p.lidarrUrl, 'http://10.0.0.5:8686');
       expect(p.lidarrApiKey, 'lkey');

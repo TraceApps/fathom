@@ -108,7 +108,9 @@ List<ArrServer> arrServersOf(Prefs p, ArrKind k) {
   return [
     if (url.isNotEmpty)
       ArrServer(
-        id: id ?? '',
+        // The one there always was has no id saved: a fixed one, so it can
+        // be opened by it (Settings) and stays the same once it's saved.
+        id: id == null || id.isEmpty ? 'main-${k.name}' : id,
         kind: k,
         name: name,
         url: url,
@@ -215,21 +217,22 @@ Prefs arrRemoveServer(Prefs p, String id) => p.copyWith(
   arrServerKeys: {...p.arrServerKeys}..remove(id),
 );
 
-/// Names a server (the one in use, or another), or changes its key: a
-/// server brought back by a backup needs its key again.
+/// Names a server (the one in use, or another), or changes its address or
+/// key: a server brought back by a backup needs its key again.
 Prefs arrEditServer(
   Prefs p,
   ArrKind k,
   String id, {
   String? name,
+  String? url,
   String? apiKey,
 }) {
   final all = arrServersOf(p, k);
   final s = all.where((s) => s.id == id).firstOrNull;
   if (s == null) return p;
   if (s.active) {
-    final (url, key, defaults) = _activeFields(p, k);
-    return _withActive(p, k, url, apiKey ?? key, defaults).copyWith(
+    final (oldUrl, key, defaults) = _activeFields(p, k);
+    return _withActive(p, k, url ?? oldUrl, apiKey ?? key, defaults).copyWith(
       arrActiveServers: {
         ...p.arrActiveServers,
         k.name: {
@@ -242,7 +245,10 @@ Prefs arrEditServer(
   return p.copyWith(
     arrServers: [
       for (final x in p.arrServers)
-        if (x['id'] == id) {...x, 'name': name ?? x['name']} else x,
+        if (x['id'] == id)
+          {...x, 'name': name ?? x['name'], 'url': url ?? x['url']}
+        else
+          x,
     ],
     arrServerKeys: apiKey == null
         ? p.arrServerKeys
