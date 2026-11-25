@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
+import '../services/resilient_secure_storage.dart';
+import '../theme/app_theme.dart' show kInlineButtonStyle;
 import '../services/tv_mode.dart';
 import '../state/audio_player.dart';
 import '../state/library_providers.dart';
@@ -216,6 +218,7 @@ class AppShell extends ConsumerWidget {
         child: Column(
           children: [
             const _OfflineBanner(),
+            const _KeyringBanner(),
           Expanded(
             child: Stack(
               children: [
@@ -590,6 +593,7 @@ class _MobileShellState extends ConsumerState<_MobileShell> {
         child: Column(
           children: [
             const _OfflineBanner(),
+            const _KeyringBanner(),
             Expanded(
               child: Stack(
                 children: [
@@ -653,6 +657,77 @@ class _OfflineBanner extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A slim bar shown while the system keyring can't be used and sign-ins and
+/// keys go to a file that isn't encrypted (see [ResilientSecureStorage]), so
+/// that it's never a silent change: what was saved before isn't there this
+/// run, and what's saved now isn't protected.
+class _KeyringBanner extends StatelessWidget {
+  const _KeyringBanner();
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: ResilientSecureStorage.usingFallback,
+    builder: (context, fallback, _) {
+      if (!fallback) return const SizedBox.shrink();
+      final l = AppLocalizations.of(context);
+      final scheme = Theme.of(context).colorScheme;
+      return Material(
+        color: scheme.errorContainer,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            8 + (isDesktopWindowFrame ? kWindowControlsWidth : 0),
+            8,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.key_off_rounded,
+                size: 18,
+                color: scheme.onErrorContainer,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l.storageFallbackBanner,
+                  style: TextStyle(
+                    color: scheme.onErrorContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (d) => AlertDialog(
+                    title: Text(l.storageFallbackTitle),
+                    content: Text(l.storageFallbackBody),
+                    actions: [
+                      FilledButton(
+                        style: kInlineButtonStyle,
+                        autofocus: true,
+                        onPressed: () => Navigator.pop(d),
+                        child: Text(
+                          MaterialLocalizations.of(d).okButtonLabel,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onErrorContainer,
+                ),
+                child: Text(l.storageFallbackDetails),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// A rail-foot indicator shown only when a newer release is available. Kicks

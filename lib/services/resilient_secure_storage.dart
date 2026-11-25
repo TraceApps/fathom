@@ -14,9 +14,12 @@ import 'package:path_provider/path_provider.dart';
 /// `main()`, and the same secureStorageProvider backs login, saved passwords,
 /// and every other persisted setting throughout the app.
 ///
-/// The fallback only engages after a real failure is observed, never for a
-/// working keyring, and then for the rest of the process, so a normal desktop
-/// session is unaffected. Values written while the fallback is active are NOT
+/// The fallback only engages after a real failure is observed twice in a row
+/// (a keyring that is slow to wake isn't one), never for a working keyring,
+/// and then for the rest of the process, so a normal desktop session is
+/// unaffected. While it's engaged [usingFallback] is true and the app says so
+/// on screen: what was saved in the keyring before isn't there to read, and
+/// what's saved now isn't protected. Values written while the fallback is active are NOT
 /// encrypted; they're kept in a plain JSON file under the app's support
 /// directory, the same tradeoff other desktop apps make when a platform gives
 /// them no keyring at all. It's a compatibility fallback for a genuinely
@@ -33,8 +36,24 @@ class ResilientSecureStorage {
   static bool _secureBroken = false;
   static Map<String, String>? _fallbackCache;
 
+  /// Whether this run is on the unencrypted file. The app shows a notice
+  /// while it is.
+  static final ValueNotifier<bool> usingFallback = ValueNotifier(false);
+
+  /// Back to a first run, for tests.
+  @visibleForTesting
+  static void reset() {
+    _secureBroken = false;
+    _fallbackCache = null;
+    usingFallback.value = false;
+  }
+
+  /// Where the file goes in tests, which must never touch the app's own.
+  @visibleForTesting
+  static Directory? fallbackDirForTesting;
+
   static Future<File> _fallbackFile() async {
-    final dir = await getApplicationSupportDirectory();
+    final dir = fallbackDirForTesting ?? await getApplicationSupportDirectory();
     return File('${dir.path}/fathom_insecure_fallback.json');
   }
 
@@ -54,22 +73,39 @@ class ResilientSecureStorage {
 
   static Future<void> _saveFallback(Map<String, String> map) async {
     try {
+      // Whole or not at all: written beside the file, then put in its place,
+      // so a run that ends halfway leaves the last good copy.
       final file = await _fallbackFile();
-      file.writeAsStringSync(jsonEncode(map));
+      final next = File('${file.path}.tmp')
+        ..writeAsStringSync(jsonEncode(map), flush: true);
+      next.renameSync(file.path);
     } catch (_) {}
   }
 
   void _markBroken(Object error) {
     if (_secureBroken) return;
     _secureBroken = true;
+    usingFallback.value = true;
     debugPrint('[storage] system secret service unavailable ($error); '
         'falling back to a local unencrypted store for this session');
+  }
+
+  /// Asks the keyring, and once more after a moment when it fails: a keyring
+  /// still waking up (just after sign-in to the desktop) answers the second
+  /// time, and one failure used to move the whole run to the file.
+  Future<T> _twice<T>(Future<T> Function() ask) async {
+    try {
+      return await ask();
+    } catch (_) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      return ask();
+    }
   }
 
   Future<String?> read({required String key}) async {
     if (!_secureBroken) {
       try {
-        return await _delegate.read(key: key);
+        return await _twice(() => _delegate.read(key: key));
       } catch (e) {
         _markBroken(e);
       }
@@ -81,7 +117,7 @@ class ResilientSecureStorage {
   Future<void> write({required String key, required String value}) async {
     if (!_secureBroken) {
       try {
-        await _delegate.write(key: key, value: value);
+        await _twice(() => _delegate.write(key: key, value: value));
         return;
       } catch (e) {
         _markBroken(e);
@@ -95,7 +131,7 @@ class ResilientSecureStorage {
   Future<void> delete({required String key}) async {
     if (!_secureBroken) {
       try {
-        await _delegate.delete(key: key);
+        await _twice(() => _delegate.delete(key: key));
         return;
       } catch (e) {
         _markBroken(e);

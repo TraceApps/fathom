@@ -28,6 +28,15 @@ The file is for a different CPU, or the download is incomplete.
 - Confirm you have the right one: **`Fathom-x86_64.AppImage`** for a normal PC, **`Fathom-aarch64.AppImage`** for ARM64. On an x86_64 machine the aarch64 build gives this exact error.
 - Check the size against the Releases page (`ls -la Fathom-x86_64.AppImage`). A much smaller file was truncated; download it again.
 
+### "Your system keyring isn't answering"
+
+Fathom keeps your sign-in, API keys and passwords in the desktop's keyring (GNOME Keyring, KWallet, or another secret service). When the keyring doesn't answer, even on a second try, Fathom opens anyway and shows this bar across the top. For that run:
+
+- Fathom looks signed out, with settings as on a first run. What you saved before is still in the keyring and comes back with it.
+- What you sign in to or type in now is saved in `fathom_insecure_fallback.json` in Fathom's data folder (`~/.local/share/app.fathom.player/`), which is not encrypted.
+
+Unlock the keyring, or start its service, then restart Fathom. On a system with no keyring at all (Steam Big Picture, a bare window manager), Fathom always works this way; install and unlock a keyring to have it encrypted.
+
 ## Updating
 
 ### The update did not relaunch, or the app will not start afterward
@@ -88,7 +97,7 @@ With Fathom closed, Android lets it check Sonarr, Radarr and Lidarr at most ever
 
 ## Diagnostics
 
-For anything harder to pin down, open **Settings → System → Diagnostics**, turn on **Diagnostic Logging**, reproduce the problem, then tap **Copy Diagnostics**. It captures app errors and playback details in one place, with credentials removed, which is the best thing to attach to a bug report.
+For anything harder to pin down, open **Settings → System → Diagnostics**, turn on **Diagnostic Logging**, reproduce the problem, then tap **Copy Diagnostics**. It captures app errors and playback details in one place, which is the best thing to attach to a bug report. Sign-in tokens, API keys and passwords are removed from every line, and the names of your servers are replaced with `<host>`, so the report is safe to post in a public issue.
 
 ## Still stuck?
 

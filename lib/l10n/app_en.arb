@@ -4652,6 +4652,14 @@
   "@appServerUnreachableOffline": {
     "description": "Banner shown across the top of the app when the active server cannot be reached."
   },
+  "storageFallbackBanner": "Your system keyring isn't answering. Sign-ins and keys are being saved without encryption.",
+  "@storageFallbackBanner": {"description": "Bar across the app while the system keyring (secret service) can't be used and Fathom saves to a plain file instead."},
+  "storageFallbackDetails": "Details",
+  "@storageFallbackDetails": {"description": "Button on the keyring bar: opens the explanation."},
+  "storageFallbackTitle": "Keyring Unavailable",
+  "@storageFallbackTitle": {"description": "Title of the explanation of the keyring bar."},
+  "storageFallbackBody": "Fathom keeps your sign-in, API keys and passwords in your system's keyring. It didn't answer this time, so for now they're saved in a file on this device that isn't encrypted.\n\nWhat you saved before is still in the keyring and comes back with it: unlock the keyring or start its service, then restart Fathom.",
+  "@storageFallbackBody": {"description": "Explanation of the keyring bar. Keyring = the desktop's secret service (GNOME Keyring, KWallet)."},
   "appDownloads": "Downloads",
   "@appDownloads": {
     "description": "Offline banner action button that opens the downloads screen."
