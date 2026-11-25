@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -9,6 +10,7 @@ import 'package:fathom/models/session.dart';
 import 'package:fathom/screens/arr_screen.dart';
 import 'package:fathom/screens/arr_settings_screen.dart';
 import 'package:fathom/services/settings_backup.dart';
+import 'package:fathom/services/tv_mode.dart';
 import 'package:fathom/state/arr_providers.dart';
 import 'package:fathom/state/arr_servers.dart';
 import 'package:fathom/state/download_providers.dart';
@@ -16,6 +18,7 @@ import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/session_controller.dart';
 import 'package:fathom/theme/app_theme.dart';
 import 'package:fathom/widgets/arr_servers_ui.dart';
+import 'package:fathom/widgets/tv_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -491,6 +494,84 @@ void main() {
       expect(find.text('In use'), findsNothing);
     });
 
+    testWidgets('Settings: leaving while Save & Test waits still saves', (
+      t,
+    ) async {
+      final answer = Completer<String>();
+      final container = ProviderContainer(
+        overrides: [
+          preferencesProvider.overrideWith(() => _FakePrefs(const Prefs())),
+          connTesterProvider.overrideWithValue(
+            (app, url, user, key) => app == ConnApp.radarr && key == 'slow'
+                ? answer.future
+                : radarrs(app, url, user, key),
+          ),
+          radarrClientProvider.overrideWithValue(null),
+        ],
+      );
+      addTearDown(container.dispose);
+      t.view.physicalSize = const Size(500, 1400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.dark(const Color(0xFF8AB4F8)),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ArrSettingsScreen(),
+          ),
+        ),
+      );
+      await _settle(t);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(inDialog('Radarr'));
+      await _settle(t);
+      await t.enterText(field(0), 'radarr:7878');
+      await t.enterText(field(1), 'slow');
+      await t.tap(find.text('Save & Test'));
+      await _settle(t);
+      // Back before the answer comes.
+      await t.pageBack();
+      await _settle(t);
+      answer.complete('6.0.4');
+      await _settle(t);
+      expect(t.takeException(), isNull);
+      final p = container.read(preferencesProvider).requireValue;
+      expect((p.radarrUrl, p.radarrApiKey), ('http://radarr:7878', 'slow'));
+      expect(find.text('Connected to Radarr 6.0.4'), findsOneWidget);
+    });
+
+    testWidgets('TV: a failed Save & Test keeps the remote on the button', (
+      t,
+    ) async {
+      isTvDevice = true;
+      addTearDown(() => isTvDevice = false);
+      final container = await settings(t, _main);
+      await t.tap(find.text('Add Connection'));
+      await _settle(t);
+      await t.tap(inDialog('Sonarr'));
+      await _settle(t);
+      // On TV the fields open Fathom's own keyboard: filled in directly.
+      TextEditingController box(int i) =>
+          t.widget<TvTextField>(find.byType(TvTextField).at(i)).controller;
+      box(0).text = 'sonarr:8989';
+      box(1).text = 'wrong';
+      // The remote on Save & Test, then Select.
+      final node = Focus.of(t.element(find.text('Save & Test')));
+      node.requestFocus();
+      await t.pump();
+      expect(FocusManager.instance.primaryFocus, node);
+      await t.tap(find.text('Save & Test'));
+      await _settle(t);
+      expect(find.textContaining("Couldn't connect"), findsOneWidget);
+      // Still there, not on a field above.
+      expect(FocusManager.instance.primaryFocus, node);
+      expect(container.read(preferencesProvider).requireValue.sonarrUrl, isEmpty);
+    });
+
     testWidgets('Settings: nothing yet, then a first one next to another', (
       t,
     ) async {
@@ -536,6 +617,11 @@ void main() {
       await _settle(t);
       // In the pane: the list stays.
       expect(find.text('Add Connection'), findsOneWidget);
+      // Its address takes the cursor, not Add Connection behind the list.
+      expect(
+        FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TextField>(),
+        t.widget<TextField>(field(0)),
+      );
       await t.enterText(field(0), 'radarr:7878');
       await t.enterText(field(1), 'mainkey');
       await t.tap(find.text('Save & Test'));

@@ -17,6 +17,7 @@ import 'arr_add_screen.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_servers_ui.dart';
+import '../widgets/tv_focus.dart';
 import '../widgets/tv_keyboard.dart';
 
 // Manage Connections: what's connected, each with how it's doing, and Add
@@ -436,6 +437,7 @@ class _List extends ConsumerWidget {
           for (final (i, c) in conns.indexed) ...[
             if (i > 0) const Divider(height: 1, indent: 56),
             _Row(
+              key: ValueKey('${c.app.name}/${c.serverId}'),
               conn: c,
               selected:
                   selected != null &&
@@ -449,7 +451,10 @@ class _List extends ConsumerWidget {
         ],
       ),
     );
-    return ListView(
+    // On TV, back from a page that changed the list (one added, one gone),
+    // the remote lands on what now stands nearest instead of on nothing.
+    return TvFocusKeeper(
+      child: ListView(
       padding: const EdgeInsets.all(20),
       children: [
         if (all.isEmpty) ...[
@@ -458,15 +463,18 @@ class _List extends ConsumerWidget {
         ],
         if (apps.isNotEmpty) ...[
           heading(l.arrConnApps),
-          group(apps),
+          KeyedSubtree(key: const ValueKey('apps'), child: group(apps)),
           const SizedBox(height: 20),
         ],
         if (clients.isNotEmpty) ...[
           heading(l.dlSettingsHeading),
-          group(clients),
+          KeyedSubtree(key: const ValueKey('clients'), child: group(clients)),
           const SizedBox(height: 20),
         ],
+        // Keyed, as are the groups: the intro above comes and goes, and an
+        // element that moves keeps its focus only by its key.
         Align(
+          key: const ValueKey('add'),
           alignment: Alignment.centerLeft,
           child: FilledButton.tonalIcon(
             autofocus: all.isEmpty,
@@ -485,6 +493,7 @@ class _List extends ConsumerWidget {
           ),
         ],
       ],
+      ),
     );
   }
 }
@@ -494,6 +503,7 @@ class _Row extends ConsumerWidget {
   final bool selected;
   final VoidCallback onTap;
   const _Row({
+    super.key,
     required this.conn,
     required this.selected,
     required this.onTap,
@@ -506,7 +516,9 @@ class _Row extends ConsumerWidget {
     final check = conn.ready ? ref.watch(connCheckProvider(conn.check)) : null;
     final state = _stateOf(conn, check);
     final version = state == _State.connected ? _shortVersion(check?.value) : null;
-    return ListTile(
+    // On TV the row's own focus tint is too faint across a room.
+    return TvFocusRing(
+      child: ListTile(
       selected: selected,
       onTap: onTap,
       leading: Icon(conn.app.icon, color: theme.colorScheme.primary),
@@ -538,6 +550,7 @@ class _Row extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
       ),
       trailing: _StateChip(state),
+      ),
     );
   }
 }
@@ -561,7 +574,8 @@ class _AddDialog extends StatelessWidget {
     final theme = Theme.of(context);
     Widget option(ConnApp app) {
       final there = saved.any((c) => c.app == app);
-      return ListTile(
+      return TvFocusRing(
+        child: ListTile(
         leading: Icon(app.icon, color: theme.colorScheme.primary),
         title: Text(app.appName),
         subtitle: Text(
@@ -575,6 +589,7 @@ class _AddDialog extends StatelessWidget {
             ? const Icon(Icons.check_rounded, color: _green)
             : null,
         onTap: () => Navigator.pop(context, app),
+        ),
       );
     }
 
@@ -681,9 +696,19 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
   ConnApp get _app => widget.app;
   bool get _qbit => _app == ConnApp.qbittorrent;
 
+  /// Beside the list, the page's own focus: a new connection's first
+  /// empty field takes the cursor, not Add Connection, where focus goes back
+  /// when its list closes.
+  late final _scope = FocusScopeNode(debugLabel: 'connection page');
+
   @override
   void initState() {
     super.initState();
+    if (widget.embedded && _isNew) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scope.requestFocus();
+      });
+    }
     final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
     final c = _isNew ? null : findConn(p, _app, _serverId);
     if (c != null) {
@@ -698,6 +723,7 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
 
   @override
   void dispose() {
+    _scope.dispose();
     _name.dispose();
     _url.dispose();
     _user.dispose();
@@ -770,53 +796,66 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
       _busy = true;
       _failed = null;
     });
+    // Everything from here on is kept before the wait: the page may be
+    // left (another connection picked, Back) while the app answers, and
+    // what was asked is still saved.
+    final tester = ref.read(connTesterProvider);
+    final notifier = ref.read(preferencesProvider.notifier);
+    final app = _app;
+    final isNew = _isNew;
+    final serverId = _serverId;
     String? version;
     if (!anyway) {
       try {
-        version = await ref.read(connTesterProvider)(_app, url, user, secret);
+        version = await tester(app, url, user, secret);
       } catch (e) {
         if (mounted) {
           setState(() {
             _busy = false;
             _failed = e.toString();
           });
+        } else {
+          // Left before the answer: nothing saved, and said so.
+          showSnackOn(
+            messenger,
+            '${app.appName}: ${l.arrTestFailed(e.toString())}',
+            kind: SnackKind.error,
+          );
         }
         return;
       }
     }
-    final notifier = ref.read(preferencesProvider.notifier);
+    Prefs? after;
     await notifier.edit((p) {
-      if (kind == null) return _withSingle(p, url, user, secret);
-      if (_isNew) {
-        return arrAddServer(p, kind, name: name, url: url, apiKey: secret);
-      }
-      return arrEditServer(
-        p,
-        kind,
-        _serverId!,
-        name: name,
-        url: url,
-        apiKey: secret,
-      );
+      final next = kind == null
+          ? _withSingle(p, url, user, secret)
+          : isNew
+          ? arrAddServer(p, kind, name: name, url: url, apiKey: secret)
+          : arrEditServer(
+              p,
+              kind,
+              serverId!,
+              name: name,
+              url: url,
+              apiKey: secret,
+            );
+      return after = next;
     });
-    if (!mounted) return;
-    final p = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    if (_isNew && kind != null) {
-      _serverId = arrServersOf(
-        p,
-        kind,
-      ).where((s) => s.url == url).firstOrNull?.id;
+    final newId = isNew && kind != null && after != null
+        ? arrServersOf(after!, kind).where((s) => s.url == url).firstOrNull?.id
+        : serverId;
+    if (mounted) {
+      setState(() {
+        _busy = false;
+        _isNew = false;
+        _serverId = newId;
+      });
+      widget.onSaved?.call((app: app, serverId: newId, isNew: false));
     }
-    final saved = (app: _app, serverId: _serverId, isNew: false);
-    setState(() {
-      _busy = false;
-      _isNew = false;
-    });
-    widget.onSaved?.call(saved);
     showSnackOn(
       messenger,
       version != null
-          ? l.arrConnectedTo(_app.appName, version)
+          ? l.arrConnectedTo(app.appName, version)
           : l.arrSavedTestFailed(lastFailure ?? l.arrStatusFailed),
       kind: version != null ? SnackKind.success : SnackKind.info,
     );
@@ -989,14 +1028,20 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
           ),
         ],
         const SizedBox(height: 18),
+        // Busy, the buttons ignore presses rather than switch off: a button
+        // that switches off drops the TV remote's focus on another field. And
+        // keyed, as the error above them comes and goes: a button that moves
+        // without its key is a new one, and the focus goes with the old.
         FilledButton(
-          onPressed: _busy ? null : _save,
+          key: const ValueKey('save'),
+          onPressed: _busy ? () {} : _save,
           child: _busy ? AppSpinner.inline() : Text(l.arrSaveTest),
         ),
         if (_failed != null) ...[
           const SizedBox(height: 8),
           OutlinedButton(
-            onPressed: _busy ? null : () => _save(anyway: true),
+            key: const ValueKey('anyway'),
+            onPressed: _busy ? () {} : () => _save(anyway: true),
             child: Text(l.arrSaveAnyway),
           ),
         ],
@@ -1004,19 +1049,22 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
           const SizedBox(height: 16),
           const Divider(height: 1),
           if (server != null && !server.active && server.ready)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.check_circle_outline_rounded),
-              title: Text(l.arrServerUse),
-              onTap: () => arrUseServer(context, ref, server),
+            TvFocusRing(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.check_circle_outline_rounded),
+                title: Text(l.arrServerUse),
+                onTap: () => arrUseServer(context, ref, server),
+              ),
             ),
           // Defaults for New Titles: the server in use's, once it answers.
           if (kind != null &&
               server != null &&
               server.active &&
               state == _State.connected)
-            _DefaultsTile(kind: kind),
-          ListTile(
+            TvFocusRing(child: _DefaultsTile(kind: kind)),
+          TvFocusRing(
+            child: ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(
               Icons.link_off_rounded,
@@ -1028,20 +1076,23 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
             ),
             enabled: !_busy,
             onTap: () => _disconnect(c),
+            ),
           ),
         ],
       ],
     );
     // Fields and buttons at a width that reads as a form, however wide the
     // window or pane.
-    final page = Align(
+    final page = TvFocusKeeper(
+      child: Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
         child: body,
       ),
+      ),
     );
-    if (widget.embedded) return page;
+    if (widget.embedded) return FocusScope(node: _scope, child: page);
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: page,
