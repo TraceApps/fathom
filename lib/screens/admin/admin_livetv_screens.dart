@@ -188,7 +188,8 @@ class AdminLiveTvScreen extends ConsumerWidget {
     final ok = await confirm(context,
         title: l.adminRemoveConfirm(what),
         message: l.adminRemoveFromServerBody,
-        confirmLabel: l.commonRemove);
+        confirmLabel: l.commonRemove,
+        destructive: true);
     if (!ok) return;
     try {
       await onDelete();
@@ -486,6 +487,33 @@ class _RecordingOptionsState extends ConsumerState<_RecordingOptions> {
 class AdminDvrScreen extends ConsumerWidget {
   const AdminDvrScreen({super.key});
 
+  /// Asks, then does it, and says so when the server refuses: each of these
+  /// used to go on one press, and fail in silence.
+  Future<void> _asking(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String label,
+    String? keepLabel,
+    required Future<void> Function() run,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await confirm(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: label,
+      cancelLabel: keepLabel,
+      destructive: true,
+    );
+    if (!ok) return;
+    try {
+      await run();
+    } catch (e) {
+      showErrorOn(messenger, e);
+    }
+  }
+
   Future<void> _cancelTimer(WidgetRef ref, String id) async {
     final s = ref.read(sessionControllerProvider).asData?.value;
     if (s == null) return;
@@ -612,7 +640,14 @@ class AdminDvrScreen extends ConsumerWidget {
                 trailing: IconButton(
                   tooltip: l.commonCancel,
                   icon: const Icon(Icons.delete_outline_rounded),
-                  onPressed: () => _cancelTimer(ref, '${t['Id'] ?? ''}'),
+                  onPressed: () => _asking(
+                    context,
+                    title: l.adminCancelRecordingTitle,
+                    message: l.adminCancelRecordingBody('${t['Name'] ?? ''}'),
+                    label: l.detailCancelRecording,
+                    keepLabel: l.adminKeepRecording,
+                    run: () => _cancelTimer(ref, '${t['Id'] ?? ''}'),
+                  ),
                 ),
               ),
             ),
@@ -631,11 +666,25 @@ class AdminDvrScreen extends ConsumerWidget {
                 trailing: IconButton(
                   tooltip: l.commonDelete,
                   icon: const Icon(Icons.delete_outline_rounded),
-                  onPressed: () => _cancelSeries(ref, '${t['Id'] ?? ''}'),
+                  onPressed: () => _asking(
+                    context,
+                    title: l.adminDeleteSeriesRuleTitle,
+                    message: l.adminDeleteSeriesRuleBody('${t['Name'] ?? ''}'),
+                    label: l.commonDelete,
+                    run: () => _cancelSeries(ref, '${t['Id'] ?? ''}'),
+                  ),
                 ),
               ),
             ),
-            _RecordedTab(onDelete: (id) => _deleteRecording(ref, id)),
+            _RecordedTab(
+              onDelete: (id, name) => _asking(
+                context,
+                title: l.adminDeleteRecordingTitle,
+                message: l.adminDeleteRecordingBody(name),
+                label: l.commonDelete,
+                run: () => _deleteRecording(ref, id),
+              ),
+            ),
           ],
         ),
       ),
@@ -679,7 +728,7 @@ class AdminDvrScreen extends ConsumerWidget {
 /// The Recorded tab of the DVR screen: completed recordings, playable and
 /// deletable.
 class _RecordedTab extends ConsumerWidget {
-  final void Function(String id) onDelete;
+  final void Function(String id, String name) onDelete;
   const _RecordedTab({required this.onDelete});
 
   @override
@@ -711,7 +760,7 @@ class _RecordedTab extends ConsumerWidget {
                     trailing: IconButton(
                       tooltip: l.commonDelete,
                       icon: const Icon(Icons.delete_outline_rounded),
-                      onPressed: () => onDelete(r.id),
+                      onPressed: () => onDelete(r.id, r.name),
                     ),
                   );
                 },

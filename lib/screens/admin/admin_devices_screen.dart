@@ -6,7 +6,9 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/app_snack.dart';
 import '../../widgets/error_view.dart';
+import '../../widgets/ui_common.dart';
 import '../../widgets/app_spinner.dart';
 import '../../api/jellyfin_client.dart';
 
@@ -56,7 +58,24 @@ class AdminDevicesScreen extends ConsumerWidget {
                       trailing: IconButton(
                         tooltip: l.commonRemove,
                         icon: const Icon(Icons.delete_outline_rounded),
-                        onPressed: () => _delete(ref, '${d['Id'] ?? ''}'),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final ok = await confirm(
+                            context,
+                            title: l.adminRemoveDeviceTitle,
+                            message: l.adminRemoveDeviceBody(
+                              '${d['Name'] ?? d['CustomName'] ?? ''}',
+                            ),
+                            confirmLabel: l.commonRemove,
+                            destructive: true,
+                          );
+                          if (!ok) return;
+                          try {
+                            await _delete(ref, '${d['Id'] ?? ''}');
+                          } catch (e) {
+                            showErrorOn(messenger, e);
+                          }
+                        },
                       ),
                     );
                   },

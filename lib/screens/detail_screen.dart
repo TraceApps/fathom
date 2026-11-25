@@ -1074,7 +1074,8 @@ class _DownloadButton extends ConsumerWidget {
     final ok = await confirm(context,
         title: l.detailRemoveDownload,
         message: l.detailRemoveOfflineCopy(item.name),
-        confirmLabel: l.commonRemove);
+        confirmLabel: l.commonRemove,
+        destructive: true);
     if (ok) ref.read(downloadsProvider.notifier).delete(item.id);
   }
 
@@ -1133,7 +1134,8 @@ class _DownloadButton extends ConsumerWidget {
     final ok = await confirm(context,
         title: l.detailRemoveDownload,
         message: l.detailRemoveOfflineCopy(item.name),
-        confirmLabel: l.commonRemove);
+        confirmLabel: l.commonRemove,
+        destructive: true);
     if (!ok) return;
     final notifier = ref.read(downloadsProvider.notifier);
     for (final e in episodes) {
@@ -1381,7 +1383,8 @@ class _ItemMenu extends ConsumerWidget {
     final confirmed = await confirm(context,
         title: l.detailRemoveDownload,
         message: l.detailRemoveOfflineCopy(item.name),
-        confirmLabel: l.commonRemove);
+        confirmLabel: l.commonRemove,
+        destructive: true);
     if (!confirmed) return;
     if (item.isSeries) {
       await ctrl.deleteSeries(item.id);

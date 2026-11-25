@@ -917,7 +917,8 @@ class _QueueSheet extends ConsumerWidget {
                               final ok = await confirm(context,
                                   title: l.ytClearQueueTitle,
                                   message: l.ytClearQueueConfirm(queue.length),
-                                  confirmLabel: l.commonClear);
+                                  confirmLabel: l.commonClear,
+                                  destructive: true);
                               if (!ok) return;
                             }
                             notifier.clear();

@@ -12,6 +12,7 @@ import '../state/preferences.dart';
 import '../state/session_controller.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/search_field.dart';
+import '../widgets/sign_out.dart';
 import '../widgets/tv_keyboard.dart';
 import '../widgets/user_avatar.dart';
 import 'arr_settings_screen.dart' show connCountProvider;
@@ -340,8 +341,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: OutlinedButton.icon(
-          onPressed: () =>
-              ref.read(sessionControllerProvider.notifier).signOut(),
+          onPressed: () => confirmSignOut(context, ref),
           icon: Icon(Icons.logout_rounded, color: theme.colorScheme.error),
           label: Text(l.settingsSignOut,
               style: TextStyle(color: theme.colorScheme.error)),

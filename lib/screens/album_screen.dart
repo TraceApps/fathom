@@ -333,7 +333,8 @@ class AlbumView extends ConsumerWidget {
           final ok = await confirm(context,
               title: l.detailRemoveDownload,
               message: l.detailRemoveOfflineCopy(album.name),
-              confirmLabel: l.commonRemove);
+              confirmLabel: l.commonRemove,
+              destructive: true);
           if (ok) {
             await ref.read(downloadsProvider.notifier).deleteSeries(album.id);
           }

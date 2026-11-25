@@ -62,7 +62,8 @@ class AdminApiKeysScreen extends ConsumerWidget {
     final ok = await confirm(context,
         title: l.adminRevokeApiKeyConfirm,
         message: l.adminRevokeApiKeyBody,
-        confirmLabel: l.adminRevoke);
+        confirmLabel: l.adminRevoke,
+        destructive: true);
     if (!ok) return;
     try {
       await ref.read(jellyfinClientProvider).deleteApiKey(

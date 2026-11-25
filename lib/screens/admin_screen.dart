@@ -186,6 +186,7 @@ class _SystemTab extends ConsumerWidget {
           ? l.adminRestartServerConfirmBody
           : l.adminShutDownServerConfirmBody,
       confirmLabel: restart ? l.adminRestart : l.adminShutDown,
+      destructive: true,
     );
     if (!ok) return;
     try {

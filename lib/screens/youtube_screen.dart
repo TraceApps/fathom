@@ -723,7 +723,14 @@ class _LocalPlaylistRow extends ConsumerWidget {
                 onSelected: (v) async {
                   final n = ref.read(youtubeLocalPlaylistsProvider.notifier);
                   if (v == 'delete') {
-                    await n.delete(playlist.id);
+                    final ok = await confirm(
+                      context,
+                      title: l.ytDeletePlaylistTitle,
+                      message: l.ytDeletePlaylistBody(playlist.name),
+                      confirmLabel: l.commonDelete,
+                      destructive: true,
+                    );
+                    if (ok) await n.delete(playlist.id);
                   } else if (v == 'rename') {
                     final controller =
                         TextEditingController(text: playlist.name);
@@ -807,7 +814,8 @@ class _DownloadsTabState extends ConsumerState<_DownloadsTab> {
     final ok = await confirm(context,
         title: l.ytDeleteSelectedTitle(_selected.length),
         message: l.ytDeleteSelectedConfirm,
-        confirmLabel: l.commonDelete);
+        confirmLabel: l.commonDelete,
+        destructive: true);
     if (ok != true || !mounted) return;
     final n = ref.read(youtubeDownloadsProvider.notifier);
     final ids = _selected.toList();
@@ -1191,7 +1199,8 @@ class _HistoryTab extends ConsumerWidget {
     final ok = await confirm(context,
         title: l.ytClearHistory,
         message: l.ytClearHistoryConfirm,
-        confirmLabel: l.commonClear);
+        confirmLabel: l.commonClear,
+        destructive: true);
     if (ok) await ref.read(youtubeHistoryProvider.notifier).clear();
   }
 }

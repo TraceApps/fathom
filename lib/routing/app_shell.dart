@@ -35,6 +35,7 @@ import '../widgets/download_pill.dart';
 import '../widgets/update_banner.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/mini_video.dart';
+import '../widgets/sign_out.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/ui_common.dart';
 import '../widgets/app_snack.dart';
@@ -1576,7 +1577,7 @@ Future<void> _showTvAccountMenu(BuildContext context, WidgetRef ref,
     case 'admin':
       context.push('/admin');
     case 'signout':
-      ref.read(sessionControllerProvider.notifier).signOut();
+      confirmSignOut(context, ref);
   }
 }
 
@@ -1615,7 +1616,7 @@ class _ProfileMenu extends ConsumerWidget {
           case 'admin':
             context.push('/admin');
           case 'signout':
-            ref.read(sessionControllerProvider.notifier).signOut();
+            confirmSignOut(context, ref);
         }
       },
       itemBuilder: (context) => [

@@ -62,7 +62,8 @@ class _InstalledPlugins extends ConsumerWidget {
     final ok = await confirm(context,
         title: l.adminUninstallConfirm(name),
         message: l.adminUninstallBody,
-        confirmLabel: l.adminUninstall);
+        confirmLabel: l.adminUninstall,
+        destructive: true);
     if (!ok) return;
     try {
       await ref.read(jellyfinClientProvider).uninstallPlugin(
@@ -610,7 +611,8 @@ class _AdminInstalledPluginState
     final ok = await confirm(context,
         title: l.adminUninstallConfirm(_name),
         message: l.adminUninstallBody,
-        confirmLabel: l.adminUninstall);
+        confirmLabel: l.adminUninstall,
+        destructive: true);
     if (!ok) return;
     try {
       await ref.read(jellyfinClientProvider).uninstallPlugin(

@@ -1368,7 +1368,8 @@ class _YoutubeClearData extends ConsumerWidget {
     return await confirm(context,
         title: l.prefsClearConfirmTitle(what),
         message: l.prefsClearCannotUndo,
-        confirmLabel: l.commonClear);
+        confirmLabel: l.commonClear,
+        destructive: true);
   }
 
   @override

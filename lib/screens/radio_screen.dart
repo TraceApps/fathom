@@ -340,7 +340,8 @@ class _RadioScreenState extends ConsumerState<RadioScreen> {
     final ok = await confirm(context,
         title: l.radioDeleteGroup,
         message: l.radioDeleteGroupBody(group),
-        confirmLabel: l.commonRemove);
+        confirmLabel: l.commonRemove,
+        destructive: true);
     if (ok) {
       await ref.read(radioControllerProvider.notifier).deleteGroup(group);
     }

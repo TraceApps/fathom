@@ -113,7 +113,8 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
     final ok = await confirm(context,
         title: l.downloadsCancelAll,
         message: l.downloadsCancelAllConfirm,
-        confirmLabel: l.downloadsCancelAll);
+        confirmLabel: l.downloadsCancelAll,
+        destructive: true);
     if (ok) await controller.cancelActive();
   }
 }
@@ -361,7 +362,8 @@ class _DownloadedLibrary extends ConsumerWidget {
           final ok = await confirm(context,
               title: l.detailRemoveDownload,
               message: l.detailRemoveOfflineCopy(name),
-              confirmLabel: l.commonRemove);
+              confirmLabel: l.commonRemove,
+              destructive: true);
           if (ok) {
             await ref.read(downloadsProvider.notifier).deleteSeries(seriesId);
           }
@@ -526,7 +528,12 @@ class _DownloadTile extends ConsumerWidget {
         tooltip: downloading ? l.downloadCancel : l.commonRemove,
         icon: Icon(
             downloading ? Icons.close_rounded : Icons.delete_outline_rounded),
-        onPressed: () => controller.delete(entry.itemId),
+        onPressed: () => _removeAsking(
+          context,
+          running: downloading,
+          name: entry.name,
+          remove: () => controller.delete(entry.itemId),
+        ),
       ),
       onTap: complete
           ? () => context.push('/player',
@@ -586,7 +593,12 @@ class _SeriesGroupTile extends ConsumerWidget {
             icon: Icon(active.isNotEmpty
                 ? Icons.close_rounded
                 : Icons.delete_outline_rounded),
-            onPressed: () => controller.deleteSeries(seriesId),
+            onPressed: () => _removeAsking(
+              context,
+              running: active.isNotEmpty,
+              name: name,
+              remove: () => controller.deleteSeries(seriesId),
+            ),
           ),
         ],
       ),
@@ -594,7 +606,7 @@ class _SeriesGroupTile extends ConsumerWidget {
           ? LinearProgressIndicator(value: progress)
           : Text('$done/$total'),
       tilePadding: const EdgeInsets.only(left: 20, right: 4),
-      children: _seasonRows(l, controller),
+      children: _seasonRows(context, l, controller),
     );
   }
 
@@ -603,7 +615,11 @@ class _SeriesGroupTile extends ConsumerWidget {
   /// single unnamed/unknown season is listed without a header. When a download
   /// spans more than one season, each header also carries a cancel/remove for
   /// just that season.
-  List<Widget> _seasonRows(AppLocalizations l, DownloadsController controller) {
+  List<Widget> _seasonRows(
+    BuildContext context,
+    AppLocalizations l,
+    DownloadsController controller,
+  ) {
     final bySeason = <int, List<DownloadEntry>>{};
     for (final e in episodes) {
       bySeason.putIfAbsent(e.seasonNumber ?? -1, () => []).add(e);
@@ -624,7 +640,12 @@ class _SeriesGroupTile extends ConsumerWidget {
           label: s == 0 ? l.detailSpecials : l.detailSeasonNumber(s),
           active: active,
           onCancel: perSeasonCancel
-              ? () => controller.deleteSeason(seriesId, s)
+              ? () => _removeAsking(
+                  context,
+                  running: active,
+                  name: s == 0 ? l.detailSpecials : l.detailSeasonNumber(s),
+                  remove: () => controller.deleteSeason(seriesId, s),
+                )
               : null,
         ));
       }
@@ -675,4 +696,28 @@ class _SeasonSubheader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A download's own remove button. One still coming down is canceled at once
+/// (it can be started again); one that's complete is asked about first, as
+/// the same row's menu does: the button used to delete an episode, a season
+/// or a whole show's offline copies on one press.
+Future<void> _removeAsking(
+  BuildContext context, {
+  required bool running,
+  required String name,
+  required Future<void> Function() remove,
+}) async {
+  if (!running) {
+    final l = AppLocalizations.of(context);
+    final ok = await confirm(
+      context,
+      title: l.detailRemoveDownload,
+      message: l.detailRemoveOfflineCopy(name),
+      confirmLabel: l.commonRemove,
+      destructive: true,
+    );
+    if (!ok) return;
+  }
+  await remove();
 }

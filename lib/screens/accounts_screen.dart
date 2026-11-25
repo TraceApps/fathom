@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../state/session_controller.dart';
+import '../widgets/ui_common.dart';
 
 /// Manage signed-in accounts across servers and users: switch, add, remove.
 class AccountsScreen extends ConsumerWidget {
@@ -45,7 +46,19 @@ class AccountsScreen extends ConsumerWidget {
                     : IconButton(
                         tooltip: l.commonRemove,
                         icon: const Icon(Icons.logout_rounded),
-                        onPressed: () => controller.removeAccount(s),
+                        onPressed: () async {
+                          final ok = await confirm(
+                            context,
+                            title: l.accountsRemoveTitle,
+                            message: l.accountsRemoveBody(
+                              s.userName,
+                              s.serverName ?? s.baseUrl,
+                            ),
+                            confirmLabel: l.commonRemove,
+                            destructive: true,
+                          );
+                          if (ok) await controller.removeAccount(s);
+                        },
                       ),
                 onTap: isActive ? null : () => controller.switchTo(s),
               );
