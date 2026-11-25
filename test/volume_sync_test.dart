@@ -4,10 +4,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:fathom/state/volume_sync.dart';
 
-/// Waits for the player's native volume to actually reach [predicate], rather
-/// than a fixed delay and a bet that mpv's async setVolume() round-trip
-/// finished in time — that bet occasionally lost on a loaded CI runner
-/// (200ms wasn't always enough), failing a test that had nothing wrong.
+/// Stands in for a libmpv player: it keeps a volume and echoes each change on
+/// its volume stream, as mpv does. A real one hung CI runners (no sound
+/// device) when disposed, and the volume sync only needs these.
+class _Player implements Player {
+  double _volume = 100;
+  final _volumes = StreamController<double>.broadcast();
+
+  @override
+  PlayerState get state => const PlayerState().copyWith(volume: _volume);
+
+  @override
+  PlayerStream get stream => _Streams(_volumes.stream);
+
+  @override
+  Future<void> setVolume(double volume) async {
+    _volume = volume;
+    _volumes.add(volume);
+  }
+
+  @override
+  Future<void> dispose() => _volumes.close();
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _Streams implements PlayerStream {
+  _Streams(this.volume);
+
+  @override
+  final Stream<double> volume;
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+/// Waits for the volume to reach [predicate].
 Future<void> _waitForVolume(
   Player player,
   bool Function(double) predicate, {
@@ -27,15 +60,13 @@ Future<void> _waitForVolume(
 }
 
 void main() {
-  setUpAll(MediaKit.ensureInitialized);
-
   late Player player;
   late double stored;
   late List<double> writes;
   late VolumeSync sync;
 
   setUp(() {
-    player = Player();
+    player = _Player();
     stored = 100;
     writes = [];
     sync = VolumeSync(
