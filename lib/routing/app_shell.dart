@@ -385,11 +385,22 @@ class NavSidebar extends ConsumerWidget {
       );
     });
 
+    final settingsTile = _NavTile(
+        icon: Icons.settings_rounded,
+        label: AppLocalizations.of(context).miscSettings,
+        selected: location.startsWith('/settings') ||
+            location.startsWith('/preferences'),
+        extended: extended,
+        onTap: () => context.push('/settings'),
+      );
+
     // The foot controls: update indicator (only when an update is available),
     // notifications, account/settings.
     final footControls = <Widget>[
       _UpdateRailButton(extended: extended),
       _NotifBell(extended: extended),
+      // Settings on the menu itself, not only inside the account menu.
+      settingsTile,
       const SizedBox(height: 2),
       Padding(
         padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
@@ -448,6 +459,7 @@ class NavSidebar extends ConsumerWidget {
             onTap: () => context.push('/notifications'),
           );
         }),
+        settingsTile,
         // One account tile that opens the SAME menu as the desktop/mobile
         // profile popup, in the same order (Profile, Watch Together, Quick
         // Connect, Settings, Administration, Sign Out) — not split into separate
