@@ -18,7 +18,9 @@ import '../state/providers.dart';
 import '../services/arr_background.dart';
 import '../state/arr_event_watcher.dart';
 import '../state/seerr_request_watcher.dart';
+import '../models/server_connection.dart';
 import '../state/session_controller.dart';
+import '../state/session_expiry.dart';
 import '../state/syncplay.dart';
 import '../state/ui_providers.dart';
 import '../state/updates.dart';
@@ -219,6 +221,7 @@ class AppShell extends ConsumerWidget {
           children: [
             const _OfflineBanner(),
             const _KeyringBanner(),
+            const _SignInAgainBanner(),
           Expanded(
             child: Stack(
               children: [
@@ -594,6 +597,7 @@ class _MobileShellState extends ConsumerState<_MobileShell> {
           children: [
             const _OfflineBanner(),
             const _KeyringBanner(),
+            const _SignInAgainBanner(),
             Expanded(
               child: Stack(
                 children: [
@@ -651,6 +655,68 @@ class _OfflineBanner extends ConsumerWidget {
               style: TextButton.styleFrom(
                   foregroundColor: scheme.onErrorContainer),
               child: Text(l.appDownloads),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A slim bar shown when the server no longer takes the saved sign-in, with
+/// the way back: the sign-in page for the same server. Signing in again as
+/// the same user replaces the token and the bar goes.
+class _SignInAgainBanner extends ConsumerWidget {
+  const _SignInAgainBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(sessionExpiredProvider)) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          8 + (isDesktopWindowFrame ? kWindowControlsWidth : 0),
+          8,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.lock_person_rounded,
+              size: 18,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                l.sessionEndedBanner,
+                style: TextStyle(
+                  color: scheme.onErrorContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final s = ref.read(sessionControllerProvider).asData?.value;
+                if (s == null) return;
+                context.push(
+                  '/login',
+                  extra: ServerConnection(
+                    baseUrl: s.baseUrl,
+                    serverName: s.serverName,
+                    serverId: s.serverId,
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: scheme.onErrorContainer,
+              ),
+              child: Text(l.sessionSignInAgain),
             ),
           ],
         ),

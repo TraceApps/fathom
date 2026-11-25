@@ -4652,6 +4652,10 @@
   "@appServerUnreachableOffline": {
     "description": "Banner shown across the top of the app when the active server cannot be reached."
   },
+  "sessionEndedBanner": "Your sign-in to this server has ended.",
+  "@sessionEndedBanner": {"description": "Bar across the app when the Jellyfin server no longer accepts the saved sign-in (revoked, device removed)."},
+  "sessionSignInAgain": "Sign In Again",
+  "@sessionSignInAgain": {"description": "Button on the ended sign-in bar: opens the sign-in page for the same server."},
   "storageFallbackBanner": "Your system keyring isn't answering. Sign-ins and keys are being saved without encryption.",
   "@storageFallbackBanner": {"description": "Bar across the app while the system keyring (secret service) can't be used and Fathom saves to a plain file instead."},
   "storageFallbackDetails": "Details",

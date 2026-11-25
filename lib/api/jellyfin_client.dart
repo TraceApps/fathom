@@ -69,7 +69,67 @@ final Dio _dio;
                connectTimeout: const Duration(seconds: 10),
                receiveTimeout: const Duration(seconds: 20),
              ),
-           );
+           ) {
+    // A request the server refused for its sign-in token: whoever keeps the
+    // session is told, so the app can ask to sign in again instead of showing
+    // "error (401)" on every row.
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (e, handler) {
+          if (e.response?.statusCode == 401) {
+            final token = _tokenOf(e.requestOptions);
+            if (token != null) onUnauthorized?.call(token);
+          }
+          handler.next(e);
+        },
+      ),
+    );
+  }
+
+  /// Called with the sign-in token a request carried when the server answers
+  /// it with 401. Not called for a sign-in itself, which carries none.
+  void Function(String token)? onUnauthorized;
+
+  static final _tokenInHeader = RegExp(r'Token="([^"]+)"');
+
+  /// The sign-in token [o] carried, in its header or its address.
+  static String? _tokenOf(RequestOptions o) {
+    final header = o.headers['Authorization'];
+    if (header is String) {
+      final m = _tokenInHeader.firstMatch(header);
+      if (m != null) return m[1];
+    }
+    for (final e in o.uri.queryParameters.entries) {
+      final k = e.key.toLowerCase();
+      if ((k == 'api_key' || k == 'apikey') && e.value.isNotEmpty) {
+        return e.value;
+      }
+    }
+    return null;
+  }
+
+  /// Whether the server no longer takes [token]: asked of the one thing any
+  /// signed-in user may read, their own account. False when the server can't
+  /// be reached or says anything else: only a plain 401 here means signed
+  /// out (revoked, the device removed, the user's password changed).
+  Future<bool> tokenRefused({
+    required String baseUrl,
+    required String token,
+  }) async {
+    try {
+      final res = await _dio.get<dynamic>(
+        '$baseUrl/Users/Me',
+        options: Options(
+          headers: {'Authorization': authHeader(token: token)},
+          // Any answer is an answer: nothing here is an error to report.
+          validateStatus: (_) => true,
+        ),
+      );
+      return res.statusCode == 401;
+    } catch (_) {
+      return false;
+    }
+  }
 
 /// Builds the `Authorization` header. Include [token] once authenticated.
   String authHeader({String? token}) {
@@ -116,6 +176,9 @@ String _friendlyDioError(DioException e, {bool connecting = false}) {
           return connecting
               ? 'No Jellyfin server was found at that address.'
               : 'The requested resource was not found (404).';
+        }
+        if (code == 401 && !connecting) {
+          return 'Your sign-in to this server has ended. Sign in again.';
         }
         return 'The server returned an error (${code ?? 'unknown'}).';
       default:
