@@ -14,6 +14,7 @@ import 'package:audio_service/audio_service.dart';
 import 'app.dart';
 import 'services/secure_http.dart';
 import 'services/tv_mode.dart';
+import 'widgets/tv_focus.dart' show tvPassInertRows;
 import 'services/app_installer.dart';
 import 'services/desktop_integration.dart';
 import 'services/diagnostics.dart';
@@ -45,6 +46,15 @@ Future<void> main() async {
   // Honor a manual "Force TV mode" preference (HTPC / desktop-on-a-TV) when
   // the platform didn't report a television.
   await applyForcedTvMode();
+  // A TV is driven by its remote, never by touch: show where the remote is
+  // on every row and control. Left to itself, Flutter can stay in touch
+  // mode on a TV and hide the focus tint of list rows (Settings, menus).
+  if (isTvDevice) {
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+    // And past the rows that only hold a setting's control, onto it.
+    tvPassInertRows();
+  }
   // Learn which video codecs decode in hardware so the Jellyfin profile can
   // transcode the rest (keeps AV1 off low-power TV sticks that would software
   // decode it and stutter).

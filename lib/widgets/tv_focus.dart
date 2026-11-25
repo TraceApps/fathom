@@ -24,10 +24,46 @@ final FocusScopeNode tvContentScope = FocusScopeNode(debugLabel: 'tvContent');
 /// The focusable content nodes in reading order (top-to-bottom, left-to-right).
 List<FocusNode> tvContentNodesInOrder() => _tvNodesInOrder(_tvFrontPage());
 
+/// Whether [n] is a list row that does nothing itself and holds the control
+/// that does: a setting's row with its dropdown or switch at the end. Flutter
+/// lets any [ListTile] take a TV remote (TVs navigate by direction), one with
+/// no onTap too, and it then lights nothing: the remote seems lost on it, one
+/// press short of the control. A row that only says something, with nothing
+/// in it to press, isn't one: on a page of them the remote still scrolls down
+/// it.
+bool tvInertRow(FocusNode n) {
+  if (n is FocusScopeNode) return false;
+  final tile = n.context?.findAncestorWidgetOfExactType<ListTile>();
+  if (tile == null || tile.onTap != null || tile.onLongPress != null) {
+    return false;
+  }
+  // A control inside the row is under the row's own stop, which is the row's
+  // first one.
+  final above = n.parent?.context?.findAncestorWidgetOfExactType<ListTile>();
+  if (identical(above, tile)) return false;
+  return n.descendants.any((d) => d.canRequestFocus && !d.skipTraversal);
+}
+
+/// On a TV, hands the remote on to the control in a [tvInertRow] whenever it
+/// lands on one, however it got there (a move, a page coming back).
+void tvPassInertRows() {
+  if (!isTvDevice || _tvPassingInertRows) return;
+  _tvPassingInertRows = true;
+  FocusManager.instance.addListener(() {
+    final n = FocusManager.instance.primaryFocus;
+    if (!isTvDevice || n == null || !tvInertRow(n)) return;
+    n.descendants
+        .firstWhere((d) => d.canRequestFocus && !d.skipTraversal)
+        .requestFocus();
+  });
+}
+
+bool _tvPassingInertRows = false;
+
 /// [page]'s stops in reading order.
 List<FocusNode> _tvNodesInOrder(FocusNode page) {
   return page.traversalDescendants
-      .where((n) => n.canRequestFocus && n.context != null)
+      .where((n) => n.canRequestFocus && n.context != null && !tvInertRow(n))
       .toList()
     ..sort((a, b) {
       final dy = a.rect.top.compareTo(b.rect.top);

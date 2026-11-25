@@ -83,12 +83,16 @@ import '../state/session_controller.dart';
 import '../widgets/tv_focus.dart';
 import 'app_shell.dart';
 
-/// A page of the Manage section. On a TV it opens with the remote on its first
-/// stop under the header (see [TvPageLanding]): most of them are opened over
-/// another page, which the shell gives no landing. Elsewhere it's the page as
-/// it is.
-CustomTransitionPage<void> _managePage(Widget child) =>
+/// A page opened over another: on a TV it opens with the remote on its first
+/// stop under the header (see [TvPageLanding]). Without it the remote stays on
+/// the page underneath, unseen, and Select opens that row again. The shell
+/// lands only the sections it switches between. Elsewhere it's the page as it
+/// is.
+CustomTransitionPage<void> _landingPage(Widget child) =>
     _fadePage(isTvDevice ? TvPageLanding(child: child) : child);
+
+/// A page of the Manage section: most are opened over another page.
+CustomTransitionPage<void> _managePage(Widget child) => _landingPage(child);
 
 CustomTransitionPage<void> _fadePage(Widget child, {LocalKey? key}) {
   return CustomTransitionPage<void>(
@@ -375,10 +379,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
               path: '/settings',
-              pageBuilder: (_, _) => _fadePage(const SettingsScreen())),
+              pageBuilder: (_, _) => _landingPage(const SettingsScreen())),
           GoRoute(
             path: '/preferences',
-            pageBuilder: (context, state) => _fadePage(
+            pageBuilder: (context, state) => _landingPage(
                 PreferencesScreen(section: state.extra as String? ?? 'appearance')),
           ),
           GoRoute(
@@ -392,18 +396,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, _) => _fadePage(const MovieWheelScreen())),
           GoRoute(
               path: '/home-layout',
-              pageBuilder: (_, _) => _fadePage(const HomeLayoutScreen())),
+              pageBuilder: (_, _) => _landingPage(const HomeLayoutScreen())),
           GoRoute(
               path: '/navigation-layout',
               pageBuilder: (_, _) =>
-                  _fadePage(const NavigationLayoutScreen())),
+                  _landingPage(const NavigationLayoutScreen())),
           GoRoute(
               path: '/shortcuts',
               pageBuilder: (_, _) =>
-                  _fadePage(const KeyboardShortcutsScreen())),
+                  _landingPage(const KeyboardShortcutsScreen())),
           GoRoute(
               path: '/support',
-              pageBuilder: (_, _) => _fadePage(const SupportScreen())),
+              pageBuilder: (_, _) => _landingPage(const SupportScreen())),
           GoRoute(
               path: '/genres',
               pageBuilder: (_, _) => _fadePage(const GenresScreen())),
@@ -446,84 +450,84 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
               path: '/admin',
-              pageBuilder: (_, _) => _fadePage(const AdminScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminScreen())),
           GoRoute(
             path: '/admin/user',
             pageBuilder: (context, state) =>
-                _fadePage(UserEditScreen(userId: state.extra as String)),
+                _landingPage(UserEditScreen(userId: state.extra as String)),
           ),
           GoRoute(
               path: '/admin/general',
-              pageBuilder: (_, _) => _fadePage(const AdminGeneralScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminGeneralScreen())),
           GoRoute(
               path: '/admin/playback',
-              pageBuilder: (_, _) => _fadePage(const AdminPlaybackScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminPlaybackScreen())),
           GoRoute(
               path: '/admin/branding',
-              pageBuilder: (_, _) => _fadePage(const AdminBrandingScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminBrandingScreen())),
           GoRoute(
               path: '/admin/network',
-              pageBuilder: (_, _) => _fadePage(const AdminNetworkScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminNetworkScreen())),
           GoRoute(
               path: '/admin/apikeys',
-              pageBuilder: (_, _) => _fadePage(const AdminApiKeysScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminApiKeysScreen())),
           GoRoute(
               path: '/admin/backups',
-              pageBuilder: (_, _) => _fadePage(const AdminBackupsScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminBackupsScreen())),
           GoRoute(
               path: '/admin/logs',
-              pageBuilder: (_, _) => _fadePage(const AdminLogsScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminLogsScreen())),
           GoRoute(
             path: '/admin/logs/view',
             pageBuilder: (context, state) =>
-                _fadePage(AdminLogViewScreen(name: state.extra as String)),
+                _landingPage(AdminLogViewScreen(name: state.extra as String)),
           ),
           GoRoute(
               path: '/admin/system',
-              pageBuilder: (_, _) => _fadePage(const AdminSystemScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminSystemScreen())),
           GoRoute(
               path: '/admin/users',
-              pageBuilder: (_, _) => _fadePage(const AdminUsersScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminUsersScreen())),
           GoRoute(
               path: '/admin/libraries',
-              pageBuilder: (_, _) => _fadePage(const AdminLibrariesScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminLibrariesScreen())),
           GoRoute(
               path: '/admin/tasks',
-              pageBuilder: (_, _) => _fadePage(const AdminTasksScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminTasksScreen())),
           GoRoute(
               path: '/admin/sessions',
-              pageBuilder: (_, _) => _fadePage(const AdminSessionsScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminSessionsScreen())),
           GoRoute(
               path: '/admin/activity',
-              pageBuilder: (_, _) => _fadePage(const AdminActivityScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminActivityScreen())),
           GoRoute(
               path: '/admin/plugins',
-              pageBuilder: (_, _) => _fadePage(const AdminPluginsScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminPluginsScreen())),
           GoRoute(
             path: '/admin/plugins/installed',
-            pageBuilder: (context, state) => _fadePage(AdminInstalledPluginScreen(
+            pageBuilder: (context, state) => _landingPage(AdminInstalledPluginScreen(
                 plugin: state.extra as Map<String, dynamic>)),
           ),
           GoRoute(
             path: '/admin/plugins/package',
-            pageBuilder: (context, state) => _fadePage(
+            pageBuilder: (context, state) => _landingPage(
                 AdminPackageScreen(package: state.extra as Map<String, dynamic>)),
           ),
           GoRoute(
               path: '/admin/devices',
-              pageBuilder: (_, _) => _fadePage(const AdminDevicesScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminDevicesScreen())),
           GoRoute(
               path: '/admin/livetv',
-              pageBuilder: (_, _) => _fadePage(const AdminLiveTvScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminLiveTvScreen())),
           GoRoute(
               path: '/admin/dvr',
-              pageBuilder: (_, _) => _fadePage(const AdminDvrScreen())),
+              pageBuilder: (_, _) => _landingPage(const AdminDvrScreen())),
           GoRoute(
               path: '/accounts',
-              pageBuilder: (_, _) => _fadePage(const AccountsScreen())),
+              pageBuilder: (_, _) => _landingPage(const AccountsScreen())),
           GoRoute(
               path: '/profile',
-              pageBuilder: (_, _) => _fadePage(const ProfileScreen())),
+              pageBuilder: (_, _) => _landingPage(const ProfileScreen())),
           GoRoute(
               path: '/downloads',
               pageBuilder: (_, _) => _fadePage(const DownloadsScreen())),
@@ -533,13 +537,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                   DownloadDetailScreen(itemKey: state.extra as String))),
           GoRoute(
               path: '/notifications',
-              pageBuilder: (_, _) => _fadePage(const NotificationsScreen())),
+              pageBuilder: (_, _) => _landingPage(const NotificationsScreen())),
           GoRoute(
               path: '/discover',
               pageBuilder: (_, _) => _fadePage(const DiscoverScreen())),
           GoRoute(
               path: '/seerr-settings',
-              pageBuilder: (_, _) => _fadePage(const SeerrSettingsScreen())),
+              pageBuilder: (_, _) => _landingPage(const SeerrSettingsScreen())),
           GoRoute(
               path: '/arr',
               pageBuilder: (_, state) => _managePage(
@@ -610,13 +614,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                   id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0))),
           GoRoute(
               path: '/updates',
-              pageBuilder: (_, _) => _fadePage(const UpdatesScreen())),
+              pageBuilder: (_, _) => _landingPage(const UpdatesScreen())),
           GoRoute(
               path: '/diagnostics',
-              pageBuilder: (_, _) => _fadePage(const DiagnosticsScreen())),
+              pageBuilder: (_, _) => _landingPage(const DiagnosticsScreen())),
           GoRoute(
               path: '/backup',
-              pageBuilder: (_, _) => _fadePage(const BackupScreen())),
+              pageBuilder: (_, _) => _landingPage(const BackupScreen())),
           GoRoute(
             path: '/seerr-detail',
             pageBuilder: (context, state) =>
@@ -697,10 +701,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/seerr-layout',
               pageBuilder: (_, _) =>
-                  _fadePage(const SeerrDiscoverLayoutScreen())),
+                  _landingPage(const SeerrDiscoverLayoutScreen())),
           GoRoute(
               path: '/syncplay',
-              pageBuilder: (_, _) => _fadePage(const SyncPlayScreen())),
+              pageBuilder: (_, _) => _landingPage(const SyncPlayScreen())),
         ],
       ),
     ],

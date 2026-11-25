@@ -1447,9 +1447,13 @@ void main() {
     expect(
       router,
       contains(
-        '_managePage(Widget child) =>\n'
+        '_landingPage(Widget child) =>\n'
         '    _fadePage(isTvDevice ? TvPageLanding(child: child) : child);',
       ),
+    );
+    expect(
+      router,
+      contains('_managePage(Widget child) => _landingPage(child);'),
     );
     final routes = RegExp(
       r"path: '(/arr[^']*)',\s*pageBuilder: \([^)]*\) => (\w+)\(",
@@ -1467,5 +1471,29 @@ void main() {
       RegExp(r"path: '/arr").allMatches(router).length,
       routes.length,
     );
+  });
+
+  test('pages opened from Settings and the account menu land on a TV', () {
+    // Opened over another page: without a landing the remote stays on the
+    // row that opened it, on the page underneath, unseen.
+    final router = File('lib/routing/app_router.dart').readAsStringSync();
+    String wrapperOf(String path) {
+      final m = RegExp(
+        "path: '${RegExp.escape(path)}',\\s*pageBuilder:"
+        r"(?:(?!path:)[\s\S]){0,200}?(_\w+Page)\(",
+      ).firstMatch(router);
+      expect(m, isNotNull, reason: path);
+      return m!.group(1)!;
+    }
+
+    for (final path in [
+      '/settings', '/preferences', '/home-layout', '/navigation-layout',
+      '/shortcuts', '/support', '/accounts', '/profile', '/updates',
+      '/diagnostics', '/backup', '/seerr-settings', '/seerr-layout',
+      '/syncplay', '/notifications', '/admin', '/admin/users',
+      '/admin/user', '/admin/plugins/package',
+    ]) {
+      expect(wrapperOf(path), '_landingPage', reason: path);
+    }
   });
 }
