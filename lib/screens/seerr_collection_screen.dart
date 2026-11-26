@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/error_text.dart';
 import '../state/seerr_providers.dart';
+import '../widgets/over_art_bar.dart';
 import '../widgets/shimmer.dart';
 import '../widgets/cached_image.dart';
 import '../widgets/error_view.dart';
@@ -34,7 +35,7 @@ class SeerrCollectionScreen extends ConsumerWidget {
         ),
         data: (c) => CustomScrollView(
           slivers: [
-            SliverAppBar(
+            OverArtBar(child: SliverAppBar(
               expandedHeight: 260,
               pinned: true,
               flexibleSpace: FlexibleSpaceBar(
@@ -64,7 +65,7 @@ class SeerrCollectionScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
+            )),
             if (c.overview != null && c.overview!.isNotEmpty)
               SliverToBoxAdapter(
                 child: Padding(

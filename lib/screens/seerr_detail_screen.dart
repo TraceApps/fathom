@@ -19,6 +19,7 @@ import '../state/providers.dart';
 import '../state/seerr_providers.dart';
 import '../state/session_controller.dart';
 import '../services/tv_mode.dart';
+import '../widgets/over_art_bar.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/error_view.dart';
 import '../widgets/arr_widgets.dart';
@@ -223,7 +224,7 @@ class _DetailBody extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
+        OverArtBar(child: SliverAppBar(
           expandedHeight: headerHeight,
           pinned: true,
           flexibleSpace: FlexibleSpaceBar(
@@ -273,7 +274,7 @@ class _DetailBody extends ConsumerWidget {
               ],
             ),
           ),
-        ),
+        )),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),

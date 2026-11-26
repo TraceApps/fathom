@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
 import '../state/library_providers.dart';
+import '../widgets/over_art_bar.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/media_cards.dart';
@@ -25,11 +26,11 @@ class CollectionView extends ConsumerWidget {
     final items = ref.watch(collectionItemsProvider(collection.id));
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
+        OverArtBar(child: SliverAppBar(
           pinned: true,
           backgroundColor: Colors.transparent,
           title: Text(collection.name),
-        ),
+        )),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),

@@ -9,6 +9,7 @@ import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
+import '../widgets/over_art_bar.dart';
 import '../widgets/checked_menu_item.dart';
 import '../widgets/tv_focus.dart';
 import '../state/downloads.dart';
@@ -462,7 +463,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       child: CustomScrollView(
         controller: _sc,
         slivers: [
-          SliverAppBar(
+          OverArtBar(child: SliverAppBar(
             expandedHeight: headerHeight,
             pinned: true,
             stretch: true,
@@ -552,7 +553,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                 ],
               ),
             ),
-          ),
+          )),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),

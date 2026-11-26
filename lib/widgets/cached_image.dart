@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../services/image_cache.dart';
 import 'shimmer.dart';
@@ -12,7 +13,7 @@ ImageProvider cachedImageProvider(String url) =>
 /// A network image backed by a persistent disk cache, so artwork survives an
 /// app restart instead of re-downloading every launch. A drop-in for
 /// `Image.network` across the app (Seerr TMDB art, Jellyfin art).
-class CachedImage extends StatelessWidget {
+class CachedImage extends StatefulWidget {
   final String url;
   final BoxFit fit;
   final Alignment alignment;
@@ -51,25 +52,75 @@ class CachedImage extends StatelessWidget {
   });
 
   @override
+  State<CachedImage> createState() => _CachedImageState();
+}
+
+/// Throws a saved picture away so the next look fetches it afresh.
+///
+/// A download cut short (the app killed, the battery gone, a crash) leaves a
+/// file that is empty or half there. The cache still lists it, so the same
+/// poster failed to draw at every launch until its entry aged out, three
+/// weeks later. A picture that can't be read is not worth keeping.
+@visibleForTesting
+Future<void> forgetBrokenImage(String url, {BaseCacheManager? cache}) async {
+  try {
+    await (cache ?? fathomImageCache).removeFile(url);
+  } catch (_) {
+    // Nothing saved under it, or the store is busy: the retry fetches anyway.
+  }
+  await CachedNetworkImageProvider(url, cacheManager: cache ?? fathomImageCache)
+      .evict();
+}
+
+class _CachedImageState extends State<CachedImage> {
+  /// Bumped to build the picture again after a broken copy was thrown out.
+  int _attempt = 0;
+
+  /// One fresh fetch per picture: one that fails twice is really not there.
+  bool _retried = false;
+
+  @override
+  void didUpdateWidget(CachedImage old) {
+    super.didUpdateWidget(old);
+    if (old.url != widget.url) {
+      _attempt = 0;
+      _retried = false;
+    }
+  }
+
+  void _failed() {
+    if (_retried) return;
+    _retried = true;
+    final url = widget.url;
+    forgetBrokenImage(url).then((_) {
+      if (mounted && widget.url == url) setState(() => _attempt++);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final memW = cacheWidth != null ? (cacheWidth! * dpr).round() : null;
+    final memW =
+        widget.cacheWidth != null ? (widget.cacheWidth! * dpr).round() : null;
     return CachedNetworkImage(
-      imageUrl: url,
+      key: ValueKey(_attempt),
+      imageUrl: widget.url,
       cacheManager: fathomImageCache,
-      fit: fit,
-      alignment: alignment,
-      width: width,
-      height: height,
-      filterQuality: filterQuality,
+      fit: widget.fit,
+      alignment: widget.alignment,
+      width: widget.width,
+      height: widget.height,
+      filterQuality: widget.filterQuality,
       memCacheWidth: memW,
-      httpHeaders: headers,
+      httpHeaders: widget.headers,
       fadeInDuration: const Duration(milliseconds: 180),
       fadeOutDuration: const Duration(milliseconds: 120),
       placeholder: (context, _) =>
-          placeholder ?? const ShimmerBox(borderRadius: BorderRadius.zero),
+          widget.placeholder ??
+          const ShimmerBox(borderRadius: BorderRadius.zero),
+      errorListener: (_) => _failed(),
       errorWidget: (context, _, _) =>
-          errorBuilder?.call(context) ?? const SizedBox.shrink(),
+          widget.errorBuilder?.call(context) ?? const SizedBox.shrink(),
     );
   }
 }

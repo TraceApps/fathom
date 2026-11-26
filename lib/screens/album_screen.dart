@@ -8,6 +8,7 @@ import '../services/tv_mode.dart';
 import '../state/audio_player.dart';
 import '../state/downloads.dart';
 import '../state/library_providers.dart';
+import '../widgets/over_art_bar.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/media_image.dart';
@@ -56,11 +57,11 @@ class AlbumView extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
+        OverArtBar(child: SliverAppBar(
           pinned: true,
           backgroundColor: Colors.transparent,
           title: Text(album.name),
-        ),
+        )),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(20),
