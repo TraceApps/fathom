@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fathom/routing/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,5 +97,13 @@ void main() {
       expect(navAnchor('/item', routes), '/home');
       expect(navAnchor('/library', ['/home', '/favorites']), '/home');
     });
+  });
+
+  test('the Settings tile opens Settings once, not again on top of itself', () {
+    final src = File('lib/routing/app_shell.dart').readAsStringSync();
+    expect(
+      src,
+      contains("if (!location.startsWith('/settings')) context.push('/settings');"),
+    );
   });
 }

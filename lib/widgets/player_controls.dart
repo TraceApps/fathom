@@ -459,6 +459,8 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
     if (handleMediaKey(
       k,
       playing: _playing,
+      held: event is KeyRepeatEvent,
+      canSeek: !widget.isLive,
       toggle: () {
         _show();
         _toggle();

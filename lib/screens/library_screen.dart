@@ -161,7 +161,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             token: session.accessToken,
             parentId: widget.library.id,
             includeItemTypes: _includeTypes,
-            recursive: _includeTypes != null,
+            // A search looks inside folders too: in a library of home
+            // videos or mixed content the title is rarely at the top level.
+            recursive: _includeTypes != null || _query.isNotEmpty,
             sortBy: _sortBy,
             sortOrder: _sortOrder,
             filters: _unwatchedOnly ? 'IsUnplayed' : null,

@@ -74,7 +74,7 @@ extension JellyfinStreamingApi on JellyfinClient {
           .join('&');
       return '$baseUrl/Videos/$itemId/stream?$q';
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -138,7 +138,7 @@ extension JellyfinStreamingApi on JellyfinClient {
         contentType: _mimeForContainer(container),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -286,7 +286,7 @@ Future<LiveStreamHandle> _requestLiveStream({
         playSessionId: playSessionId,
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -731,7 +731,7 @@ Future<void> _postPlayState(
         );
       }
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -749,7 +749,7 @@ Future<void> deleteUserImage({
         query: {'userId': userId},
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -776,7 +776,7 @@ Future<void> deleteUserImage({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -791,7 +791,7 @@ Future<void> deleteUserImage({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 }

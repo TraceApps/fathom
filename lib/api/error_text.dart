@@ -33,9 +33,18 @@ String errorText(Object error) {
   if (e is Exception && said.startsWith('Exception: ') && said.length > 11) {
     return said.substring(11);
   }
-  Diagnostics.instance.add('error', '${e.runtimeType}: $e');
+  // Once, not at every repaint of the page showing it: this is called
+  // while building, and the same line over and over would push everything
+  // else out of the log.
+  final line = '${e.runtimeType}: $e';
+  if (line != _lastLogged) {
+    _lastLogged = line;
+    Diagnostics.instance.add('error', line);
+  }
   return tr.errUnexpected;
 }
+
+String? _lastLogged;
 
 String? _written(Object? e) => switch (e) {
   JellyfinException() => e.message,

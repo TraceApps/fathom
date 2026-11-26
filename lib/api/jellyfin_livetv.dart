@@ -59,7 +59,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -85,7 +85,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -101,7 +101,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -138,7 +138,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
           .map((e) => BaseItemDto.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -156,7 +156,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -179,7 +179,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -196,7 +196,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -219,7 +219,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -251,7 +251,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -274,7 +274,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
       }
       return Map<String, dynamic>.from(data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -304,7 +304,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
           (id: '${e['Id'] ?? ''}', name: '${e['Name'] ?? e['Id'] ?? ''}'),
       ];
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -321,7 +321,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -366,7 +366,7 @@ extension JellyfinLiveTvApi on JellyfinClient {
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -387,7 +387,7 @@ Future<void> createTimer({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -408,7 +408,7 @@ Future<void> createSeriesTimer({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -430,7 +430,7 @@ Future<void> updateSeriesTimer({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -445,7 +445,7 @@ Future<void> cancelSeriesTimer({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -457,7 +457,7 @@ Future<void> deleteRecording({
     try {
       await _dio.delete('$baseUrl/Items/$id', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 

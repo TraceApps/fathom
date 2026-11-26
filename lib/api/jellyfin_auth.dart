@@ -88,7 +88,7 @@ extension JellyfinAuthApi on JellyfinClient {
           }
           lastErr = JellyfinException(tr.errNotJellyfin);
         } on DioException catch (e) {
-          lastErr = JellyfinException(_friendlyDioError(e, connecting: true));
+          lastErr = JellyfinException(_friendlyDioError(e, connecting: true), cause: e);
         }
       }
     } finally {
@@ -107,7 +107,7 @@ extension JellyfinAuthApi on JellyfinClient {
       }
       return PublicSystemInfo.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e, connecting: true));
+      throw JellyfinException(_friendlyDioError(e, connecting: true), cause: e);
     }
   }
 
@@ -135,7 +135,7 @@ extension JellyfinAuthApi on JellyfinClient {
       if (e.response?.statusCode == 401) {
         throw JellyfinException(tr.errWrongPassword);
       }
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -171,7 +171,7 @@ extension JellyfinAuthApi on JellyfinClient {
       final data = Map<String, dynamic>.from(res.data as Map);
       return (secret: data['Secret'] as String, code: data['Code'] as String);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -191,7 +191,7 @@ extension JellyfinAuthApi on JellyfinClient {
       if (e.response?.statusCode == 404) {
         throw JellyfinException(tr.errQuickConnectExpired);
       }
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -213,7 +213,7 @@ extension JellyfinAuthApi on JellyfinClient {
       if (e.response?.statusCode == 404) {
         throw JellyfinException(tr.errQuickConnectCode);
       }
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -237,7 +237,7 @@ extension JellyfinAuthApi on JellyfinClient {
         Map<String, dynamic>.from(res.data as Map),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 

@@ -135,7 +135,7 @@ Future<List<BaseItemDto>> _getItems(
         return BaseItemDto.fromJson(m);
       }).toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -198,7 +198,7 @@ Future<List<BaseItemDto>> _getItems(
             (data['TotalRecordCount'] as num?)?.toInt() ?? items.length,
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -291,7 +291,7 @@ Future<List<BaseItemDto>> _getItems(
       return await among({'Years': '$year', 'Limit': '2000'}) ??
           await among({'Years': '${year - 1},${year + 1}', 'Limit': '2000'});
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -372,7 +372,7 @@ Future<List<BaseItemDto>> _getItems(
       );
       return (res.data as Map?)?['Id'] as String? ?? '';
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -390,7 +390,7 @@ Future<void> addToPlaylist({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -409,7 +409,7 @@ Future<void> addToPlaylist({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -434,7 +434,7 @@ Future<void> deletePlaylist({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -478,7 +478,7 @@ Future<void> deletePlaylist({
       final res = await _dio.get('$baseUrl/Users/Me', options: _authed(token));
       return UserDto.fromJson(Map<String, dynamic>.from(res.data as Map));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -506,7 +506,7 @@ Future<void> deletePlaylist({
       ];
       return sortRemoteSubtitles(out);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -524,7 +524,7 @@ Future<void> deletePlaylist({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -544,7 +544,7 @@ Future<void> deletePlaylist({
       );
       return BaseItemDto.fromJson(Map<String, dynamic>.from(res.data as Map));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -599,7 +599,7 @@ Future<void> deletePlaylist({
     try {
       await _dio.delete('$baseUrl/Items/$itemId', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -619,7 +619,7 @@ Future<void> deletePlaylist({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -640,7 +640,7 @@ Future<void> deletePlaylist({
         query: {'userId': userId},
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -668,7 +668,7 @@ Future<void> deletePlaylist({
       } on DioException catch (e) {
         // The route moved in 10.10; older servers only have the per-user one.
         if (e.response?.statusCode != 404) {
-          throw JellyfinException(_friendlyDioError(e));
+          throw JellyfinException(_friendlyDioError(e), cause: e);
         }
         try {
           final res = await _dio.get(
@@ -677,7 +677,7 @@ Future<void> deletePlaylist({
           );
           raw = (res.data as List?) ?? const [];
         } on DioException catch (e2) {
-          throw JellyfinException(_friendlyDioError(e2));
+          throw JellyfinException(_friendlyDioError(e2), cause: e2);
         }
       }
       return raw
@@ -728,10 +728,10 @@ Future<void> deletePlaylist({
           );
           return;
         } on DioException catch (e2) {
-          throw JellyfinException(_friendlyDioError(e2));
+          throw JellyfinException(_friendlyDioError(e2), cause: e2);
         }
       }
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -752,7 +752,7 @@ Future<void> deletePlaylist({
         query: {'userId': userId},
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -823,7 +823,7 @@ Future<void> deletePlaylist({
         Map<String, dynamic>.from(items.first as Map),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 

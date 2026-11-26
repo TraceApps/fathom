@@ -8,7 +8,11 @@ int _int(Object? v) => (v as num?)?.toInt() ?? 0;
 
 class ArrException implements Exception {
   final String message;
-  ArrException(this.message);
+
+  /// What was caught, when this stands for a failed request (see
+  /// JellyfinException.cause).
+  final Object? cause;
+  ArrException(this.message, {this.cause});
   @override
   String toString() => message;
 }
@@ -50,7 +54,7 @@ abstract class ArrClient {
       );
       return r.data;
     } on DioException catch (e) {
-      throw ArrException(arrErrorMessage(kind, e));
+      throw ArrException(arrErrorMessage(kind, e), cause: e);
     }
   }
 
@@ -69,7 +73,7 @@ abstract class ArrClient {
       );
       return r.data;
     } on DioException catch (e) {
-      throw ArrException(arrErrorMessage(kind, e));
+      throw ArrException(arrErrorMessage(kind, e), cause: e);
     }
   }
 
@@ -109,7 +113,7 @@ abstract class ArrClient {
           if (m is Map) ArrSearchResult.fromJson(Map<String, dynamic>.from(m)),
       ];
     } on DioException catch (e) {
-      throw ArrException(arrErrorMessage(kind, e));
+      throw ArrException(arrErrorMessage(kind, e), cause: e);
     }
   }
 
@@ -1656,7 +1660,7 @@ class ProwlarrClient {
       );
       return r.data;
     } on DioException catch (e) {
-      throw ArrException(arrAppErrorMessage(appName, e));
+      throw ArrException(arrAppErrorMessage(appName, e), cause: e);
     }
   }
 
@@ -1752,7 +1756,7 @@ class ProwlarrClient {
       if (e.response?.statusCode == 400 && problems.isNotEmpty) {
         return problems;
       }
-      throw ArrException(arrAppErrorMessage(appName, e));
+      throw ArrException(arrAppErrorMessage(appName, e), cause: e);
     }
   }
 
@@ -1764,7 +1768,7 @@ class ProwlarrClient {
       data = (await _try('POST', 'indexer/testall')).data;
     } on DioException catch (e) {
       if (e.response?.statusCode != 400 || e.response?.data is! List) {
-        throw ArrException(arrAppErrorMessage(appName, e));
+        throw ArrException(arrAppErrorMessage(appName, e), cause: e);
       }
       data = e.response!.data;
     }

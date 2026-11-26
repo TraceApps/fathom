@@ -124,4 +124,16 @@ void main() {
       isEmpty,
     );
   });
+
+  test('what the updater and file mover say reaches the screen', () {
+    // They are written for the reader. Thrown as a StateError they were
+    // replaced by the general line, and the reason was shown nowhere.
+    for (final f in ['lib/services/app_installer.dart', 'lib/services/shared_files.dart']) {
+      expect(File(f).readAsStringSync(), isNot(contains('throw StateError(')), reason: f);
+    }
+    expect(
+      errorText(Exception('The update download was incomplete. Your current version was kept.')),
+      'The update download was incomplete. Your current version was kept.',
+    );
+  });
 }

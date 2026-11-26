@@ -100,7 +100,7 @@ List<SettingResult> userSettingsIndex(
     }
     // The choice of player: Android's.
     if (r.title == l.prefsPlayerBackend) return Platform.isAndroid;
-    if (r.title == l.searchInterfaceSize) return !isTvDevice;
+    if (r.title == l.searchInterfaceSize) return desktop && !isTvDevice;
     if (needsManage.contains(r.title)) return manage;
     if (r.title == l.browseCustomizeDiscover) return seerr;
     // With YouTube off its page has the one switch that turns it on.

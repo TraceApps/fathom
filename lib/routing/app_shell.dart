@@ -460,7 +460,11 @@ class NavSidebar extends ConsumerWidget {
         label: AppLocalizations.of(context).miscSettings,
         selected: location.startsWith('/settings'),
         extended: extended,
-        onTap: () => context.push('/settings'),
+        // Already in Settings (or on one of its pages): nothing more to
+        // open. It used to stack another Settings on top each time.
+        onTap: () {
+          if (!location.startsWith('/settings')) context.push('/settings');
+        },
       );
 
     // The foot controls: update indicator (only when an update is available),

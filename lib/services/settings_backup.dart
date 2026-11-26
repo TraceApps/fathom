@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/accounts_store.dart';
 import '../models/radio_station.dart';
 import '../models/session.dart';
+import '../models/youtube_channel.dart';
+import '../models/youtube_feed_group.dart';
+import '../models/youtube_local_playlist.dart';
 import '../state/arr_servers.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
@@ -212,6 +215,47 @@ List<Map<String, dynamic>> _entries(Object? saved) {
   ];
 }
 
+/// The entries of one of a backup's YouTube lists that this build can read,
+/// each in the form the app itself saves.
+///
+/// The app reads a whole saved list at once and treats one unreadable entry
+/// as an unreadable list: it shows nothing, and the next change saves over
+/// it. So an entry from a file is put through the same reading first, one
+/// at a time, and one that fails is left out instead of costing every
+/// subscription on the device.
+@visibleForTesting
+List<Map<String, dynamic>> readableLibraryEntries(String list, Object? saved) {
+  Map<String, dynamic> asSaved(Map<String, dynamic> e) => switch (list) {
+    'subscriptions' => YoutubeChannel.fromJson(e).toJson(),
+    'feedGroups' => YoutubeFeedGroup.fromJson(e).toJson(),
+    'playlists' => YoutubeLocalPlaylist.fromJson(e).toJson(),
+    _ => {
+      for (final k in const [
+        'id',
+        'title',
+        'thumbnailUrl',
+        'author',
+        'videoCountLabel',
+      ])
+        k: e[k] as String? ?? '',
+    },
+  };
+  final out = <Map<String, dynamic>>[];
+  for (final e in _entries(saved)) {
+    try {
+      final entry = asSaved(e);
+      // Reading is lazy in places: writing it out is what proves it.
+      jsonEncode(entry);
+      if (entry['id'] is String && (entry['id'] as String).isNotEmpty) {
+        out.add(entry);
+      }
+    } catch (_) {
+      // Not an entry this build can read.
+    }
+  }
+  return out;
+}
+
 /// [backup]'s entries added to [local]'s: one already here (by id) is kept
 /// as it is, so a restore never loses or overwrites what's on the device.
 @visibleForTesting
@@ -359,8 +403,11 @@ List<ServerAddressChange> serverAddressChanges(
     if (id == null || id.isEmpty) continue;
     for (final e in servers.whereType<Map>()) {
       if (e['serverId'] != id) continue;
-      final internal = _address(e['internalUrl']);
-      final external = _address(e['externalUrl']);
+      // A side the backup doesn't have is left as it is on this device:
+      // setting it to nothing would switch off moving between home and
+      // away, and nothing on screen would have said so.
+      final internal = _address(e['internalUrl']) ?? account.internalUrl;
+      final external = _address(e['externalUrl']) ?? account.externalUrl;
       if (internal == null && external == null) continue;
       if (internal == account.internalUrl && external == account.externalUrl) {
         continue;
@@ -418,7 +465,7 @@ Future<ImportSummary> applySettingsImport(
   final fromFile = data['youtubeLibrary'];
   if (selectedGroups.contains('youtube') && fromFile is Map) {
     for (final name in youtubeLibraryStores.keys) {
-      final list = _entries(fromFile[name]);
+      final list = readableLibraryEntries(name, fromFile[name]);
       if (list.isNotEmpty) library[name] = list;
     }
   }

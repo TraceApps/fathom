@@ -134,6 +134,28 @@ void main() {
       }
     });
 
+    test('one unreadable entry in a file costs that entry, not the list', () {
+      // The app reads a saved list whole: an entry it can't read made every
+      // subscription vanish, and the next change saved over them.
+      final read = readableLibraryEntries('subscriptions', [
+        {'id': 'UC1', 'title': 'A channel'},
+        {'id': 'UC2', 'title': 5},
+        {'title': 'No id'},
+        'not an entry',
+      ]);
+      expect(read.map((e) => e['id']), ['UC1']);
+      for (final list in youtubeLibraryStores.keys) {
+        expect(
+          readableLibraryEntries(list, [
+            {'id': 42},
+            {'id': 'ok', 'title': 'Fine'},
+          ]).map((e) => e['id']),
+          ['ok'],
+          reason: list,
+        );
+      }
+    });
+
     test("a restore adds what's missing and keeps what's here", () {
       final merged = mergedById(
         [
@@ -243,6 +265,22 @@ void main() {
         'Home Server (joe) http://10.0.0.1:8096',
         'Cabin (joe) http://10.0.0.2:8096',
       ]);
+    });
+
+    test('a side the backup lacks is left as it is here', () {
+      // It used to be cleared, which switched off moving between home and
+      // away without a word.
+      final change = serverAddressChanges(
+        file({'serverId': 'srv-1', 'internalUrl': 'http://10.0.0.9:8096'}),
+        [
+          _account(
+            internal: 'http://10.0.0.1:8096',
+            external: 'https://jf.example.com',
+          ),
+        ],
+      ).single;
+      expect(change.internal, 'http://10.0.0.9:8096');
+      expect(change.external, 'https://jf.example.com');
     });
 
     test('addresses already the same, or of the wrong kind, change nothing', () {

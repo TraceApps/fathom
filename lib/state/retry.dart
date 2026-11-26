@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
+import '../api/arr_client.dart';
+import '../api/jellyfin_client.dart';
+
 /// When a provider that failed is asked again by itself, for the whole app.
 ///
 /// Riverpod's own rule asks ten more times, over about forty seconds or more,
@@ -13,12 +16,21 @@ import 'package:dio/dio.dart';
 ///
 /// So: twice at most, quickly, and only for what a moment can mend: a
 /// connection that dropped or timed out. An answer from the server, whatever
-/// it says, is the answer. The clients' own exceptions (their readable
-/// message is all that's left of the failure) aren't retried either: a page
-/// that failed says so at once, with its Retry.
+/// it says, is the answer. A client's own exception is judged by what it
+/// was made from: Jellyfin and the Manage apps wrap every failed request in
+/// one, and a dropped connection inside it is still a dropped connection (a
+/// TV that starts before its Wi-Fi does would otherwise show empty pages
+/// until someone pressed Retry).
 Duration? fathomRetry(int retryCount, Object error) {
   if (retryCount >= 2) return null;
-  final transient = switch (error) {
+  // A client's own exception that stands for a failed request is judged by
+  // the failure underneath it.
+  final error_ = switch (error) {
+    JellyfinException(:final cause?) => cause,
+    ArrException(:final cause?) => cause,
+    _ => error,
+  };
+  final transient = switch (error_) {
     DioException(:final type) =>
       type == DioExceptionType.connectionError ||
           type == DioExceptionType.connectionTimeout ||

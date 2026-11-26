@@ -299,7 +299,7 @@ class BazarrClient {
       );
       return r.data;
     } on DioException catch (e) {
-      throw ArrException(arrAppErrorMessage(appName, e));
+      throw ArrException(arrAppErrorMessage(appName, e), cause: e);
     }
   }
 

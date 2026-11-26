@@ -31,7 +31,7 @@ Future<void> downloadAndInstall(
   if (Platform.isAndroid) {
     return _installAndroidApk(asset, version, onProgress);
   }
-  throw UnsupportedError('In-app install is not supported on this platform.');
+  throw Exception('In-app install is not supported on this platform.');
 }
 
 /// Where the Android updater keeps downloaded APKs: the app's external files
@@ -133,7 +133,7 @@ Future<void> _installAndroidApk(ReleaseAsset asset, String version,
     await const MethodChannel('app.fathom.player/pip')
         .invokeMethod<void>('installApk', apk.path);
   } on PlatformException catch (e) {
-    throw StateError('Could not open the installer: ${e.message}');
+    throw Exception('Could not open the installer: ${e.message}');
   }
 }
 
@@ -170,7 +170,7 @@ Future<void> _verifyDownload(String path, ReleaseAsset asset,
     try {
       await file.delete();
     } catch (_) {}
-    throw StateError('$why Your current version was kept.');
+    throw Exception('$why Your current version was kept.');
   }
 
   final len = await file.length();
@@ -217,7 +217,7 @@ Future<void> _installLinuxAppImage(
     ReleaseAsset asset, void Function(double)? onProgress) async {
   final appImage = Platform.environment['APPIMAGE'];
   if (appImage == null || appImage.isEmpty) {
-    throw StateError('Not running as an AppImage.');
+    throw Exception('Not running as an AppImage.');
   }
   final staged = '$appImage.new';
   final dio = await secureDio();

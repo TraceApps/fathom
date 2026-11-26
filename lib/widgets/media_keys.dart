@@ -21,9 +21,16 @@ MediaKey? mediaKeyOf(LogicalKeyboardKey key) {
 /// Runs what [key] asks for with what a player can do. Returns whether the
 /// key was one of these (and so is dealt with, even when this player has no
 /// next or previous to go to).
+///
+/// [held] is a key still down and repeating: Rewind and Fast Forward go on
+/// stepping while held, the others act once per press (a held Next would
+/// skip a whole queue). [canSeek] is false for something live, which has
+/// nowhere to seek to.
 bool handleMediaKey(
   LogicalKeyboardKey key, {
   required bool playing,
+  bool held = false,
+  bool canSeek = true,
   required void Function() toggle,
   required void Function() back,
   required void Function() forward,
@@ -31,9 +38,12 @@ bool handleMediaKey(
   void Function()? previous,
   void Function()? stop,
 }) {
-  switch (mediaKeyOf(key)) {
-    case null:
-      return false;
+  final asked = mediaKeyOf(key);
+  if (asked == null) return false;
+  final steps = asked == MediaKey.rewind || asked == MediaKey.forward;
+  if (held && !steps) return true;
+  if (steps && !canSeek) return true;
+  switch (asked) {
     case MediaKey.toggle:
       toggle();
     case MediaKey.play:

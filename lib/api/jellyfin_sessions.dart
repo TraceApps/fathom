@@ -30,7 +30,7 @@ extension JellyfinSessionsApi on JellyfinClient {
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -69,7 +69,7 @@ extension JellyfinSessionsApi on JellyfinClient {
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -85,7 +85,7 @@ Future<void> syncPlayNew({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -101,7 +101,7 @@ Future<void> syncPlayJoin({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -245,7 +245,7 @@ Future<void> syncPlaySeek({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 }

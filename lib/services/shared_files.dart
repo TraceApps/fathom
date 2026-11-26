@@ -64,7 +64,7 @@ class SharedFiles {
       'relativeDir': relativeDir,
       'mime': mimeFor(file.path),
     });
-    if (path == null) throw StateError('Publishing returned no path');
+    if (path == null) throw Exception('Publishing returned no path');
     return path;
   }
 
@@ -77,7 +77,7 @@ class SharedFiles {
       'relativeDir': relativeDir,
       'mime': mimeFor(path),
     });
-    if (moved == null) throw StateError('Moving returned no path');
+    if (moved == null) throw Exception('Moving returned no path');
     return moved;
   }
 

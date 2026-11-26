@@ -127,7 +127,7 @@ class QbitClient extends DownloadClient {
               tr.errQbitBlocked,
         );
       }
-      throw ArrException(downloadErrorMessage(appName, e));
+      throw ArrException(downloadErrorMessage(appName, e), cause: e);
     }
     // 4.x answers 200 either way, "Fails." for a wrong password.
     if ('${r.data}'.trim() == 'Fails.') {
@@ -184,7 +184,7 @@ class QbitClient extends DownloadClient {
           tr.errQbitCouldNotAdd,
         );
       }
-      throw ArrException(downloadErrorMessage(appName, e));
+      throw ArrException(downloadErrorMessage(appName, e), cause: e);
     }
   }
 
@@ -388,7 +388,7 @@ class SabClient extends DownloadClient {
       if (e.response?.statusCode == 403 || body.contains('api key')) {
         throw ArrException(tr.errAppRejectedKey('SABnzbd'));
       }
-      throw ArrException(downloadErrorMessage(appName, e));
+      throw ArrException(downloadErrorMessage(appName, e), cause: e);
     }
   }
 

@@ -1231,6 +1231,8 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
     if (handleMediaKey(
       k,
       playing: _controller.state.value.playing,
+      held: event is KeyRepeatEvent,
+      canSeek: !_isLive,
       toggle: _togglePlay,
       back: () => _seekBy(-10),
       forward: () => _seekBy(30),

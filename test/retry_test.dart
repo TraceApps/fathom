@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:fathom/api/arr_client.dart';
+import 'package:fathom/api/jellyfin_client.dart';
 import 'package:fathom/state/retry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +51,53 @@ void main() {
       StateError('Not signed in'),
     ]) {
       expect(fathomRetry(0, e), isNull, reason: '$e');
+    }
+  });
+
+  test("a client's own error is judged by the failure inside it", () {
+    // Jellyfin and the Manage apps wrap every failed request in their own
+    // exception. Without this a TV that starts before its Wi-Fi does showed
+    // empty pages until someone pressed Retry.
+    final dropped = dio(DioExceptionType.connectionError);
+    final refused = dio(DioExceptionType.badResponse, 401);
+    expect(
+      fathomRetry(0, JellyfinException('Lost connection.', cause: dropped)),
+      isNotNull,
+    );
+    expect(
+      fathomRetry(0, ArrException('Could not reach Radarr.', cause: dropped)),
+      isNotNull,
+    );
+    expect(
+      fathomRetry(0, JellyfinException('Sign in again.', cause: refused)),
+      isNull,
+    );
+    expect(
+      fathomRetry(0, ArrException('Radarr rejected the key.', cause: refused)),
+      isNull,
+    );
+    // And still only twice.
+    expect(
+      fathomRetry(2, JellyfinException('Lost connection.', cause: dropped)),
+      isNull,
+    );
+  });
+
+  test('the clients hand the failure on with their message', () {
+    for (final f in Directory('lib/api').listSync().whereType<File>()) {
+      final src = f.readAsStringSync();
+      expect(
+        RegExp(r'JellyfinException\(_friendlyDioError\(e2?(, connecting: true)?\)\)')
+            .hasMatch(src),
+        isFalse,
+        reason: f.path,
+      );
+      expect(
+        RegExp(r'ArrException\((arrErrorMessage|arrAppErrorMessage|downloadErrorMessage)\([^)]*\)\)')
+            .hasMatch(src),
+        isFalse,
+        reason: f.path,
+      );
     }
   });
 

@@ -422,6 +422,7 @@ class _YoutubeExoPlayerState extends ConsumerState<YoutubeExoPlayer> {
     if (handleMediaKey(
       k,
       playing: _controller.state.value.playing,
+      held: event is KeyRepeatEvent,
       toggle: _togglePlay,
       back: () => _seekBy(-widget.seekBackSeconds),
       forward: () => _seekBy(widget.seekForwardSeconds),

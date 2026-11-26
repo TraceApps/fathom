@@ -19,7 +19,7 @@ Future<Map<String, dynamic>> getUser({
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -36,7 +36,7 @@ Future<void> updateUserPolicy({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -57,7 +57,7 @@ Future<Map<String, dynamic>> createUser({
       );
       return Map<String, dynamic>.from((res.data as Map?) ?? {});
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -69,7 +69,7 @@ Future<void> deleteUser({
     try {
       await _dio.delete('$baseUrl/Users/$userId', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -110,7 +110,7 @@ Future<void> deleteUser({
         }
         throw JellyfinException(tr.errPasswordChange);
       }
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -155,7 +155,7 @@ Future<List<Map<String, dynamic>>> getVirtualFolders({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -172,7 +172,7 @@ Future<List<Map<String, dynamic>>> getVirtualFolders({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -191,7 +191,7 @@ Future<List<Map<String, dynamic>>> getVirtualFolders({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -226,7 +226,7 @@ Future<List<Map<String, dynamic>>> getVirtualFolders({
           ? Map<String, dynamic>.from(data)
           : <String, dynamic>{};
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -249,7 +249,7 @@ Future<List<Map<String, dynamic>>> getVirtualFolders({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -266,7 +266,7 @@ Future<void> scanAllLibraries({
     try {
       await _dio.post('$baseUrl/Library/Refresh', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -287,7 +287,7 @@ Future<void> runScheduledTask({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -317,7 +317,7 @@ Future<Map<String, dynamic>> getSystemInfo({
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -334,7 +334,7 @@ Future<Map<String, dynamic>> getSystemInfo({
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -357,7 +357,7 @@ Future<Map<String, dynamic>> getSystemInfo({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -373,7 +373,7 @@ Future<Map<String, dynamic>> getSystemInfo({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -399,7 +399,7 @@ Future<Map<String, dynamic>> getSystemInfo({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -412,7 +412,7 @@ Future<Map<String, dynamic>> getSystemInfo({
     try {
       await _dio.delete('$baseUrl/Plugins/$pluginId', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -431,7 +431,7 @@ Future<Map<String, dynamic>> getSystemInfo({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -453,7 +453,7 @@ Future<Map<String, dynamic>> getSystemInfo({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -474,7 +474,7 @@ Future<Map<String, dynamic>> getSystemInfo({
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -497,7 +497,7 @@ Future<Map<String, dynamic>> getSystemInfo({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -540,7 +540,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
       );
       return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -563,7 +563,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -584,7 +584,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
       return list;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return null;
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -614,7 +614,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
         ),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -632,7 +632,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -649,7 +649,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -666,7 +666,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -679,7 +679,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
     try {
       await _dio.delete('$baseUrl/Auth/Keys/$key', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -698,7 +698,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -719,7 +719,7 @@ Future<Map<String, dynamic>> getNamedConfiguration({
       );
       return '${res.data}';
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -746,7 +746,7 @@ Future<void> restartServer({
     try {
       await _dio.post('$baseUrl/System/Restart', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -757,7 +757,7 @@ Future<void> shutdownServer({
     try {
       await _dio.post('$baseUrl/System/Shutdown', options: _authed(token));
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 
@@ -775,7 +775,7 @@ Future<void> sendSessionMessage({
         options: _authed(token),
       );
     } on DioException catch (e) {
-      throw JellyfinException(_friendlyDioError(e));
+      throw JellyfinException(_friendlyDioError(e), cause: e);
     }
   }
 }

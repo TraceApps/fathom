@@ -26,7 +26,12 @@ part 'jellyfin_streaming.dart';
 /// A user-facing error carrying a message safe to show in the UI.
 class JellyfinException implements Exception {
   final String message;
-  JellyfinException(this.message);
+
+  /// What was caught, when this stands for a failed request: the app-wide
+  /// retry rule reads it to tell a dropped connection (worth asking again)
+  /// from an answer the server gave (not).
+  final Object? cause;
+  JellyfinException(this.message, {this.cause});
   @override
   String toString() => message;
 }
