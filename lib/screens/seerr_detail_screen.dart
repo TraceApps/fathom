@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../services/app_shown.dart';
 import '../theme/status_colors.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -1213,7 +1214,9 @@ class _DownloadProgressState extends ConsumerState<_DownloadProgress> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 7), (_) {
-      if (mounted) {
+      // Not while the app is minimized or in the background: nobody is
+      // watching the progress it would fetch.
+      if (mounted && appShown) {
         ref.invalidate(
           seerrDetailProvider((
             mediaType: widget.mediaType,

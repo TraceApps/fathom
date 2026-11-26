@@ -7453,7 +7453,7 @@
   "@arrEnterBoth": {"description": "Message when Save & Test is pressed with a field empty."},
   "arrNotConnected": "Not connected",
   "@arrNotConnected": {"description": "Status of an app with no connection set up."},
-  "arrConnectTitle": "Connect Sonarr or Radarr",
+  "arrConnectTitle": "Connect Sonarr, Radarr or Lidarr",
   "@arrConnectTitle": {"description": "Empty-state title of the Manage section when neither Sonarr nor Radarr is connected."},
   "arrConnectMessage": "See what's coming up and downloading, and browse your shows, movies and music, right here.",
   "@arrConnectMessage": {"description": "Empty-state message of the Manage section when neither Sonarr nor Radarr is connected."},

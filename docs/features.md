@@ -21,7 +21,7 @@ The same player drives Jellyfin and [YouTube](youtube.md): one control bar, one 
 
 - **mpv-grade playback** through media_kit and libmpv: direct play with a transcode fallback, hardware decoding, and proper subtitle and audio track selection.
 - **Picture in picture**: shrink a video into a floating mini player and keep browsing, or pop it out to a resizable, always-on-top window. The mini player button is there in fullscreen too, and leaves fullscreen first. On Android phones and tablets, leaving Fathom while a Jellyfin or YouTube video is open (going home, or switching apps from recents or the taskbar) floats it into the system's picture-in-picture window, with its own back, Play/Pause, and forward buttons. Expanding the window brings back the player as you left it, in or out of fullscreen. A video docked in the mini player doesn't float when you leave. If nothing floats, check that picture-in-picture is allowed for Fathom in Android's settings (Apps > Fathom, or Special app access > Picture-in-picture).
-- **Up Next**: for an episode that has a next one, an Up Next card or compact Netflix-style pill appears during the credits and rolls into the next episode. Pick the style, and how long it waits before auto-skipping (the whole credits or a short countdown), under **Settings → Playback**, or leave Autoplay off and use its Play Now button.
+- **Up Next**: for an episode that has a next one, an Up Next card or compact Netflix-style pill appears during the credits and rolls into the next episode. Pick the style, and how long it waits before auto-skipping (the whole credits or a short countdown), under **Settings → Player**, or leave Autoplay off and use its Play Now button.
 - **Audio passthrough (desktop)**: bitstream Dolby Digital, DTS, and Dolby Atmos straight to an AV receiver instead of decoding to stereo.
 - **Tune it to taste**: video fit, playback speed, a control bar you can style (glass, dark, or plain), remappable keyboard shortcuts, and scrub-preview thumbnails.
 - **Foldable phones**: half-fold the phone with the crease across the screen (tabletop) and the video takes the standing half, with the controls on the flat half. The YouTube player does the same, in its watch page and in fullscreen.
@@ -51,7 +51,7 @@ Download a movie, an episode, a whole season or series, a Live TV recording, a t
 - **Downloads is a real library**, not a list of files, with its own place in the side menu: Movies, TV Shows, Recordings, and Music sections with the same artwork and rating badges as your online library.
 - **Detail pages work offline** too, scoped to what you actually have: only the episodes on the device, with local Play, Mark Watched, and Remove that never touch the server.
 - **Pick a scope** when downloading a series (everything, or a single season), and watch progress on a floating pill with a Cancel All action.
-- **Choose where it lands** under **Settings → Downloads**.
+- **Choose where it lands** under **Settings → General**.
 
 ## Sleep timer
 

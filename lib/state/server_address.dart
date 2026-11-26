@@ -37,6 +37,9 @@ class ServerAddressResolver {
     // addresses in settings), plus once immediately for the startup probe.
     _ref.listen(sessionControllerProvider, (_, _) => _resolve(),
         fireImmediately: true);
+    // This one keeps going in the background on purpose: music playing
+    // with the screen off has to follow the phone from home Wi-Fi to mobile
+    // data, and that means noticing the home address has gone.
     _timer = Timer.periodic(const Duration(seconds: 15), (_) => _resolve());
     _lifecycle = _LifecycleObserver(onResume: _resolve);
   }

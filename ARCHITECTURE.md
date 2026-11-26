@@ -12,7 +12,7 @@ Orientation for new contributors. Covers the shape of the codebase, the design d
 - **Secure storage:** flutter_secure_storage.
 - **YouTube:** youtube_explode_dart plus a hand-rolled InnerTube client.
 - **Localization:** Flutter ARB via gen_l10n.
-- **Targets:** Linux first (built and tested on Arch/KDE); Windows and macOS planned.
+- **Targets:** Linux (built and tested on Arch/KDE), Windows, and Android (phones, tablets, Android TV and Android Auto). macOS and iOS need Mac hardware.
 
 ## Layout
 
