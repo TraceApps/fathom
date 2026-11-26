@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/settings_backup.dart';
+import '../state/session_controller.dart';
 import '../state/radio.dart';
 import '../widgets/page_width.dart';
 import '../widgets/app_snack.dart';
@@ -55,7 +56,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     setState(() => _busy = true);
     try {
       final info = await PackageInfo.fromPlatform();
-      final map = buildSettingsExport(ref, info.version, groups);
+      final map = await buildSettingsExport(ref, info.version, groups);
       final jsonStr = const JsonEncoder.withIndent('  ').convert(map);
       const fileName = 'fathom-settings.json';
 
@@ -67,6 +68,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           files: [XFile(path, mimeType: 'application/json', name: fileName)],
           subject: l.backupExportSubject,
         ));
+        // The copy made for sharing has done its job: it holds addresses, so
+        // it isn't left lying in the temporary folder.
+        try {
+          await File(path).delete();
+        } catch (_) {}
       } else {
         // saveFile writes the bytes itself now and returns where they landed,
         // so there's no separate File().writeAsString step. It takes `type` and
@@ -115,8 +121,30 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       if (present.isEmpty) throw const FormatException('empty');
       if (!mounted) return;
 
+      // Which addresses would be set, said before anything is: a backup's
+      // addresses decide where this device sends a sign-in.
+      final changes = serverAddressChanges(
+        data,
+        ref.read(sessionControllerProvider.notifier).accounts,
+      );
+      final serversNote = !present.contains('servers')
+          ? null
+          : changes.isEmpty
+          ? l.backupServersNone
+          : [
+              for (final c in changes)
+                l.backupServersWillSet(
+                  c.label,
+                  [
+                    if (c.internal != null) l.backupServersHome(c.internal!),
+                    if (c.external != null) l.backupServersRemote(c.external!),
+                  ].join(' · '),
+                ),
+            ].join('\n');
       final selected = await _chooseGroups(l, present, l.backupImportChoose,
-          note: l.backupImportConfirmBody, action: l.backupImportAction);
+          note: l.backupImportConfirmBody,
+          action: l.backupImportAction,
+          subtitles: {'servers': ?serversNote});
       if (selected == null || selected.isEmpty) return;
 
       final summary = await applySettingsImport(ref, data, selected);
@@ -138,7 +166,9 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   /// chosen set, or null if cancelled.
   Future<Set<String>?> _chooseGroups(
       AppLocalizations l, Set<String> groups, String title,
-      {String? note, required String action}) {
+      {String? note,
+      required String action,
+      Map<String, String> subtitles = const {}}) {
     final ordered = backupGroups.where(groups.contains).toList();
     final chosen = {...groups};
     return showDialog<Set<String>>(
@@ -146,7 +176,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
           title: Text(title),
-          content: Column(
+          content: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -163,10 +194,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   contentPadding: EdgeInsets.zero,
                   value: chosen.contains(g),
                   title: Text(_groupLabel(l, g)),
+                  subtitle: subtitles[g] == null ? null : Text(subtitles[g]!),
                   onChanged: (v) => setLocal(() =>
                       v == true ? chosen.add(g) : chosen.remove(g)),
                 ),
             ],
+          ),
           ),
           actions: [
             TextButton(

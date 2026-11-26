@@ -23,6 +23,28 @@ extension JellyfinAuthApi on JellyfinClient {
     }
   }
 
+/// The id the server at [baseUrl] reports for itself, or null when nothing
+  /// answers there as a Jellyfin server. An empty string is a server that
+  /// answers without saying which it is.
+  Future<String?> serverIdAt(
+    String baseUrl, {
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
+    final probe = Dio(
+      BaseOptions(connectTimeout: timeout, receiveTimeout: timeout),
+    );
+    try {
+      final res = await probe.get('$baseUrl/System/Info/Public');
+      if (res.statusCode != 200) return null;
+      final data = res.data;
+      return data is Map ? '${data['Id'] ?? ''}' : null;
+    } catch (_) {
+      return null;
+    } finally {
+      probe.close();
+    }
+  }
+
 /// Resolves a user-typed server address to a reachable base URL and its public
   /// info. When the user omits the scheme, tries `https://` then `http://` (home
   /// servers on a LAN IP are usually plain http), each with a short timeout so a

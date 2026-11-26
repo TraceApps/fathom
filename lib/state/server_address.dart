@@ -61,9 +61,20 @@ class ServerAddressResolver {
     try {
       final client = _ref.read(jellyfinClientProvider);
       // Short timeout so the away-from-home fallback is quick.
-      final internalOk = await client.pingServer(internal,
+      final atHome = await client.serverIdAt(internal,
           timeout: const Duration(seconds: 2));
+      final internalOk = sameServer(session.serverId, atHome);
       final desired = internalOk ? internal : external;
+      // Moving the session sends its sign-in to the new address: only to one
+      // that answers as this server, or to the remote address when nothing
+      // can be asked right now. An address that answers as some other server
+      // (a mistyped one, or one out of a backup that wasn't yours) is never
+      // moved to.
+      if (desired != session.baseUrl && !internalOk) {
+        final away = await client.serverIdAt(external,
+            timeout: const Duration(seconds: 4));
+        if (away != null && !sameServer(session.serverId, away)) return;
+      }
       if (desired != session.baseUrl) {
         // Land the switch at the frame boundary, never synchronously inside a
         // build or a route/dialog teardown. A background probe can finish right
@@ -101,4 +112,14 @@ class _LifecycleObserver with WidgetsBindingObserver {
   }
 
   void dispose() => WidgetsBinding.instance.removeObserver(this);
+}
+
+/// Whether an address that reported [answered] (see `serverIdAt`) is the
+/// server a session with [known] id belongs to. Nothing answering is not
+/// the server; a session from before ids were kept can't be told apart, so
+/// any Jellyfin server passes for it, as it always did.
+bool sameServer(String? known, String? answered) {
+  if (answered == null) return false;
+  if (known == null || known.isEmpty || answered.isEmpty) return true;
+  return known == answered;
 }

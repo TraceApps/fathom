@@ -1,10 +1,17 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/accounts_store.dart';
 import '../models/radio_station.dart';
+import '../models/session.dart';
 import '../state/arr_servers.dart';
 import '../state/preferences.dart';
+import '../state/providers.dart';
 import '../state/radio.dart';
 import '../state/session_controller.dart';
+import '../state/youtube_providers.dart';
 
 /// Cross-platform export/import of Fathom's own settings, selectable by group.
 /// Secrets are NEVER exported: Jellyfin tokens and Seerr passwords live only in
@@ -43,6 +50,38 @@ const secretPrefKeys = <String>{
   'sabApiKey',
 };
 
+/// Settings that describe this device, not the person: they stay here, and
+/// one found in a backup is ignored. Force TV Mode restored on a phone would
+/// turn it into a TV at the next start; a download folder from Linux means
+/// nothing on Android; where the mini player sat and when updates were last
+/// checked are this install's own business.
+const deviceOnlyPrefKeys = <String>{
+  'forceTvMode',
+  'diagnosticLogging',
+  'miniPlayerX',
+  'miniPlayerY',
+  'youtubeVideoDownloadPath',
+  'youtubeAudioDownloadPath',
+  'jellyfinDownloadPath',
+  'updateLastCheck',
+  'updateNotifiedVersion',
+  'updateBannerDismissedVersion',
+};
+
+bool _travels(String key) =>
+    !secretPrefKeys.contains(key) && !deviceOnlyPrefKeys.contains(key);
+
+/// YouTube's own library on this device, kept beside the settings: the
+/// channels subscribed to, their feed groups, the playlists made here and
+/// the ones saved from YouTube. Each is a list of entries with an `id`.
+/// Watch and search history stay on the device.
+const youtubeLibraryStores = <String, String>{
+  'subscriptions': 'fathom_youtube_subs',
+  'feedGroups': 'fathom_youtube_feed_groups',
+  'playlists': 'fathom_youtube_playlists',
+  'savedPlaylists': 'fathom_youtube_saved_playlists',
+};
+
 const _appearanceKeys = <String>{
   'themeMode', 'accentColor', 'amoled', 'showGreeting',
   'homeBanner', 'showContinueWatching', 'showNextUp', 'showRecentlyAdded',
@@ -52,6 +91,8 @@ const _appearanceKeys = <String>{
   'showRtCritics', 'showRtAudience', 'showImdbRating', 'showCommunityRating',
   'showLetterboxd', 'showMetacritic', 'showMetacriticUser', 'showTrakt',
   'showRogerEbert', 'showMyAnimeList',
+  // How Discover is laid out, beside how Home is.
+  'seerrRowOrder', 'seerrHiddenRows', 'seerrCustomSliders',
 };
 
 const _playerKeys = <String>{
@@ -62,13 +103,17 @@ const _playerKeys = <String>{
   'previewThumbnailsWhileSeeking', 'autoSkipIntro', 'autoSkipCredits',
   'keyBindings', 'playerFit', 'playerBarStyle', 'miniPlayerX', 'miniPlayerY',
   'miniPlayerSize', 'rememberTracks', 'trailerQuality', 'syncPlayEnabled',
-  'movieWheelEnabled',
+  'replayGain', 'replayGainFallback', 'playerBackend', 'audioPassthrough',
+  'upNextLeadSeconds', 'upNextStyle',
 };
 
 /// Which group a preference key belongs to. YouTube is prefix-matched so new
 /// `youtube*` settings are grouped automatically; anything unclaimed is general.
 String _prefGroup(String key) {
   if (key.startsWith('youtube')) return 'youtube';
+  // The switch that shows Radio goes with the stations: restoring them alone
+  // used to leave Radio hidden.
+  if (key == 'radioEnabled') return 'radio';
   if (_appearanceKeys.contains(key)) return 'appearance';
   if (_playerKeys.contains(key)) return 'player';
   return 'general';
@@ -86,13 +131,14 @@ Set<String> availableExportGroups(WidgetRef ref) {
 }
 
 /// Builds the export payload containing only the selected [groups].
-Map<String, dynamic> buildSettingsExport(
-    WidgetRef ref, String appVersion, Set<String> groups) {
-  final prefsJson =
-      (ref.read(preferencesProvider).asData?.value ?? const Prefs()).toJson();
+Future<Map<String, dynamic>> buildSettingsExport(
+    WidgetRef ref, String appVersion, Set<String> groups) async {
+  // The saved settings themselves, never a blank set because they hadn't
+  // been read yet.
+  final prefs = await ref.read(preferencesProvider.future);
   final exportedPrefs = <String, dynamic>{};
-  for (final entry in prefsJson.entries) {
-    if (secretPrefKeys.contains(entry.key)) continue;
+  for (final entry in prefs.toJson().entries) {
+    if (!_travels(entry.key)) continue;
     if (groups.contains(_prefGroup(entry.key))) {
       exportedPrefs[entry.key] = entry.value;
     }
@@ -107,8 +153,17 @@ Map<String, dynamic> buildSettingsExport(
     'preferences': exportedPrefs,
   };
 
+  if (groups.contains('youtube')) {
+    final storage = ref.read(secureStorageProvider);
+    final library = <String, dynamic>{};
+    for (final store in youtubeLibraryStores.entries) {
+      final list = _entries(await storage.read(key: store.value));
+      if (list.isNotEmpty) library[store.key] = list;
+    }
+    if (library.isNotEmpty) result['youtubeLibrary'] = library;
+  }
   if (groups.contains('radio')) {
-    final radio = ref.read(radioControllerProvider).asData?.value ?? const [];
+    final radio = await ref.read(radioControllerProvider.future);
     result['radio'] = radio.map((s) => s.toJson()).toList();
   }
   if (groups.contains('servers')) {
@@ -116,6 +171,7 @@ Map<String, dynamic> buildSettingsExport(
     result['servers'] = [
       for (final s in accounts)
         {
+          'serverId': s.serverId,
           'serverName': s.serverName,
           'baseUrl': s.baseUrl,
           'internalUrl': s.internalUrl,
@@ -127,19 +183,53 @@ Map<String, dynamic> buildSettingsExport(
   return result;
 }
 
+/// The entries of a saved list (or of a backup's), each one a map with an
+/// id; anything else in it is left out.
+List<Map<String, dynamic>> _entries(Object? saved) {
+  Object? list = saved;
+  if (saved is String) {
+    try {
+      list = jsonDecode(saved);
+    } catch (_) {
+      return const [];
+    }
+  }
+  if (list is! List) return const [];
+  return [
+    for (final e in list)
+      if (e is Map && e['id'] is String && (e['id'] as String).isNotEmpty)
+        Map<String, dynamic>.from(e),
+  ];
+}
+
+/// [backup]'s entries added to [local]'s: one already here (by id) is kept
+/// as it is, so a restore never loses or overwrites what's on the device.
+@visibleForTesting
+List<Map<String, dynamic>> mergedById(
+  List<Map<String, dynamic>> local,
+  List<Map<String, dynamic>> backup,
+) {
+  final have = {for (final e in local) e['id']};
+  return [
+    ...local,
+    for (final e in backup)
+      if (have.add(e['id'])) e,
+  ];
+}
+
 /// The groups a backup file actually contains, for the import checklist.
 Set<String> groupsInBackup(Map<String, dynamic> data) {
   final found = <String>{};
   final prefs = data['preferences'];
   if (prefs is Map) {
     for (final key in prefs.keys) {
-      if (key is String && !secretPrefKeys.contains(key)) {
-        found.add(_prefGroup(key));
-      }
+      if (key is String && _travels(key)) found.add(_prefGroup(key));
     }
   }
   final radio = data['radio'];
   if (radio is List && radio.isNotEmpty) found.add('radio');
+  final library = data['youtubeLibrary'];
+  if (library is Map && library.isNotEmpty) found.add('youtube');
   final servers = data['servers'];
   if (servers is List && servers.isNotEmpty) found.add('servers');
   return found;
@@ -180,7 +270,7 @@ Prefs? restoredPrefs(
   var changed = false;
   final current = local.toJson();
   for (final entry in backup.entries) {
-    if (secretPrefKeys.contains(entry.key)) continue;
+    if (!_travels(entry.key)) continue;
     if (selectedGroups.contains(_prefGroup(entry.key))) {
       current[entry.key] = entry.value;
       changed = true;
@@ -217,62 +307,150 @@ Prefs _keysFollowAddresses(Prefs local, Prefs restored) {
   return p;
 }
 
+/// One signed-in account whose home and remote addresses a backup would
+/// set, for showing before anything is applied.
+class ServerAddressChange {
+  final String accountKey;
+  final String label; // "name (user)"
+  final String? internal;
+  final String? external;
+  const ServerAddressChange({
+    required this.accountKey,
+    required this.label,
+    required this.internal,
+    required this.external,
+  });
+}
+
+String? _address(Object? v) {
+  if (v is! String) return null;
+  final t = v.trim().replaceAll(RegExp(r'/+$'), '');
+  return t.isEmpty ? null : t;
+}
+
+/// The address changes [data] holds for [accounts].
+///
+/// A backup's addresses go only to the server they were saved for, known by
+/// the id the server itself reports, never by its name or by an address in
+/// the file: the app moves a signed-in session to whichever of these
+/// addresses answers, so one taken from a file that only *names* your server
+/// would hand your sign-in to wherever it points. A file from before the id
+/// was saved changes no address.
+List<ServerAddressChange> serverAddressChanges(
+  Map<String, dynamic> data,
+  List<Session> accounts,
+) {
+  final servers = data['servers'];
+  if (servers is! List) return const [];
+  final changes = <ServerAddressChange>[];
+  for (final account in accounts) {
+    final id = account.serverId;
+    if (id == null || id.isEmpty) continue;
+    for (final e in servers.whereType<Map>()) {
+      if (e['serverId'] != id) continue;
+      final internal = _address(e['internalUrl']);
+      final external = _address(e['externalUrl']);
+      if (internal == null && external == null) continue;
+      if (internal == account.internalUrl && external == account.externalUrl) {
+        continue;
+      }
+      final name = account.serverName ?? account.baseUrl;
+      changes.add(
+        ServerAddressChange(
+          accountKey: accountKey(account),
+          label: '$name (${account.userName})',
+          internal: internal,
+          external: external,
+        ),
+      );
+      break;
+    }
+  }
+  return changes;
+}
+
 /// Applies only the [selectedGroups] from [data]. Preferences MERGE over the
 /// current ones (so importing just one group leaves the others untouched);
-/// radio replaces the library; servers re-apply home/remote addresses to a
-/// matching signed-in account. Secrets are ignored even if present.
+/// radio replaces the library; YouTube's library is added to; servers
+/// re-apply home/remote addresses to the signed-in account they were saved
+/// for. Secrets are ignored even if present.
+///
+/// Everything is read and checked first and written after: a bad entry is
+/// left out, and never leaves a restore half done.
 Future<ImportSummary> applySettingsImport(
     WidgetRef ref, Map<String, dynamic> data, Set<String> selectedGroups) async {
-  var prefsChanged = false;
+  // Read and check.
+  Prefs? merged;
   final prefsJson = data['preferences'];
   if (prefsJson is Map) {
-    final local = ref.read(preferencesProvider).asData?.value ?? const Prefs();
-    final merged = restoredPrefs(
+    final local = await ref.read(preferencesProvider.future);
+    merged = restoredPrefs(
       local,
       Map<String, dynamic>.from(prefsJson),
       selectedGroups,
     );
-    if (merged != null) {
-      prefsChanged = true;
-      await ref.read(preferencesProvider.notifier).edit((_) => merged);
-    }
   }
 
-  var radioCount = 0;
+  List<RadioStation>? stations;
   if (selectedGroups.contains('radio') && data['radio'] is List) {
-    final stations = (data['radio'] as List)
-        .whereType<Map>()
-        .map((e) => RadioStation.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
-    await ref.read(radioControllerProvider.notifier).importAll(stations);
-    radioCount = stations.length;
-  }
-
-  final servers = <String>[];
-  if (selectedGroups.contains('servers') && data['servers'] is List) {
-    final active = ref.read(sessionControllerProvider).asData?.value;
-    for (final e in (data['servers'] as List).whereType<Map>()) {
-      final m = Map<String, dynamic>.from(e);
-      final name = (m['serverName'] as String?)?.trim();
-      final base = (m['baseUrl'] as String?) ?? '';
-      final user = (m['userName'] as String?) ?? '';
-      servers.add('${name != null && name.isNotEmpty ? name : base}'
-          '${user.isNotEmpty ? ' ($user)' : ''}');
-      final matches = active != null &&
-          (active.baseUrl == base ||
-              (name != null && active.serverName == name));
-      if (matches && (m['internalUrl'] != null || m['externalUrl'] != null)) {
-        await ref.read(sessionControllerProvider.notifier).setServerAddresses(
-              internal: m['internalUrl'] as String?,
-              external: m['externalUrl'] as String?,
-            );
+    stations = [];
+    for (final e in (data['radio'] as List).whereType<Map>()) {
+      try {
+        stations.add(RadioStation.fromJson(Map<String, dynamic>.from(e)));
+      } catch (_) {
+        // Not a station this build can read: the rest still come back.
       }
     }
   }
 
+  final library = <String, List<Map<String, dynamic>>>{};
+  final fromFile = data['youtubeLibrary'];
+  if (selectedGroups.contains('youtube') && fromFile is Map) {
+    for (final name in youtubeLibraryStores.keys) {
+      final list = _entries(fromFile[name]);
+      if (list.isNotEmpty) library[name] = list;
+    }
+  }
+
+  final session = ref.read(sessionControllerProvider.notifier);
+  final addresses = selectedGroups.contains('servers')
+      ? serverAddressChanges(data, session.accounts)
+      : const <ServerAddressChange>[];
+
+  // Write.
+  if (merged != null) {
+    final restored = merged;
+    await ref.read(preferencesProvider.notifier).edit((_) => restored);
+  }
+  if (stations != null) {
+    await ref.read(radioControllerProvider.notifier).importAll(stations);
+  }
+  if (library.isNotEmpty) {
+    final storage = ref.read(secureStorageProvider);
+    for (final entry in library.entries) {
+      final key = youtubeLibraryStores[entry.key]!;
+      final local = _entries(await storage.read(key: key));
+      await storage.write(
+        key: key,
+        value: jsonEncode(mergedById(local, entry.value)),
+      );
+    }
+    ref.invalidate(youtubeSubscriptionsProvider);
+    ref.invalidate(youtubeFeedGroupsProvider);
+    ref.invalidate(youtubeLocalPlaylistsProvider);
+    ref.invalidate(youtubeSavedPlaylistsProvider);
+  }
+  for (final change in addresses) {
+    await session.setAddressesFor(
+      change.accountKey,
+      internal: change.internal,
+      external: change.external,
+    );
+  }
+
   return ImportSummary(
-    preferences: prefsChanged,
-    radioStations: radioCount,
-    servers: servers,
+    preferences: merged != null,
+    radioStations: stations?.length ?? 0,
+    servers: [for (final c in addresses) c.label],
   );
 }

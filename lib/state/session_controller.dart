@@ -95,6 +95,27 @@ class SessionController extends AsyncNotifier<Session?> {
     state = AsyncData(updated);
   }
 
+  /// Sets the home and remote addresses of the signed-in account [key]
+  /// (see [accountKey]), active or not. A restore uses this for every
+  /// account the backup has addresses for.
+  Future<void> setAddressesFor(
+    String key, {
+    required String? internal,
+    required String? external,
+  }) async {
+    if (key == _accounts.activeKey) {
+      return setServerAddresses(internal: internal, external: external);
+    }
+    final sessions = [
+      for (final s in _accounts.sessions)
+        accountKey(s) == key
+            ? s.copyWith(internalUrl: internal, externalUrl: external)
+            : s,
+    ];
+    _accounts = Accounts(sessions: sessions, activeKey: _accounts.activeKey);
+    await _store.save(_accounts);
+  }
+
   /// Signs out the active account (switching to another if one remains).
   Future<void> signOut() async {
     final active = _accounts.active;

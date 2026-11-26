@@ -93,6 +93,12 @@ const kDefaultSeerrRows = <String>[
 ];
 
 /// User preferences (appearance + playback), persisted locally.
+/// An interface size as saved: 0 is "automatic", anything else is kept to
+/// what a person can still read and reach. A value from a hand-edited or
+/// damaged file (0.05, 20) would leave the app unusable.
+double _scaleOrAuto(double? saved) =>
+    saved == null || saved <= 0 ? 0 : saved.clamp(0.5, 3.0);
+
 class Prefs {
   // Appearance
   final String themeMode; // 'system' | 'dark' | 'light'
@@ -1063,7 +1069,8 @@ class Prefs {
         replayGainFallback:
             (j['replayGainFallback'] as num?)?.toDouble() ?? 0,
         subtitleLanguage: j['subtitleLanguage'] as String? ?? '',
-        subtitleScale: (j['subtitleScale'] as num?)?.toDouble() ?? 1.0,
+        subtitleScale:
+            ((j['subtitleScale'] as num?)?.toDouble() ?? 1.0).clamp(0.5, 3.0),
         subtitleTextColor:
             (j['subtitleTextColor'] as num?)?.toInt() ?? 0xFFFFFFFF,
         subtitleBackgroundOpacity:
@@ -1071,7 +1078,8 @@ class Prefs {
         subtitlePosition: (j['subtitlePosition'] as num?)?.toInt() ?? 100,
         autoplayNext: j['autoplayNext'] as bool? ?? true,
         maxBitrateMbps: (j['maxBitrateMbps'] as num?)?.toInt() ?? 0,
-        playbackSpeed: (j['playbackSpeed'] as num?)?.toDouble() ?? 1.0,
+        playbackSpeed:
+            ((j['playbackSpeed'] as num?)?.toDouble() ?? 1.0).clamp(0.25, 4.0),
         // Clamped on read: a corrupt or hand-edited value shouldn't make the
         // app permanently silent or blow the speakers.
         volume: ((j['volume'] as num?)?.toDouble() ?? 100).clamp(0.0, 100.0),
@@ -1101,10 +1109,10 @@ class Prefs {
         showArrComingUp: j['showArrComingUp'] as bool? ?? true,
         showLibraryLatest: j['showLibraryLatest'] as bool? ?? true,
         showGenreRows: j['showGenreRows'] as bool? ?? true,
-        homeRowOrder: (j['homeRowOrder'] as List?)?.cast<String>() ??
+        homeRowOrder: (j['homeRowOrder'] as List?)?.whereType<String>().toList() ??
             const ['continueWatching', 'recentlyAdded', 'myMedia'],
-        navOrder: (j['navOrder'] as List?)?.cast<String>() ?? const [],
-        navHidden: (j['navHidden'] as List?)?.cast<String>() ?? const [],
+        navOrder: (j['navOrder'] as List?)?.whereType<String>().toList() ?? const [],
+        navHidden: (j['navHidden'] as List?)?.whereType<String>().toList() ?? const [],
         keyBindings: (j['keyBindings'] as Map?)
                 ?.map((k, v) => MapEntry('$k', (v as num).toInt())) ??
             const {},
@@ -1115,7 +1123,7 @@ class Prefs {
         playerBarStyle: j['playerBarStyle'] as String? ?? 'glass',
         libraryViewMode: j['libraryViewMode'] as String? ?? 'grid',
         cardRating: j['cardRating'] as String? ?? 'off',
-        interfaceScale: (j['interfaceScale'] as num?)?.toDouble() ?? 0,
+        interfaceScale: _scaleOrAuto((j['interfaceScale'] as num?)?.toDouble()),
         miniPlayerX: (j['miniPlayerX'] as num?)?.toDouble() ?? 1.0,
         miniPlayerY: (j['miniPlayerY'] as num?)?.toDouble() ?? 1.0,
         miniPlayerSize: j['miniPlayerSize'] as String? ?? 'medium',
@@ -1126,9 +1134,9 @@ class Prefs {
         movieWheelMode: j['movieWheelMode'] as String? ?? 'last',
         movieWheelSound: j['movieWheelSound'] as bool? ?? true,
         movieWheelDeselected:
-            (j['movieWheelDeselected'] as List?)?.cast<String>() ?? const [],
+            (j['movieWheelDeselected'] as List?)?.whereType<String>().toList() ?? const [],
         movieWheelExtras:
-            (j['movieWheelExtras'] as List?)?.cast<String>() ?? const [],
+            (j['movieWheelExtras'] as List?)?.whereType<String>().toList() ?? const [],
         radioEnabled: j['radioEnabled'] as bool? ?? false,
         notifNewRequest: j['notifNewRequest'] as bool? ?? true,
         notifSeerrApproved: j['notifSeerrApproved'] as bool? ?? true,
@@ -1138,10 +1146,12 @@ class Prefs {
         notifArrFailed: j['notifArrFailed'] as bool? ?? true,
         notifArrGrabbed: j['notifArrGrabbed'] as bool? ?? false,
         notifArrHealth: j['notifArrHealth'] as bool? ?? true,
-        arrPollMinutes: (j['arrPollMinutes'] as num?)?.toInt() ?? 5,
+        arrPollMinutes:
+            ((j['arrPollMinutes'] as num?)?.toInt() ?? 5).clamp(0, 1440),
         notifDownloads: j['notifDownloads'] as bool? ?? true,
         notifUpdates: j['notifUpdates'] as bool? ?? true,
-        seerrPollMinutes: (j['seerrPollMinutes'] as num?)?.toInt() ?? 5,
+        seerrPollMinutes:
+            ((j['seerrPollMinutes'] as num?)?.toInt() ?? 5).clamp(0, 1440),
         youtubeEnabled: j['youtubeEnabled'] as bool? ?? false,
         youtubeAutoplay: j['youtubeAutoplay'] as bool? ?? true,
         youtubeReturnDislikes:
@@ -1175,7 +1185,8 @@ class Prefs {
         youtubeDownloadRetries:
             (j['youtubeDownloadRetries'] as num?)?.toInt() ?? 3,
         youtubeMaxConcurrentDownloads:
-            (j['youtubeMaxConcurrentDownloads'] as num?)?.toInt() ?? 2,
+            ((j['youtubeMaxConcurrentDownloads'] as num?)?.toInt() ?? 2)
+                .clamp(1, 16),
         youtubeSponsorBlock: j['youtubeSponsorBlock'] as bool? ?? false,
         youtubeSponsorBlockCategories: [
           ...(j['youtubeSponsorBlockCategories'] as List? ??
@@ -1196,7 +1207,7 @@ class Prefs {
         showMyAnimeList: j['showMyAnimeList'] as bool? ?? false,
         mdbListApiKey: j['mdbListApiKey'] as String? ?? '',
         recentSearches:
-            (j['recentSearches'] as List?)?.cast<String>() ?? const [],
+            (j['recentSearches'] as List?)?.whereType<String>().toList() ?? const [],
         seerrUrl: j['seerrUrl'] as String? ?? '',
         seerrApiKey: j['seerrApiKey'] as String? ?? '',
         seerrAuthMode: j['seerrAuthMode'] as String? ?? 'apikey',
@@ -1240,10 +1251,10 @@ class Prefs {
         arrActiveServers: j['arrActiveServers'] is Map
             ? Map<String, dynamic>.from(j['arrActiveServers'] as Map)
             : const {},
-        seerrRowOrder: (j['seerrRowOrder'] as List?)?.cast<String>() ??
+        seerrRowOrder: (j['seerrRowOrder'] as List?)?.whereType<String>().toList() ??
             kDefaultSeerrRows,
         seerrHiddenRows:
-            (j['seerrHiddenRows'] as List?)?.cast<String>() ?? const [],
+            (j['seerrHiddenRows'] as List?)?.whereType<String>().toList() ?? const [],
         seerrCustomSliders: [
           for (final e in (j['seerrCustomSliders'] as List?) ?? const [])
             if (e is Map) Map<String, dynamic>.from(e),
