@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/tv_focus.dart';
 import '../state/downloads.dart';
 import '../state/library_providers.dart';
@@ -1294,7 +1295,7 @@ class _ItemMenu extends ConsumerWidget {
         itemBuilder: (_) => [
           PopupMenuItem(
             value: 'remove',
-            child: ListTile(
+            child: MenuTile(
               leading: Icon(Icons.download_done_rounded,
                   color: Theme.of(context).colorScheme.error),
               title: Text(l.detailRemoveDownload,
@@ -1327,7 +1328,7 @@ class _ItemMenu extends ConsumerWidget {
       itemBuilder: (_) => [
         PopupMenuItem(
           value: 'playlist',
-          child: ListTile(
+          child: MenuTile(
             leading: const Icon(Icons.playlist_add_rounded),
             title: Text(l.detailAddToPlaylist),
             contentPadding: EdgeInsets.zero,
@@ -1338,7 +1339,7 @@ class _ItemMenu extends ConsumerWidget {
         if (match != null && match.id != null) ...[
           PopupMenuItem(
             value: 'arr-manage',
-            child: ListTile(
+            child: MenuTile(
               leading: const Icon(kManageIcon),
               title: Text(l.arrManageIn(app!)),
               contentPadding: EdgeInsets.zero,
@@ -1346,7 +1347,7 @@ class _ItemMenu extends ConsumerWidget {
           ),
           PopupMenuItem(
             value: 'arr-search',
-            child: ListTile(
+            child: MenuTile(
               leading: const Icon(Icons.search_rounded),
               title: Text(match.kind == ArrKind.radarr
                   ? l.arrSearchMovie
@@ -1357,7 +1358,7 @@ class _ItemMenu extends ConsumerWidget {
           if (match.kind == ArrKind.radarr)
             PopupMenuItem(
               value: 'arr-interactive',
-              child: ListTile(
+              child: MenuTile(
                 leading: const Icon(Icons.manage_search_rounded),
                 title: Text(l.arrInteractiveSearch),
                 contentPadding: EdgeInsets.zero,
@@ -1366,7 +1367,7 @@ class _ItemMenu extends ConsumerWidget {
         ] else if (match != null)
           PopupMenuItem(
             value: 'arr-add',
-            child: ListTile(
+            child: MenuTile(
               leading: const Icon(Icons.add_rounded),
               title: Text(l.arrAddTo(app!)),
               contentPadding: EdgeInsets.zero,
@@ -1375,7 +1376,7 @@ class _ItemMenu extends ConsumerWidget {
         if (canRefresh)
           PopupMenuItem(
             value: 'refresh',
-            child: ListTile(
+            child: MenuTile(
               leading: const Icon(Icons.refresh_rounded),
               title: Text(l.detailRefreshMetadata),
               contentPadding: EdgeInsets.zero,
@@ -1384,7 +1385,7 @@ class _ItemMenu extends ConsumerWidget {
         if (canDelete)
           PopupMenuItem(
             value: 'delete',
-            child: ListTile(
+            child: MenuTile(
               leading: Icon(
                 Icons.delete_outline_rounded,
                 color: Theme.of(context).colorScheme.error,

@@ -31,3 +31,37 @@ class CheckedMenuItem<T> extends PopupMenuItem<T> {
          ),
        );
 }
+
+/// An icon and a name, for a line of a menu: a ListTile that leaves the
+/// focus to the menu line around it. A bare ListTile in a menu line has the
+/// same fault as above; the remote lands on it and Select does nothing.
+class MenuTile extends StatelessWidget {
+  final Widget? leading;
+  final Widget title;
+  final Widget? subtitle;
+  final Widget? trailing;
+  final bool? dense;
+  final EdgeInsetsGeometry? contentPadding;
+
+  const MenuTile({
+    super.key,
+    this.leading,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.dense,
+    this.contentPadding,
+  });
+
+  @override
+  Widget build(BuildContext context) => ExcludeFocus(
+    child: ListTile(
+      leading: leading,
+      title: title,
+      subtitle: subtitle,
+      trailing: trailing,
+      dense: dense,
+      contentPadding: contentPadding,
+    ),
+  );
+}

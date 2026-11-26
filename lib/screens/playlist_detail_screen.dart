@@ -8,6 +8,7 @@ import '../state/audio_player.dart' show audioControllerProvider;
 import '../state/playlist_providers.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/media_image.dart';
@@ -123,7 +124,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
             itemBuilder: (_) => [
               PopupMenuItem(
                 value: 'delete',
-                child: ListTile(
+                child: MenuTile(
                   leading: Icon(Icons.delete_outline_rounded,
                       color: Theme.of(context).colorScheme.error),
                   title: Text(l.appDeletePlaylist),

@@ -24,6 +24,7 @@ import '../state/session_expiry.dart';
 import '../state/syncplay.dart';
 import '../state/ui_providers.dart';
 import '../state/updates.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/window_frame.dart';
 import '../widgets/tv_focus.dart';
 import '../widgets/tv_keyboard.dart';
@@ -1744,7 +1745,7 @@ class _ProfileMenu extends ConsumerWidget {
         if (syncPlayOn)
           PopupMenuItem<String>(
             value: 'syncplay',
-            child: ListTile(
+            child: MenuTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.groups_rounded,
@@ -1758,7 +1759,7 @@ class _ProfileMenu extends ConsumerWidget {
           ),
         PopupMenuItem<String>(
           value: 'quickconnect',
-          child: ListTile(
+          child: MenuTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.qr_code_scanner_rounded),
@@ -1767,7 +1768,7 @@ class _ProfileMenu extends ConsumerWidget {
         ),
         PopupMenuItem<String>(
           value: 'settings',
-          child: ListTile(
+          child: MenuTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.settings_rounded),
@@ -1777,7 +1778,7 @@ class _ProfileMenu extends ConsumerWidget {
         if (isAdmin)
           PopupMenuItem<String>(
             value: 'admin',
-            child: ListTile(
+            child: MenuTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.admin_panel_settings_rounded),
@@ -1787,7 +1788,7 @@ class _ProfileMenu extends ConsumerWidget {
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'signout',
-          child: ListTile(
+          child: MenuTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.logout_rounded, color: scheme.error),

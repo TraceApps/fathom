@@ -102,4 +102,42 @@ void main() {
       isEmpty,
     );
   });
+
+  testWidgets('a line with an icon and a name can be picked too', (t) async {
+    final got = await _pickSecondWithRemote(
+      t,
+      (v, _) => PopupMenuItem<String>(
+        value: v,
+        child: MenuTile(leading: const Icon(Icons.add_rounded), title: Text(v)),
+      ),
+    );
+    expect(got, 'b');
+  });
+
+  testWidgets('a bare ListTile in a line is why that needed its own', (
+    t,
+  ) async {
+    final got = await _pickSecondWithRemote(
+      t,
+      (v, _) => PopupMenuItem<String>(
+        value: v,
+        child: ListTile(title: Text(v)),
+      ),
+    );
+    expect(got, isNot('b'));
+  });
+
+  test('no menu line holds a bare ListTile', () {
+    final bare = RegExp(
+      r'PopupMenuItem(?:<[^>]*>)?\(\s*value: [^\n]*\n(?:\s*enabled: [^\n]*\n)?\s*child: (const )?ListTile\(',
+    );
+    expect(
+      [
+        for (final f in Directory('lib').listSync(recursive: true).whereType<File>())
+          if (f.path.endsWith('.dart') && bare.hasMatch(f.readAsStringSync()))
+            f.path,
+      ],
+      isEmpty,
+    );
+  });
 }
