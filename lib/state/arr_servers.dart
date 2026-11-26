@@ -314,6 +314,27 @@ Prefs arrReconcileRestore(Prefs local, Prefs restored) {
     final others = <Map<String, dynamic>>[];
     final keys = <String, String>{};
     final seen = <String>{if (url.isNotEmpty) url};
+    // A saved server's key is kept under its id, so an id names one server
+    // and one only. The ids in a backup are whatever its maker wrote: two
+    // servers under one id (one at an address of theirs, one at yours), or
+    // one under the id of a server of yours, would have shared your key, and
+    // the app would have sent it to their address at its next check. Every
+    // server here gets an id of its own; one that's taken, or missing, is
+    // given a new one.
+    final taken = <String>{};
+    // The server in use has an id too, a fixed one when none was ever saved.
+    final startId = activeId == null || activeId.isEmpty
+        ? 'main-${k.name}'
+        : activeId;
+    if (url.isNotEmpty) taken.add(startId);
+    String own(String id) {
+      var mine_ = id;
+      while (mine_.isEmpty || !taken.add(mine_)) {
+        mine_ = newArrServerId();
+      }
+      return mine_;
+    }
+
     for (final s in p.arrServers) {
       if (s['kind'] != k.name) continue;
       final sUrl = '${s['url'] ?? ''}';
@@ -324,14 +345,15 @@ Prefs arrReconcileRestore(Prefs local, Prefs restored) {
         continue;
       }
       if (!seen.add(sUrl)) continue;
-      others.add(s);
+      final id = own('${s['id'] ?? ''}');
+      others.add({...s, 'id': id});
       final key = keyAt(sUrl);
-      if (key != null) keys['${s['id']}'] = key;
+      if (key != null) keys[id] = key;
     }
     // This device's servers the backup didn't have.
     for (final s in mine) {
       if (s.url.isEmpty || !seen.add(s.url)) continue;
-      final id = s.id.isEmpty ? newArrServerId() : s.id;
+      final id = own(s.id);
       others.add(
         ArrServer(
           id: id,
@@ -353,17 +375,30 @@ Prefs arrReconcileRestore(Prefs local, Prefs restored) {
             ...others,
           ],
           arrServerKeys: {
+            // Keys kept from before stay only where no server of this kind
+            // (in the backup or after it) goes by that id: the ones for
+            // this kind are exactly [keys], each found by address.
             for (final e in p.arrServerKeys.entries)
-              if (!p.arrServers.any(
-                (s) => s['kind'] == k.name && '${s['id']}' == e.key,
-              ))
+              if (!taken.contains(e.key) &&
+                  !p.arrServers.any(
+                    (s) => s['kind'] == k.name && '${s['id']}' == e.key,
+                  ))
                 e.key: e.value,
             ...keys,
           },
           arrActiveServers: {
             ...p.arrActiveServers,
             if (url.isNotEmpty && activeId != null)
-              k.name: {'id': activeId, 'name': activeName},
+              k.name: {
+                // Not an id a saved server holds: switching away saves the
+                // one in use under its id, key and all.
+                'id': activeId == startId
+                    ? activeId
+                    : activeId.isEmpty || taken.contains(activeId)
+                    ? newArrServerId()
+                    : activeId,
+                'name': activeName,
+              },
           },
         );
   }

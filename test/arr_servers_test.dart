@@ -249,6 +249,72 @@ void main() {
       expect(moved.sonarrApiKey, isEmpty);
     });
 
+    group('a backup made to steal a key', () {
+      // Keys of saved servers are kept by the server's id. A backup that
+      // lists two servers under one id, one at an address of its maker's
+      // and one at yours, used to leave your key readable by both: the app
+      // then sent it to the other address by itself, at its next check.
+      const realUrl = 'http://sonarr:8989';
+      const evilUrl = 'http://evil.example:8989';
+      Prefs restore(Prefs local, Map<String, dynamic> backup) =>
+          arrReconcileRestore(
+            local,
+            Prefs.fromJson({...local.toJson(), ...backup}),
+          );
+      void noKeyAtEvil(Prefs p) {
+        final servers = arrServersOf(p, ArrKind.sonarr);
+        for (final s in servers.where((s) => s.url == evilUrl)) {
+          expect(s.apiKey, isEmpty, reason: 'key sent to ${s.url}');
+        }
+        // And no two servers share an id.
+        final ids = [for (final s in servers) s.id];
+        expect(ids.toSet().length, ids.length, reason: '$ids');
+      }
+
+      test('two servers under one id', () {
+        const local = Prefs(sonarrUrl: realUrl, sonarrApiKey: 'secret');
+        final p = restore(local, {
+          'sonarrUrl': 'http://elsewhere:8989',
+          'arrServers': [
+            {'id': 'a', 'kind': 'sonarr', 'name': 'x', 'url': evilUrl},
+            {'id': 'a', 'kind': 'sonarr', 'name': 'y', 'url': realUrl},
+          ],
+        });
+        noKeyAtEvil(p);
+        // Your own server still has its key.
+        expect(
+          arrServersOf(p, ArrKind.sonarr)
+              .where((s) => s.url == realUrl)
+              .single
+              .apiKey,
+          'secret',
+        );
+      });
+
+      test("a server under the id of one of yours", () {
+        const local = Prefs(sonarrUrl: realUrl, sonarrApiKey: 'secret');
+        final p = restore(local, {
+          'sonarrUrl': 'http://elsewhere:8989',
+          'arrServers': [
+            {'id': 'main-sonarr', 'kind': 'sonarr', 'name': 'x', 'url': evilUrl},
+          ],
+        });
+        noKeyAtEvil(p);
+      });
+
+      test('a server with no id at all', () {
+        const local = Prefs(sonarrUrl: realUrl, sonarrApiKey: 'secret');
+        final p = restore(local, {
+          'sonarrUrl': 'http://elsewhere:8989',
+          'arrServers': [
+            {'kind': 'sonarr', 'name': 'x', 'url': evilUrl},
+            {'kind': 'sonarr', 'name': 'y', 'url': realUrl},
+          ],
+        });
+        noKeyAtEvil(p);
+      });
+    });
+
     test('an old backup (one server) after a switch: no server twice', () {
       final two = _withFourK();
       final fourK = arrServersOf(two, ArrKind.radarr)[1];
