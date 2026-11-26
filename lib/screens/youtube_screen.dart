@@ -13,6 +13,7 @@ import '../models/youtube_history.dart';
 import '../models/youtube_video.dart';
 import '../services/shared_files.dart';
 import '../state/youtube_providers.dart';
+import '../widgets/pick_bar.dart';
 import '../widgets/cached_image.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
@@ -828,7 +829,6 @@ class _DownloadsTabState extends ConsumerState<_DownloadsTab> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final downloads =
         ref.watch(youtubeDownloadsProvider).asData?.value ?? const [];
     final folder = ref
@@ -858,30 +858,18 @@ class _DownloadsTabState extends ConsumerState<_DownloadsTab> {
         // instead (see _DownloadRow), alongside its other actions rather than
         // as its own prominent affordance for something done rarely.
         if (_selectionMode)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Row(
-              children: [
-                Text(l.ytNSelected(_selected.length),
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => _selectAll(doneIds),
-                  child: Text(l.ytSelectAll),
-                ),
-                IconButton(
-                  tooltip: l.commonCancel,
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: _exitSelection,
-                ),
-                IconButton(
-                  tooltip: l.commonDelete,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  onPressed: _selected.isEmpty ? null : _deleteSelected,
-                ),
-              ],
-            ),
+          PickBar(
+            count: _selected.length,
+            onCancel: _exitSelection,
+            onSelectAll: () => _selectAll(doneIds),
+            actions: [
+              PickAction(
+                Icons.delete_outline_rounded,
+                l.commonDelete,
+                _deleteSelected,
+                danger: true,
+              ),
+            ],
           ),
         Expanded(
           child: ListView.separated(

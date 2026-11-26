@@ -1,3 +1,4 @@
+import 'pick_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,7 +10,6 @@ import '../state/providers.dart';
 import '../state/session_controller.dart';
 import 'add_to_playlist.dart';
 import 'app_snack.dart';
-import 'app_spinner.dart';
 import 'ui_common.dart';
 
 /// Which items a grid currently has selected.
@@ -193,113 +193,41 @@ class _SelectionBarState extends ConsumerState<SelectionBar> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final sel = widget.selection;
-    final enabled = !_busy && !sel.isEmpty;
-    // Every action as one list, so the wide bar and the narrow overflow menu
-    // can't drift apart.
-    final actions = <({IconData icon, String label, VoidCallback? run})>[
-      (
-        icon: Icons.check_circle_outline_rounded,
-        label: l.detailMarkWatched,
-        run: enabled ? () => _setPlayed(true) : null
-      ),
-      (
-        icon: Icons.remove_done_rounded,
-        label: l.detailMarkUnwatched,
-        run: enabled ? () => _setPlayed(false) : null
-      ),
-      (
-        icon: Icons.favorite_border_rounded,
-        label: l.detailAddFavorite,
-        run: enabled ? () => _setFavorite(true) : null
-      ),
-      (
-        icon: Icons.playlist_add_rounded,
-        label: l.detailAddToPlaylist,
-        run: enabled ? _addToPlaylist : null
-      ),
-      if (widget.canDelete)
-        (
-          icon: Icons.delete_outline_rounded,
-          label: l.commonDelete,
-          run: enabled ? _delete : null
+    return PickBar(
+      count: sel.length,
+      busy: _busy,
+      onCancel: sel.stop,
+      onSelectAll: () => sel.selectAll(widget.all),
+      actions: [
+        PickAction(
+          Icons.check_circle_outline_rounded,
+          l.detailMarkWatched,
+          () => _setPlayed(true),
         ),
-    ];
-    return Material(
-      color: theme.colorScheme.surfaceContainerHigh,
-      child: LayoutBuilder(builder: (context, c) {
-        // Five icon buttons plus the count and Select All need roughly 600
-        // logical pixels; below that they were overflowing the row (measured
-        // 250px over at 360 wide), so the actions collapse into one menu.
-        final narrow = c.maxWidth < 620;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: l.commonCancel,
-                icon: const Icon(Icons.close_rounded),
-                onPressed: _busy ? null : sel.stop,
-              ),
-              Flexible(
-                child: Text(l.selectionCount(sel.length),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-              ),
-              const Spacer(),
-              if (_busy)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: AppSpinner.inline(),
-                ),
-              if (narrow)
-                IconButton(
-                  tooltip: l.selectionSelectAll,
-                  icon: const Icon(Icons.select_all_rounded),
-                  onPressed: _busy ? null : () => sel.selectAll(widget.all),
-                )
-              else
-                TextButton(
-                  onPressed: _busy ? null : () => sel.selectAll(widget.all),
-                  child: Text(l.selectionSelectAll),
-                ),
-              if (narrow)
-                PopupMenuButton<VoidCallback?>(
-                  tooltip: l.commonMoreOptions,
-                  enabled: enabled,
-                  onSelected: (run) => run?.call(),
-                  itemBuilder: (context) => [
-                    for (final a in actions)
-                      PopupMenuItem<VoidCallback?>(
-                        value: a.run,
-                        enabled: a.run != null,
-                        child: Row(
-                          children: [
-                            Icon(a.icon, size: 20),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Text(a.label,
-                                  overflow: TextOverflow.ellipsis),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                )
-              else
-                for (final a in actions)
-                  IconButton(
-                    tooltip: a.label,
-                    icon: Icon(a.icon),
-                    onPressed: a.run,
-                  ),
-            ],
+        PickAction(
+          Icons.remove_done_rounded,
+          l.detailMarkUnwatched,
+          () => _setPlayed(false),
+        ),
+        PickAction(
+          Icons.favorite_border_rounded,
+          l.detailAddFavorite,
+          () => _setFavorite(true),
+        ),
+        PickAction(
+          Icons.playlist_add_rounded,
+          l.detailAddToPlaylist,
+          _addToPlaylist,
+        ),
+        if (widget.canDelete)
+          PickAction(
+            Icons.delete_outline_rounded,
+            l.commonDelete,
+            _delete,
+            danger: true,
           ),
-        );
-      }),
+      ],
     );
   }
 }

@@ -34,6 +34,7 @@ import '../widgets/arr_queue_poll.dart';
 import '../widgets/arr_skeletons.dart';
 import '../widgets/arr_widgets.dart';
 import '../widgets/list_toolbar.dart';
+import '../widgets/pick_bar.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/media_cards.dart';
@@ -829,19 +830,19 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
         },
         child: Column(
           children: [
-            ArrPickBar(
+            PickBar(
               count: picked.length,
               busy: _busy,
               onCancel: () => setState(() => _picked = null),
               onSelectAll: () => setState(() => _picked = live),
               actions: [
                 if (heldPicked)
-                  ArrPickAction(
+                  PickAction(
                     Icons.file_download_rounded,
                     l.arrGrabNow,
                     () => _grabPicked(items),
                   ),
-                ArrPickAction(
+                PickAction(
                   Icons.delete_rounded,
                   l.arrRemove,
                   () => _removePicked(items),

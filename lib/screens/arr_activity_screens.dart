@@ -14,7 +14,7 @@ import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
-import '../widgets/arr_bulk.dart';
+import '../widgets/pick_bar.dart';
 import '../widgets/arr_pane.dart';
 import '../widgets/arr_skeletons.dart';
 import '../widgets/arr_widgets.dart';
@@ -317,18 +317,18 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
       },
       child: Column(
         children: [
-          ArrPickBar(
+          PickBar(
             count: picked.length,
             busy: _busy,
             onCancel: () => setState(() => _picked = null),
             onSelectAll: () => setState(() => _picked = live),
             actions: [
-              ArrPickAction(
+              PickAction(
                 Icons.search_rounded,
                 l2.arrSearchPicked,
                 () => _search(items),
               ),
-              ArrPickAction(
+              PickAction(
                 _monitored
                     ? Icons.bookmark_border_rounded
                     : Icons.bookmark_rounded,
@@ -1380,13 +1380,13 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
       },
       child: Column(
         children: [
-          ArrPickBar(
+          PickBar(
             count: picked.length,
             busy: _busy,
             onCancel: () => setState(() => _picked = null),
             onSelectAll: () => setState(() => _picked = live),
             actions: [
-              ArrPickAction(
+              PickAction(
                 Icons.remove_done_rounded,
                 l.arrRemoveFromBlocklist,
                 () => _remove([
