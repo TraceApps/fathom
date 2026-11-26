@@ -419,7 +419,7 @@ class _RecordingOptionsState extends ConsumerState<_RecordingOptions> {
   // using the default underline input, which read as a less-finished screen.
   Widget _num(String label, String key, {String? helper}) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-        child: TextFormField(
+        child: TvField(label: label, child: TextFormField(
           initialValue: '${_draft[key] ?? ''}',
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
@@ -427,19 +427,19 @@ class _RecordingOptionsState extends ConsumerState<_RecordingOptions> {
               helperText: helper,
               border: const OutlineInputBorder()),
           onChanged: (v) => _draft[key] = int.tryParse(v) ?? _draft[key],
-        ),
+        )),
       );
 
   Widget _text(String label, String key, {String? hint}) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-        child: TextFormField(
+        child: TvField(label: label, child: TextFormField(
           initialValue: '${_draft[key] ?? ''}',
           decoration: InputDecoration(
               labelText: label,
               hintText: hint,
               border: const OutlineInputBorder()),
           onChanged: (v) => _draft[key] = v.trim().isEmpty ? null : v.trim(),
-        ),
+        )),
       );
 
   Widget _toggle(String label, String key) => SwitchListTile(
@@ -563,23 +563,23 @@ class AdminDvrScreen extends ConsumerWidget {
         content: Row(
           children: [
             Expanded(
-              child: TextField(
+              child: TvField(child: TextField(
                 controller: pre,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                     labelText: l.adminStartBefore, suffixText: 'min'),
-              ),
+              )),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: TextField(
+              child: TvField(child: TextField(
                 controller: post,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                     labelText: l.adminStopAfter, suffixText: 'min'),
-              ),
+              )),
             ),
           ],
         ),

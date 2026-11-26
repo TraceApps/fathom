@@ -750,3 +750,115 @@ class _TvFieldTileState extends State<_TvFieldTile> {
     );
   }
 }
+
+/// Makes a text field written the ordinary way work with a remote. Off a TV
+/// it is [child] exactly as written. On a TV, where a focused text field
+/// swallows the arrow keys and raises a keyboard the remote can't drive, it
+/// is the same tile [TvTextField] shows, opening the TV keyboard on Select.
+///
+/// [child] is a TextField or a TextFormField. What the tile needs is read
+/// from it: its controller (or its starting value), its label and hint, and
+/// what to call when the text changes. A TextFormField keeps its decoration
+/// to itself, so pass [label] for one.
+class TvField extends StatefulWidget {
+  const TvField({
+    super.key,
+    required this.child,
+    this.label,
+    this.hint,
+    this.obscure,
+  });
+
+  final Widget child;
+  final String? label;
+  final String? hint;
+  final bool? obscure;
+
+  @override
+  State<TvField> createState() => _TvFieldState();
+}
+
+class _TvFieldState extends State<TvField> {
+  TextEditingController? _own;
+  TextEditingController? _listened;
+  String _last = '';
+
+  TextEditingController? get _given => switch (widget.child) {
+    final TextField f => f.controller,
+    final TextFormField f => f.controller,
+    _ => null,
+  };
+
+  String get _startsAs => switch (widget.child) {
+    final TextFormField f => f.initialValue ?? '',
+    _ => '',
+  };
+
+  ValueChanged<String>? get _onChanged => switch (widget.child) {
+    final TextField f => f.onChanged,
+    final TextFormField f => f.onChanged,
+    _ => null,
+  };
+
+  TextEditingController get _controller =>
+      _given ?? (_own ??= TextEditingController(text: _startsAs));
+
+  /// What the TV keyboard writes to, for tests.
+  @visibleForTesting
+  TextEditingController get debugController => _controller;
+
+  void _listen() {
+    final c = _controller;
+    if (identical(c, _listened)) return;
+    _listened?.removeListener(_changed);
+    _listened = c..addListener(_changed);
+    _last = c.text;
+  }
+
+  // The TV keyboard writes to the controller; the field's own onChanged
+  // would never hear of it.
+  void _changed() {
+    final text = _listened!.text;
+    if (text == _last) return;
+    _last = text;
+    _onChanged?.call(text);
+  }
+
+  @override
+  void dispose() {
+    _listened?.removeListener(_changed);
+    _own?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice) return widget.child;
+    _listen();
+    final field = widget.child;
+    final decoration = field is TextField ? field.decoration : null;
+    final label =
+        widget.label ?? decoration?.labelText ?? decoration?.hintText ?? '';
+    final obscure =
+        widget.obscure ?? (field is TextField && field.obscureText);
+    final enabled = switch (field) {
+      final TextField f => f.enabled ?? true,
+      final TextFormField f => f.enabled,
+      _ => true,
+    };
+    return _TvFieldTile(
+      controller: _controller,
+      label: label,
+      hint: widget.hint ?? decoration?.hintText,
+      obscure: obscure,
+      onOpen: enabled
+          ? () => showTvKeyboard(
+              context,
+              controller: _controller,
+              label: label,
+              obscure: obscure,
+            )
+          : null,
+    );
+  }
+}

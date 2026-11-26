@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/media_keys.dart';
 import '../widgets/motion.dart';
 import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
@@ -1226,8 +1227,19 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
       }
       return KeyEventResult.ignored; // pop
     }
-    if (k == LogicalKeyboardKey.mediaPlayPause) {
-      _togglePlay();
+    // The remote's own Play, Pause, Rewind, Fast Forward, Next and Previous.
+    if (handleMediaKey(
+      k,
+      playing: _controller.state.value.playing,
+      toggle: _togglePlay,
+      back: () => _seekBy(-10),
+      forward: () => _seekBy(30),
+      next: !_isLive && _epIndex >= 0 && _epIndex < _episodes.length - 1
+          ? () => _goEpisode(_epIndex + 1)
+          : null,
+      previous:
+          !_isLive && _epIndex > 0 ? () => _goEpisode(_epIndex - 1) : null,
+    )) {
       return KeyEventResult.handled;
     }
     // The Skip button lives outside the auto-hiding chrome, so handle it before

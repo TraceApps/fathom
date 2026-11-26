@@ -9,6 +9,7 @@ import 'cached_image.dart';
 import 'context_menu.dart';
 import 'media_cards.dart';
 import 'seerr_request_dialog.dart';
+import 'tv_focus.dart';
 import 'app_spinner.dart';
 
 // Jellyseerr's card colours: blue for movies, purple for series, green for
@@ -160,12 +161,22 @@ class _SeerrPersonSearchCardState extends State<SeerrPersonSearchCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final p = widget.person;
+    void open() => context.push('/seerr-person', extra: p.tmdbId);
+    // A stop for the remote: a person found by a search couldn't be opened
+    // with one. Off a TV this is a pass-through.
+    return TvFocusable(
+      onTap: open,
+      child: _card(theme, p, open),
+    );
+  }
+
+  Widget _card(ThemeData theme, SeerrResult p, VoidCallback open) {
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => context.push('/seerr-person', extra: p.tmdbId),
+        onTap: open,
         child: Column(
           children: [
             Expanded(

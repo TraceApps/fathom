@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/tv_keyboard.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/library_providers.dart';
@@ -107,13 +108,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           builder: (ctx, setSt) {
             Widget field(String label, TextEditingController c) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: TextField(
+                  child: TvField(child: TextField(
                     controller: c,
                     obscureText: true,
                     autofillHints: const [],
                     decoration: InputDecoration(
                         labelText: label, border: const OutlineInputBorder()),
-                  ),
+                  )),
                 );
             Future<void> submit() async {
               if (newCtrl.text != confirmCtrl.text) {

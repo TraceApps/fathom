@@ -76,6 +76,16 @@ On Android, Fathom offers an audio-only Android Auto experience: browse your Jel
 
 Because Fathom is sideloaded rather than installed from the Play Store, the first time you use it you need to allow apps from unknown sources in Android Auto's developer settings. See [Fathom does not appear in Android Auto](troubleshooting.md#fathom-does-not-appear-in-android-auto) if it is not listed.
 
+## Android TV
+
+Fathom on Android TV is driven with the remote alone (experimental; see [Install](install.md)).
+
+- **Getting around**: Left goes to the side menu from anywhere and lands on the section you're in; Right comes back. A page opens with the remote on its first item, and what sits above it (a search box, **Filter**, **Sort**) is one press of Up away.
+- **The remote's media buttons** work in every player: **Play**, **Pause**, **Rewind**, **Fast Forward**, and **Next** and **Previous** for episodes.
+- **Typing**: every text field, including the ones in **Administration** and **Profile**, opens the on-screen TV keyboard on Select.
+- **Reordering**: in **Home Layout** and **Navigation**, each row has **Move Up** and **Move Down**, since a remote can't drag.
+- **Left to a phone or a computer**: picking several titles at once (**Select**), and the long-press menus on posters.
+
 ## Requests, ratings, and watch together
 
 - **Seerr (optional)**: browse and request titles in the **Discover** section (long-press or right-click a poster for **Details** or **Request**), then approve, decline, or manage requests without leaving the page, with download progress shown right on the detail view. With [Sonarr or Radarr](#sonarr-radarr-and-lidarr) connected too, the requests waiting for you are also listed in **Manage > Activity**, and a requested title opens straight in the app that's downloading it. Set it up in [First-run setup](setup.md#seerr-requests).

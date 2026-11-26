@@ -74,7 +74,20 @@ class NavigationLayoutScreen extends ConsumerWidget {
                           Expanded(child: Text(d.label)),
                         ],
                       ),
-                      trailing: Switch(
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TvMoveButtons(
+                            index: i,
+                            count: ordered.length,
+                            onMove: (from, to) {
+                              final routes =
+                                  ordered.map((d) => d.route).toList();
+                              routes.insert(to, routes.removeAt(from));
+                              c.edit((x) => x.copyWith(navOrder: routes));
+                            },
+                          ),
+                          Switch(
                         // Home can't be hidden (nav must always have a home).
                         value: d.fixed || !hidden.contains(d.route),
                         onChanged: d.fixed
@@ -89,6 +102,8 @@ class NavigationLayoutScreen extends ConsumerWidget {
                                 c.edit((x) =>
                                     x.copyWith(navHidden: next.toList()));
                               },
+                      ),
+                        ],
                       ),
                     ),
                   ),

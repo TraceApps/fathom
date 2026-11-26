@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/tv_focus.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_detail.dart';
@@ -40,7 +41,10 @@ class SeerrSeasonScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 32),
                 itemCount: episodes.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, i) => _EpisodeTile(episode: episodes[i]),
+                // Each episode is a stop for the remote, or the page couldn't be
+                // scrolled with one: there is nothing here to press.
+                itemBuilder: (context, i) =>
+                    TvReadStop(child: _EpisodeTile(episode: episodes[i])),
               ),
       ),
     );

@@ -1,0 +1,59 @@
+import 'package:flutter/services.dart';
+
+/// What a remote's or a keyboard's media key asks for.
+enum MediaKey { play, pause, toggle, stop, rewind, forward, next, previous }
+
+/// The media key [key] is, or null for any other key. A TV remote's Play,
+/// Pause, Rewind, Fast Forward, Next and Previous buttons arrive as these;
+/// only Play/Pause used to be heard.
+MediaKey? mediaKeyOf(LogicalKeyboardKey key) {
+  if (key == LogicalKeyboardKey.mediaPlayPause) return MediaKey.toggle;
+  if (key == LogicalKeyboardKey.mediaPlay) return MediaKey.play;
+  if (key == LogicalKeyboardKey.mediaPause) return MediaKey.pause;
+  if (key == LogicalKeyboardKey.mediaStop) return MediaKey.stop;
+  if (key == LogicalKeyboardKey.mediaRewind) return MediaKey.rewind;
+  if (key == LogicalKeyboardKey.mediaFastForward) return MediaKey.forward;
+  if (key == LogicalKeyboardKey.mediaTrackNext) return MediaKey.next;
+  if (key == LogicalKeyboardKey.mediaTrackPrevious) return MediaKey.previous;
+  return null;
+}
+
+/// Runs what [key] asks for with what a player can do. Returns whether the
+/// key was one of these (and so is dealt with, even when this player has no
+/// next or previous to go to).
+bool handleMediaKey(
+  LogicalKeyboardKey key, {
+  required bool playing,
+  required void Function() toggle,
+  required void Function() back,
+  required void Function() forward,
+  void Function()? next,
+  void Function()? previous,
+  void Function()? stop,
+}) {
+  switch (mediaKeyOf(key)) {
+    case null:
+      return false;
+    case MediaKey.toggle:
+      toggle();
+    case MediaKey.play:
+      if (!playing) toggle();
+    case MediaKey.pause:
+      if (playing) toggle();
+    case MediaKey.stop:
+      if (stop != null) {
+        stop();
+      } else if (playing) {
+        toggle();
+      }
+    case MediaKey.rewind:
+      back();
+    case MediaKey.forward:
+      forward();
+    case MediaKey.next:
+      next?.call();
+    case MediaKey.previous:
+      previous?.call();
+  }
+  return true;
+}

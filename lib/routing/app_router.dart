@@ -293,7 +293,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/youtube/channel',
         pageBuilder: (context, state) {
           final r = state.extra as ({String channelId, String? title});
-          return _fadePage(
+          return _landingPage(
               YoutubeChannelScreen(channelId: r.channelId, title: r.title));
         },
       ),
@@ -304,7 +304,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final r =
               state.extra as ({String playlistId, String? title, int? count});
-          return _fadePage(YoutubePlaylistScreen(
+          return _landingPage(YoutubePlaylistScreen(
               playlistId: r.playlistId,
               title: r.title,
               expectedCount: r.count));
@@ -337,7 +337,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/youtube/my-playlist',
-        pageBuilder: (context, state) => _fadePage(
+        pageBuilder: (context, state) => _landingPage(
             YoutubeMyPlaylistScreen(playlistId: state.extra as String)),
       ),
       GoRoute(
@@ -355,12 +355,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/item',
             pageBuilder: (context, state) =>
-                _fadePage(DetailScreen(item: state.extra as BaseItemDto)),
+                _landingPage(DetailScreen(item: state.extra as BaseItemDto)),
           ),
           GoRoute(
             path: '/library',
             pageBuilder: (context, state) =>
-                _fadePage(LibraryScreen(library: state.extra as BaseItemDto)),
+                _landingPage(LibraryScreen(library: state.extra as BaseItemDto)),
           ),
           GoRoute(
               path: '/search',
@@ -381,7 +381,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/program',
             pageBuilder: (context, state) =>
-                _fadePage(ProgramDetailScreen(args: state.extra as ProgramArgs)),
+                _landingPage(ProgramDetailScreen(args: state.extra as ProgramArgs)),
           ),
           GoRoute(
               path: '/settings',
@@ -399,7 +399,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, _) => _fadePage(const WatchlistScreen())),
           GoRoute(
               path: '/watchlist/wheel',
-              pageBuilder: (_, _) => _fadePage(const MovieWheelScreen())),
+              pageBuilder: (_, _) => _landingPage(const MovieWheelScreen())),
           GoRoute(
               path: '/home-layout',
               pageBuilder: (_, _) => _landingPage(const HomeLayoutScreen())),
@@ -420,7 +420,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/genre',
             pageBuilder: (context, state) =>
-                _fadePage(GenreItemsScreen(genre: state.extra as String)),
+                _landingPage(GenreItemsScreen(genre: state.extra as String)),
           ),
           GoRoute(
               path: '/studios',
@@ -432,27 +432,27 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/artist',
             pageBuilder: (context, state) {
               final a = state.extra as BaseItemDto;
-              return _fadePage(
+              return _landingPage(
                   ArtistAlbumsScreen(artistId: a.id, artistName: a.name));
             },
           ),
           GoRoute(
             path: '/studio',
             pageBuilder: (context, state) =>
-                _fadePage(StudioItemsScreen(studio: state.extra as String)),
+                _landingPage(StudioItemsScreen(studio: state.extra as String)),
           ),
           GoRoute(
               path: '/playlists',
               pageBuilder: (_, _) => _fadePage(const PlaylistsScreen())),
           GoRoute(
             path: '/playlist',
-            pageBuilder: (context, state) => _fadePage(
+            pageBuilder: (context, state) => _landingPage(
                 PlaylistDetailScreen(playlist: state.extra as BaseItemDto)),
           ),
           GoRoute(
             path: '/person',
             pageBuilder: (context, state) =>
-                _fadePage(PersonScreen(person: state.extra as Person)),
+                _landingPage(PersonScreen(person: state.extra as Person)),
           ),
           GoRoute(
               path: '/admin',
@@ -539,7 +539,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, _) => _fadePage(const DownloadsScreen())),
           GoRoute(
               path: '/downloads/detail',
-              pageBuilder: (context, state) => _fadePage(
+              pageBuilder: (context, state) => _landingPage(
                   DownloadDetailScreen(itemKey: state.extra as String))),
           GoRoute(
               path: '/notifications',
@@ -635,7 +635,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/seerr-detail',
             pageBuilder: (context, state) =>
-                _fadePage(SeerrDetailScreen(result: state.extra as SeerrResult)),
+                _landingPage(SeerrDetailScreen(result: state.extra as SeerrResult)),
           ),
           // Deep link to a title by id, used by notifications (which can't carry
           // a SeerrResult object). The detail screen fills in the real data.
@@ -644,7 +644,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final type = state.pathParameters['type'] == 'tv' ? 'tv' : 'movie';
               final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
-              return _fadePage(SeerrDetailScreen(
+              return _landingPage(SeerrDetailScreen(
                   result: SeerrResult(tmdbId: id, mediaType: type, title: '')));
             },
           ),
@@ -652,13 +652,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/seerr-category',
             pageBuilder: (context, state) {
               final e = state.extra as ({String key, String title});
-              return _fadePage(
+              return _landingPage(
                   SeerrCategoryScreen(categoryKey: e.key, title: e.title));
             },
           ),
           GoRoute(
             path: '/seerr-person',
-            pageBuilder: (context, state) => _fadePage(
+            pageBuilder: (context, state) => _landingPage(
                 SeerrPersonScreen(personId: state.extra as int)),
           ),
           GoRoute(
@@ -669,13 +669,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 List<SeerrCast> cast,
                 List<SeerrCrew> crew
               });
-              return _fadePage(SeerrCreditsScreen(
+              return _landingPage(SeerrCreditsScreen(
                   title: e.title, cast: e.cast, crew: e.crew));
             },
           ),
           GoRoute(
             path: '/seerr-collection',
-            pageBuilder: (context, state) => _fadePage(
+            pageBuilder: (context, state) => _landingPage(
                 SeerrCollectionScreen(collectionId: state.extra as int)),
           ),
           GoRoute(
@@ -683,7 +683,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final e = state.extra
                   as ({int tvId, int seasonNumber, String seasonName});
-              return _fadePage(SeerrSeasonScreen(
+              return _landingPage(SeerrSeasonScreen(
                   tvId: e.tvId,
                   seasonNumber: e.seasonNumber,
                   seasonName: e.seasonName));
@@ -694,7 +694,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final e = state.extra
                   as ({String mediaType, int genreId, String title});
-              return _fadePage(SeerrGenreScreen(
+              return _landingPage(SeerrGenreScreen(
                   mediaType: e.mediaType,
                   genreId: e.genreId,
                   title: e.title));
@@ -705,7 +705,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final e =
                   state.extra as ({String kind, int id, String title});
-              return _fadePage(SeerrCompanyScreen(
+              return _landingPage(SeerrCompanyScreen(
                   kind: e.kind, id: e.id, title: e.title));
             },
           ),

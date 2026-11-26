@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
+import 'media_keys.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
@@ -455,9 +456,18 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
       return KeyEventResult.ignored; // let the route pop / exit
     }
     // Media play/pause always toggles, wherever focus is.
-    if (k == LogicalKeyboardKey.mediaPlayPause) {
-      _show();
-      _toggle();
+    if (handleMediaKey(
+      k,
+      playing: _playing,
+      toggle: () {
+        _show();
+        _toggle();
+      },
+      back: () => _seekZone(-widget.seekBackSeconds),
+      forward: () => _seekZone(widget.seekForwardSeconds),
+      next: widget.onNext,
+      previous: widget.onPrevious,
+    )) {
       return KeyEventResult.handled;
     }
     final wasHidden = !_visible;

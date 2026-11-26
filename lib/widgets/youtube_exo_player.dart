@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'media_keys.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/youtube_caption.dart';
@@ -418,8 +419,14 @@ class _YoutubeExoPlayerState extends ConsumerState<YoutubeExoPlayer> {
       }
       return KeyEventResult.ignored; // let the route pop
     }
-    if (k == LogicalKeyboardKey.mediaPlayPause) {
-      _togglePlay();
+    if (handleMediaKey(
+      k,
+      playing: _controller.state.value.playing,
+      toggle: _togglePlay,
+      back: () => _seekBy(-widget.seekBackSeconds),
+      forward: () => _seekBy(widget.seekForwardSeconds),
+      next: widget.onNext,
+    )) {
       return KeyEventResult.handled;
     }
     if (!_controlsVisible) {

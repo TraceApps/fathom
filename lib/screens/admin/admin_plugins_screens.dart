@@ -490,7 +490,7 @@ class _AdminInstalledPluginState
     }
     if (value is num) {
       final c = _ctrl(key, '$value');
-      return TextField(
+      return TvField(child: TextField(
         controller: c,
         keyboardType:
             TextInputType.numberWithOptions(decimal: value is double),
@@ -500,16 +500,16 @@ class _AdminInstalledPluginState
           final n = value is int ? int.tryParse(t) : num.tryParse(t);
           if (n != null) _cfg[key] = n;
         },
-      );
+      ));
     }
     if (value is String) {
       final c = _ctrl(key, value);
-      return TextField(
+      return TvField(child: TextField(
         controller: c,
         decoration: InputDecoration(
             labelText: label, border: const OutlineInputBorder()),
         onChanged: (t) => _cfg[key] = t,
-      );
+      ));
     }
     if (value is List &&
         value.every((e) => e is String || e is num || e is bool)) {
@@ -561,12 +561,12 @@ class _AdminInstalledPluginState
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: TvField(child: TextField(
                 controller: add,
                 decoration: const InputDecoration(
                     isDense: true, border: OutlineInputBorder()),
                 onSubmitted: (_) => addEntry(),
-              ),
+              )),
             ),
             const SizedBox(width: 8),
             TextButton(onPressed: addEntry, child: Text(l.commonAdd)),
@@ -590,7 +590,7 @@ class _AdminInstalledPluginState
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         const SizedBox(height: 6),
-        TextField(
+        TvField(child: TextField(
           controller: c,
           minLines: 2,
           maxLines: 10,
@@ -603,7 +603,7 @@ class _AdminInstalledPluginState
               // Keep the last valid value until the JSON parses again.
             }
           },
-        ),
+        )),
       ],
     );
   }
@@ -725,13 +725,13 @@ class _AdminInstalledPluginState
             ),
             const SizedBox(height: 12),
             if (_rawMode)
-              TextField(
+              TvField(child: TextField(
                 controller: _json,
                 minLines: 6,
                 maxLines: 24,
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
                 decoration: const InputDecoration(border: OutlineInputBorder()),
-              )
+              ))
             else
               _configForm(theme, l),
             const SizedBox(height: 12),

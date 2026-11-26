@@ -1496,4 +1496,20 @@ void main() {
       expect(wrapperOf(path), '_landingPage', reason: path);
     }
   });
+
+  test('only a section of its own, or a player, opens without a landing', () {
+    // A page opened over another (a title out of a grid, a person, an
+    // album) needs one: over twenty of them had none, and opened with nothing
+    // lit until a key was pressed. What's left here is reached from the
+    // side menu, where the section's own landing does it, or fills the
+    // screen with a player.
+    final router = File('lib/routing/app_router.dart').readAsStringSync();
+    final without = {
+      for (final m in RegExp(
+        r"path: '([^']+)',\s*pageBuilder:(?:(?!path:)[\s\S]){0,260}?(_\w+Page)\(",
+      ).allMatches(router))
+        if (m.group(2) == '_fadePage') m.group(1)!,
+    };
+    expect(without, unorderedEquals(['/trailer', '/youtube/watch', '/youtube/shorts', '/youtube/file', '/nowplaying', '/home', '/search', '/libraries', '/livetv', '/youtube', '/radio', '/favorites', '/watchlist', '/genres', '/studios', '/artists', '/playlists', '/downloads', '/discover']));
+  });
 }

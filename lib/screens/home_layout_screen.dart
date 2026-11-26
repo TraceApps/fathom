@@ -85,9 +85,25 @@ class HomeLayoutScreen extends ConsumerWidget {
                       leading: Icon(Icons.drag_indicator,
                           color: dragGripColor(context)),
                       title: Text(titles[id] ?? id),
-                      trailing: Switch(
-                        value: _visible(p, id),
-                        onChanged: (v) => c.edit((x) => _toggle(x, id, v)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TvMoveButtons(
+                            index: i,
+                            count: rows.length,
+                            onMove: (from, to) {
+                              final list = [...rows];
+                              list.insert(to, list.removeAt(from));
+                              c.edit((x) => x.copyWith(
+                                  homeRowOrder:
+                                      homeRowsMoved(all, shown: list)));
+                            },
+                          ),
+                          Switch(
+                            value: _visible(p, id),
+                            onChanged: (v) => c.edit((x) => _toggle(x, id, v)),
+                          ),
+                        ],
                       ),
                     ),
                   ),

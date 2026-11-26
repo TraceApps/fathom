@@ -893,7 +893,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
 
   Widget _intField(String key, String label, {String? hint}) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-        child: TextFormField(
+        child: TvField(label: label, child: TextFormField(
           initialValue: '${(_policy[key] as num?)?.toInt() ?? 0}',
           keyboardType: TextInputType.number,
           inputFormatters: [
@@ -907,7 +907,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
             final n = int.tryParse(v);
             if (n != null) _policy[key] = n;
           },
-        ),
+        )),
       );
 
   // RemoteClientBitrateLimit is stored in bits/sec; show it in Mbps.
@@ -916,7 +916,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     final bps = (_policy['RemoteClientBitrateLimit'] as num?)?.toInt() ?? 0;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: TextFormField(
+      child: TvField(label: l.adminRemoteStreamingLimit, child: TextFormField(
         initialValue: bps > 0 ? '${(bps / 1000000).round()}' : '0',
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -931,7 +931,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
             _policy['RemoteClientBitrateLimit'] = mbps * 1000000;
           }
         },
-      ),
+      )),
     );
   }
 }

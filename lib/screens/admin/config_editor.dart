@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../widgets/tv_keyboard.dart';
 import '../../api/error_text.dart';
 import '../../api/jellyfin_client.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -113,7 +114,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
   Widget textField(String key, String label, {String? hint}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: TextFormField(
+      child: TvField(label: label, child: TextFormField(
         initialValue: '${draft![key] ?? ''}',
         decoration: InputDecoration(
           labelText: label,
@@ -121,14 +122,14 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
           border: const OutlineInputBorder(),
         ),
         onChanged: (v) => draft![key] = v,
-      ),
+      )),
     );
   }
 
   Widget intField(String key, String label) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: TextFormField(
+      child: TvField(label: label, child: TextFormField(
         initialValue: '${draft![key] ?? ''}',
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -140,7 +141,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
           final n = int.tryParse(v);
           if (n != null) draft![key] = n;
         },
-      ),
+      )),
     );
   }
 
@@ -180,7 +181,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
     final current = (draft![key] as List?)?.join(', ') ?? '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: TextFormField(
+      child: TvField(label: label, child: TextFormField(
         initialValue: current,
         decoration: InputDecoration(
             labelText: label, hintText: hint, border: const OutlineInputBorder()),
@@ -191,7 +192,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
               .where((e) => e.isNotEmpty)
               .toList();
         },
-      ),
+      )),
     );
   }
 
@@ -219,7 +220,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
       {String? hint}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: TextFormField(
+      child: TvField(label: label, child: TextFormField(
         initialValue: '${m[key] ?? ''}',
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -229,7 +230,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
           final n = int.tryParse(v);
           if (n != null) m[key] = n;
         },
-      ),
+      )),
     );
   }
 
@@ -260,7 +261,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
     final current = (m[key] as List?)?.join(', ') ?? '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: TextFormField(
+      child: TvField(label: label, child: TextFormField(
         initialValue: current,
         decoration: InputDecoration(
             labelText: label, hintText: hint, border: const OutlineInputBorder()),
@@ -272,7 +273,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
               .toList();
           m[key] = list;
         },
-      ),
+      )),
     );
   }
 }

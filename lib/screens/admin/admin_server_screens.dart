@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../widgets/tv_keyboard.dart';
 import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
@@ -261,7 +262,7 @@ class _AdminBrandingState extends ConsumerState<AdminBrandingScreen> {
                       onChanged: (v) => setState(() => _splashEnabled = v),
                     ),
                     const Divider(height: 32),
-                    TextField(
+                    TvField(child: TextField(
                       controller: _disclaimer,
                       minLines: 2,
                       maxLines: 5,
@@ -270,9 +271,9 @@ class _AdminBrandingState extends ConsumerState<AdminBrandingScreen> {
                         helperText: l.adminLoginDisclaimerHelper,
                         border: const OutlineInputBorder(),
                       ),
-                    ),
+                    )),
                     const SizedBox(height: 20),
-                    TextField(
+                    TvField(child: TextField(
                       controller: _css,
                       minLines: 5,
                       maxLines: 16,
@@ -283,7 +284,7 @@ class _AdminBrandingState extends ConsumerState<AdminBrandingScreen> {
                         alignLabelWithHint: true,
                         border: const OutlineInputBorder(),
                       ),
-                    ),
+                    )),
                     const SizedBox(height: 24),
                     FilledButton.icon(
                       onPressed: _saving ? null : _save,
