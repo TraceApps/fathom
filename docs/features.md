@@ -208,6 +208,9 @@ Light, dark, and AMOLED themes with a custom accent color, an Interface Size set
 
 - **Several accounts**: keep more than one Jellyfin account (or server) signed in and switch between them without re-entering anything.
 - **Screen readers**: cards announce themselves as a single item with their title and year, every icon-only button carries a label, and the Movie Night Wheel names its titles and reads out each result.
+- **Reduced motion**: with the device's Reduce Motion (or Remove Animations) setting on, pages fade in without sliding, and what moves by itself (the playing bars, the recording dot, the sync pulse) holds still.
+- **Colors that read**: status colors are deepened in the light theme, so **Connected**, **Available** and **Pending** stay legible on a light page.
+- **When something fails**: a page that can't load says why in plain words, with **Retry**. For anything unexpected, turn on **Diagnostic Logging** in Settings to capture the detail for a bug report.
 
 ## Notifications
 
