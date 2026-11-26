@@ -1266,7 +1266,7 @@ class _Swatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TvFocusable(
+    return Semantics(button: true, selected: selected, label: '${AppLocalizations.of(context).prefsAccentColor} #${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}', child: TvFocusable(
       onTap: onTap,
       scale: 1.15,
       borderRadius: const BorderRadius.all(Radius.circular(20)),
@@ -1296,7 +1296,7 @@ class _Swatch extends StatelessWidget {
             ? const Icon(Icons.check, size: 18, color: Colors.white)
             : null,
       ),
-      ),
+      )),
     );
   }
 }
@@ -1308,7 +1308,7 @@ class _CustomSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TvFocusable(
+    return Semantics(button: true, label: AppLocalizations.of(context).prefsCustomColor, child: TvFocusable(
       onTap: onTap,
       scale: 1.15,
       borderRadius: const BorderRadius.all(Radius.circular(20)),
@@ -1330,7 +1330,7 @@ class _CustomSwatch extends StatelessWidget {
           ),
           child: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
         ),
-      ),
+      )),
     );
   }
 }

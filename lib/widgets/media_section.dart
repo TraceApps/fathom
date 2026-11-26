@@ -205,7 +205,7 @@ class ScrollAffordance extends StatelessWidget {
             child: Material(
               color: scheme.surfaceContainerHigh.withValues(alpha: 0.9),
               shape: const CircleBorder(),
-              child: InkWell(
+              child: Semantics(button: true, label: left ? AppLocalizations.of(context).commonPrevious : AppLocalizations.of(context).commonNext, child: InkWell(
                 customBorder: const CircleBorder(),
                 onTap: onTap,
                 child: Padding(
@@ -217,7 +217,7 @@ class ScrollAffordance extends StatelessWidget {
                     size: 26,
                   ),
                 ),
-              ),
+              )),
             ),
           ),
         ),

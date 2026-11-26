@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import 'motion.dart';
+
 /// Three little bars that bounce while audio plays and hold still when paused —
 /// the "now playing" indicator on a track row. [playing] drives the animation.
 class EqualizerBars extends StatefulWidget {
@@ -26,15 +28,21 @@ class _EqualizerBarsState extends State<EqualizerBars>
     duration: const Duration(milliseconds: 900),
   );
 
+  /// Reduced motion: the bars stand still, at a height that still reads
+  /// as "playing".
+  bool _still = false;
+
   @override
-  void initState() {
-    super.initState();
-    if (widget.playing) _c.repeat();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _still = stillIfReduced(context, _c, at: 0.35);
+    if (!_still && widget.playing && !_c.isAnimating) _c.repeat();
   }
 
   @override
   void didUpdateWidget(EqualizerBars old) {
     super.didUpdateWidget(old);
+    if (_still) return;
     if (widget.playing && !_c.isAnimating) {
       _c.repeat();
     } else if (!widget.playing && _c.isAnimating) {

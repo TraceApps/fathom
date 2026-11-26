@@ -252,7 +252,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Material(
                   color: Theme.of(context).colorScheme.primary,
                   shape: const CircleBorder(),
-                  child: InkWell(
+                  child: Semantics(button: true, label: AppLocalizations.of(context).profileChangePhoto, child: InkWell(
                     customBorder: const CircleBorder(),
                     onTap: _busy ? null : _changePhoto,
                     child: Padding(
@@ -261,7 +261,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           size: 20,
                           color: Theme.of(context).colorScheme.onPrimary),
                     ),
-                  ),
+                  )),
                 ),
               ],
             ),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
 import '../state/preferences.dart';
@@ -406,7 +407,7 @@ class _CardMenuButton extends StatelessWidget {
       color: Colors.black.withValues(alpha: 0.55),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: Semantics(button: true, label: AppLocalizations.of(context).commonMore, child: InkWell(
         onTap: () {
           final box = context.findRenderObject() as RenderBox?;
           onTap(box == null
@@ -417,7 +418,7 @@ class _CardMenuButton extends StatelessWidget {
           padding: EdgeInsets.all(4),
           child: Icon(Icons.more_vert_rounded, size: 20, color: Colors.white),
         ),
-      ),
+      )),
     );
   }
 }

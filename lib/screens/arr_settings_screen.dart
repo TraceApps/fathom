@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/status_colors.dart';
 import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../api/bazarr_client.dart';
@@ -333,13 +334,13 @@ class ConnStateChip extends StatelessWidget {
             ConnState.needsKey => Icons.key_off_rounded,
           },
           size: 16,
-          color: color,
+          color: statusInk(context, color),
         ),
         const SizedBox(width: 6),
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: color,
+            color: statusInk(context, color),
             fontWeight: FontWeight.w600,
           ),
         ),

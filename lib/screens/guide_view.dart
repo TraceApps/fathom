@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/motion.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
@@ -620,6 +621,12 @@ class _RecBadgeState extends State<_RecBadge>
   void dispose() {
     _c.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    stillIfReduced(context, _c);
   }
 
   @override

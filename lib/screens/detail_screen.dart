@@ -878,7 +878,7 @@ class _EpisodeMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isTvDevice) {
-      return TvFocusable(
+      return Semantics(button: true, label: AppLocalizations.of(context).commonMore, child: TvFocusable(
         onTap: () => onTap(Offset.zero), // ignored on the TV sheet path
         scale: 1.1,
         borderRadius: const BorderRadius.all(Radius.circular(24)),
@@ -886,7 +886,7 @@ class _EpisodeMenuButton extends StatelessWidget {
           padding: EdgeInsets.all(10),
           child: Icon(Icons.more_vert_rounded),
         ),
-      );
+      ));
     }
     return IconButton(
       icon: const Icon(Icons.more_vert_rounded),

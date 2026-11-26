@@ -286,7 +286,7 @@ class _MiniCardState extends ConsumerState<_MiniCard> {
               initialData: player.state.playing,
               builder: (_, snap) {
                 final playing = snap.data ?? false;
-                return InkWell(
+                return Semantics(button: true, label: playing ? l.commonPause : l.commonPlay, child: InkWell(
                   onTap: player.playOrPause,
                   customBorder: const CircleBorder(),
                   child: Container(
@@ -302,7 +302,7 @@ class _MiniCardState extends ConsumerState<_MiniCard> {
                         size: 28,
                         color: Colors.white),
                   ),
-                );
+                ));
               },
             ),
           ),

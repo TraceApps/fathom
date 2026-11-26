@@ -134,12 +134,12 @@ class _PopoutVideoState extends ConsumerState<PopoutVideo> {
                         initialData: player.state.playing,
                         builder: (_, snap) {
                           final playing = snap.data ?? false;
-                          return _CircleButton(
+                          return Semantics(button: true, label: playing ? l.commonPause : l.commonPlay, child: _CircleButton(
                             icon: playing
                                 ? Icons.pause_rounded
                                 : Icons.play_arrow_rounded,
                             onTap: player.playOrPause,
-                          );
+                          ));
                         },
                       ),
                     ),

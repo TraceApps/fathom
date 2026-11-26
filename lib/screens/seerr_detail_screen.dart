@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/status_colors.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -500,8 +501,8 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: onStatus(color),
           fontSize: 12.5,
           fontWeight: FontWeight.w700,
         ),

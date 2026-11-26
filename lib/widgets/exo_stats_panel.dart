@@ -91,7 +91,7 @@ class ExoStatsPanel extends StatelessWidget {
                               fontSize: 13,
                               fontWeight: FontWeight.w700)),
                     ),
-                    InkResponse(
+                    Semantics(button: true, label: l.commonClose, child: InkResponse(
                       onTap: onClose,
                       radius: 18,
                       child: const Padding(
@@ -99,7 +99,7 @@ class ExoStatsPanel extends StatelessWidget {
                         child: Icon(Icons.close_rounded,
                             size: 16, color: Colors.white70),
                       ),
-                    ),
+                    )),
                   ],
                 ),
               ),

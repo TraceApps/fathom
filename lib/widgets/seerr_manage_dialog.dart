@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/status_colors.dart';
 import '../api/seerr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_detail.dart';
@@ -360,8 +361,8 @@ class _RequestRow extends ConsumerWidget {
                 decoration: BoxDecoration(
                     color: color, borderRadius: BorderRadius.circular(20)),
                 child: Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: onStatus(color),
                         fontSize: 12,
                         fontWeight: FontWeight.w700)),
               ),

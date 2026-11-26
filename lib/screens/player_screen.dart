@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../widgets/motion.dart';
 import '../api/error_text.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/player_controls.dart';
@@ -2875,6 +2876,12 @@ class _RecPillState extends State<_RecPill>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    stillIfReduced(context, _c);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -2932,6 +2939,12 @@ class _SyncCueOverlayState extends State<_SyncCueOverlay>
   void dispose() {
     _pulse.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    stillIfReduced(context, _pulse, at: 1);
   }
 
   @override

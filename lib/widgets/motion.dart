@@ -10,6 +10,21 @@ bool reduceMotion(BuildContext context) {
   return mq != null && (mq.disableAnimations || mq.accessibleNavigation);
 }
 
+/// Holds a looping animation still at [at] when the OS asks for reduced
+/// motion: a pulsing dot or bouncing bars keep moving for as long as they're
+/// on screen, which is what that setting is for. Call it from
+/// didChangeDependencies. Returns whether it was stilled.
+bool stillIfReduced(
+  BuildContext context,
+  AnimationController c, {
+  double at = 0,
+}) {
+  if (!reduceMotion(context)) return false;
+  c.stop();
+  c.value = at;
+  return true;
+}
+
 /// Lifts and scales its child slightly on pointer hover — the "alive" feel on
 /// desktop. On a remote/D-pad it does the same on focus and adds an accent ring,
 /// so the focused card is unmistakable (a plain focus overlay is invisible over

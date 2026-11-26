@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/motion.dart';
 import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -2063,6 +2064,12 @@ class _SyncCueOverlayState extends State<_SyncCueOverlay>
   void dispose() {
     _pulse.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    stillIfReduced(context, _pulse, at: 1);
   }
 
   @override

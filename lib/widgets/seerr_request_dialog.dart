@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/status_colors.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_detail.dart';
 import '../models/seerr_options.dart';
@@ -621,7 +622,9 @@ class _SeerrRequestDialogState extends ConsumerState<_SeerrRequestDialog> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-              color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
+              color: statusInk(context, fg),
+              fontSize: 12,
+              fontWeight: FontWeight.w600)),
     );
   }
 

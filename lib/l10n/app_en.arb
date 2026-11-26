@@ -920,6 +920,10 @@
   "@prefsThemeLight": {
     "description": "Theme option: light."
   },
+  "prefsCustomColor": "Custom Color",
+  "@prefsCustomColor": {"description": "Screen reader name of the rainbow swatch that opens the color wheel."},
+  "tvVoiceInput": "Voice Input",
+  "@tvVoiceInput": {"description": "Screen reader name of the microphone key on the TV keyboard."},
   "prefsAccentColor": "Accent Color",
   "@prefsAccentColor": {
     "description": "Appearance setting title: accent color."

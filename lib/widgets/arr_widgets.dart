@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../theme/status_colors.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -274,6 +275,8 @@ class ArrChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = color.withValues(alpha: 0.16);
+    // Over art the chip stands on black, where the bright color reads.
+    final ink = onArt ? color : statusInk(context, color);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -287,7 +290,7 @@ class ArrChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 13, color: color),
+            Icon(icon, size: 13, color: ink),
             const SizedBox(width: 4),
           ],
           // A long label (a long quality name, a translation) shortens
@@ -298,7 +301,7 @@ class ArrChip extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: color,
+                color: ink,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
               ),

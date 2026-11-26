@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/motion.dart';
 import 'route_observer.dart';
 
 import '../models/base_item.dart';
@@ -106,6 +107,11 @@ CustomTransitionPage<void> _fadePage(Widget child, {LocalKey? key}) {
         curve: Curves.easeOutCubic,
         reverseCurve: Curves.easeInCubic,
       );
+      // Reduced motion: the page fades in where it is, with no slide or
+      // shrink.
+      if (reduceMotion(context)) {
+        return FadeTransition(opacity: inCurve, child: child);
+      }
       // The outgoing page eases back slightly for a soft cross-fade of depth.
       final outCurve = CurvedAnimation(
         parent: secondary,

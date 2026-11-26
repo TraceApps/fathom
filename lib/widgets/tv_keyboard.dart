@@ -527,7 +527,7 @@ class _VoiceButtonState extends State<_VoiceButton> {
           },
         ),
       },
-      child: GestureDetector(
+      child: Semantics(button: true, label: AppLocalizations.of(context).tvVoiceInput, child: GestureDetector(
         onTap: _toggle,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
@@ -550,7 +550,7 @@ class _VoiceButtonState extends State<_VoiceButton> {
             size: 26,
           ),
         ),
-      ),
+      )),
     );
   }
 }

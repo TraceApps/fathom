@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../theme/status_colors.dart';
 import '../api/error_text.dart';
 import '../api/seerr_client.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -669,8 +670,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   child: Text(statusLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: onStatus(statusColor),
                           fontSize: 12,
                           fontWeight: FontWeight.w700)),
                 ),
@@ -2125,8 +2126,8 @@ class SeerrRequestTile extends ConsumerWidget {
         decoration:
             BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
         child: Text(label,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: onStatus(color),
                 fontSize: 12,
                 fontWeight: FontWeight.w700)),
       );

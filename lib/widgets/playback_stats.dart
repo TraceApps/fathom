@@ -175,7 +175,7 @@ class _PlaybackStatsOverlayState extends State<PlaybackStatsOverlay> {
                           fontWeight: FontWeight.w700)),
                 ),
                 if (widget.onClose != null)
-                  InkResponse(
+                  Semantics(button: true, label: l.commonClose, child: InkResponse(
                     onTap: widget.onClose,
                     radius: 18,
                     child: const Padding(
@@ -183,7 +183,7 @@ class _PlaybackStatsOverlayState extends State<PlaybackStatsOverlay> {
                       child: Icon(Icons.close_rounded,
                           size: 16, color: Colors.white70),
                     ),
-                  ),
+                  )),
               ],
             ),
           ),
