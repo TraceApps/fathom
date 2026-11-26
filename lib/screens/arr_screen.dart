@@ -17,6 +17,7 @@ import '../state/download_providers.dart';
 import '../state/preferences.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/arr_servers_ui.dart';
 import 'arr_activity_screens.dart';
@@ -1993,7 +1994,7 @@ class _LibraryFrame extends StatelessWidget {
           onSelected: onFilter,
           itemBuilder: (_) => [
             for (final f in filters)
-              CheckedPopupMenuItem(
+              CheckedMenuItem(
                 value: f,
                 checked: f == filter,
                 child: Text(filterLabel(f)),

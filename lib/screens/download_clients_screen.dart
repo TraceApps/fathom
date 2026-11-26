@@ -10,6 +10,7 @@ import '../models/download_client.dart';
 import '../state/arr_providers.dart';
 import '../state/download_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_queue_poll.dart';
@@ -636,7 +637,7 @@ class _ClientHeader extends ConsumerWidget {
                 onSelected: limit,
                 itemBuilder: (_) => [
                   for (final mb in sabSpeedLimits)
-                    CheckedPopupMenuItem(
+                    CheckedMenuItem(
                       value: mb,
                       checked: limitMb == mb,
                       child: Text(

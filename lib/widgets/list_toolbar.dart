@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import 'checked_menu_item.dart';
 import 'tv_focus.dart';
 
 /// Something a library's toolbar offers beside Filter and Sort (Select, List
@@ -68,18 +69,18 @@ class SortMenu<T extends Object> extends StatelessWidget {
       },
       itemBuilder: (_) => [
         for (final e in options.entries)
-          CheckedPopupMenuItem<Object>(
+          CheckedMenuItem<Object>(
             value: e.key,
             checked: e.key == value,
             child: Text(e.value),
           ),
         const PopupMenuDivider(),
-        CheckedPopupMenuItem<Object>(
+        CheckedMenuItem<Object>(
           value: _Order.ascending,
           checked: !descending,
           child: Text(l.browseAscending),
         ),
-        CheckedPopupMenuItem<Object>(
+        CheckedMenuItem<Object>(
           value: _Order.descending,
           checked: descending,
           child: Text(l.browseDescending),

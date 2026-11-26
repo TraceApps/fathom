@@ -12,6 +12,7 @@ import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/pick_bar.dart';
@@ -213,12 +214,12 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
             _picked = null;
           }),
           itemBuilder: (_) => [
-            CheckedPopupMenuItem(
+            CheckedMenuItem(
               value: true,
               checked: _monitored,
               child: Text(l.arrFilterMonitored),
             ),
-            CheckedPopupMenuItem(
+            CheckedMenuItem(
               value: false,
               checked: !_monitored,
               child: Text(l.arrUnmonitored),
@@ -539,7 +540,7 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
             }),
             itemBuilder: (_) => [
               for (final f in ArrHistoryFilter.values)
-                CheckedPopupMenuItem(
+                CheckedMenuItem(
                   value: f,
                   checked: f == _only,
                   child: Text(_label(l, f)),

@@ -10,6 +10,7 @@ import '../models/arr.dart';
 import '../services/tv_mode.dart';
 import '../state/arr_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
@@ -83,12 +84,12 @@ class _ArrCollectionsScreenState extends ConsumerState<ArrCollectionsScreen> {
             initialValue: _missingOnly,
             onSelected: (v) => setState(() => _missingOnly = v),
             itemBuilder: (_) => [
-              CheckedPopupMenuItem(
+              CheckedMenuItem(
                 value: false,
                 checked: !_missingOnly,
                 child: Text(l.browseAll),
               ),
-              CheckedPopupMenuItem(
+              CheckedMenuItem(
                 value: true,
                 checked: _missingOnly,
                 child: Text(l.arrCollectionMissingOnly),

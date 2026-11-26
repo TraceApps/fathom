@@ -5,6 +5,7 @@ import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../state/arr_providers.dart';
+import '../widgets/checked_menu_item.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/arr_actions.dart';
 import '../widgets/arr_widgets.dart';
@@ -263,7 +264,7 @@ class _ArrReleasesScreenState extends ConsumerState<ArrReleasesScreen> {
             onSelected: (s) => setState(() => _sort = s),
             itemBuilder: (_) => [
               for (final s in _Sort.values)
-                CheckedPopupMenuItem(
+                CheckedMenuItem(
                   value: s,
                   checked: s == _sort,
                   child: Text(sortLabel(s)),
