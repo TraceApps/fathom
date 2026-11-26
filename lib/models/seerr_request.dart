@@ -52,21 +52,6 @@ class SeerrRequest {
   bool get isDeclined => requestStatus == 3;
   bool get isFailed => requestStatus == 4;
 
-  /// Human label combining request + media state.
-  String get statusLabel {
-    if (isDeclined) return 'Declined';
-    if (isFailed) return 'Failed';
-    switch (mediaStatus) {
-      case 5:
-        return 'Available';
-      case 4:
-        return 'Partially available';
-      case 3:
-        return 'Processing';
-    }
-    return isPending ? 'Pending approval' : 'Approved';
-  }
-
   factory SeerrRequest.fromJson(Map<String, dynamic> j) {
     final media = (j['media'] as Map?)?.cast<String, dynamic>() ?? const {};
     final by = (j['requestedBy'] as Map?)?.cast<String, dynamic>();
