@@ -61,7 +61,7 @@ void main() {
     expect(find.text('Tick a playlist to add this video. Untick to remove it.'),
         findsOneWidget);
     // And the saved row says so itself, so the tick isn't the only signal.
-    expect(find.textContaining('Saved — untick to remove'), findsOneWidget);
+    expect(find.textContaining('Saved. Untick to remove.'), findsOneWidget);
     expect(find.text('Save to Playlist'), findsOneWidget);
     expect(find.byType(CheckboxListTile), findsOneWidget);
   });

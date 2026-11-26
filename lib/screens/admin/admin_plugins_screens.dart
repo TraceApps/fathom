@@ -102,7 +102,7 @@ class _InstalledPlugins extends ConsumerWidget {
                 itemBuilder: (context, i) {
                   final p = list[i];
                   final id = '${p['Id'] ?? ''}';
-                  final name = '${p['Name'] ?? '—'}';
+                  final name = '${p['Name'] ?? '-'}';
                   return ListTile(
                     leading: _pluginLogo(
                       context,
@@ -182,7 +182,7 @@ class _PluginCatalog extends ConsumerWidget {
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, i) {
                   final p = list[i];
-                  final name = '${p['name'] ?? '—'}';
+                  final name = '${p['name'] ?? '-'}';
                   final guid = '${p['guid'] ?? ''}';
                   final overview = '${p['overview'] ?? p['description'] ?? ''}';
                   final imageUrl = '${p['imageUrl'] ?? ''}';
@@ -311,7 +311,7 @@ class _PluginRepositories extends ConsumerWidget {
                   final r = list[i];
                   return ListTile(
                     leading: const Icon(Icons.cloud_outlined),
-                    title: Text('${r['Name'] ?? r['Url'] ?? '—'}'),
+                    title: Text('${r['Name'] ?? r['Url'] ?? '-'}'),
                     subtitle: Text('${r['Url'] ?? ''}',
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     trailing: IconButton(

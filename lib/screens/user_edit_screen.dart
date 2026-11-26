@@ -366,7 +366,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
           for (final f in _folders)
             CheckboxListTile(
               dense: true,
-              title: Text('${f['Name'] ?? '—'}'),
+              title: Text('${f['Name'] ?? '-'}'),
               value: _enabledFolders.contains('${f['ItemId']}'),
               onChanged: (v) => _toggleFolder('${f['ItemId']}', v ?? false),
             ),

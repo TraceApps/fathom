@@ -103,7 +103,7 @@ class AdminApiKeysScreen extends ConsumerWidget {
                   final token = '${k['AccessToken'] ?? ''}';
                   return ListTile(
                     leading: const Icon(Icons.key_rounded),
-                    title: Text('${k['AppName'] ?? '—'}'),
+                    title: Text('${k['AppName'] ?? '-'}'),
                     subtitle: Text(token.length > 12
                         ? '${token.substring(0, 12)}…'
                         : token),

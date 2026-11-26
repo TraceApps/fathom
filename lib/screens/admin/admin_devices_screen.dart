@@ -54,7 +54,7 @@ class AdminDevicesScreen extends ConsumerWidget {
                         '${d['AppVersion'] != null ? ' ${d['AppVersion']}' : ''}';
                     return ListTile(
                       leading: const Icon(Icons.devices_other_rounded),
-                      title: Text('${d['Name'] ?? d['CustomName'] ?? '—'}'),
+                      title: Text('${d['Name'] ?? d['CustomName'] ?? '-'}'),
                       subtitle: Text(
                           [app, user].where((x) => x.isNotEmpty).join('  ·  '),
                           maxLines: 1,

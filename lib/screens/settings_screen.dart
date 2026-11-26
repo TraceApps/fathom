@@ -239,7 +239,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _sectionLabel(context, l.settingsSectionAccount),
       ListTile(
         leading: const UserAvatar(radius: 22),
-        title: Text(session?.userName ?? '—'),
+        title: Text(session?.userName ?? '-'),
         subtitle: Text(l.settingsProfileSubtitle),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => context.push('/profile'),
@@ -370,7 +370,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         label = l.serverAddressRemote;
       }
     }
-    final url = s?.baseUrl ?? '—';
+    final url = s?.baseUrl ?? '-';
     return ListTile(
       leading: _leading(context, Icons.dns_rounded),
       title: Text(s?.serverName ?? l.settingsServer),

@@ -232,19 +232,19 @@ class _SystemTab extends ConsumerWidget {
           ListTile(
               leading: const Icon(Icons.dns_rounded),
               title: Text(l.adminServerLabel),
-              subtitle: Text('${m['ServerName'] ?? '—'}')),
+              subtitle: Text('${m['ServerName'] ?? '-'}')),
           ListTile(
               leading: const Icon(Icons.info_outline_rounded),
               title: Text(l.adminVersionLabel),
-              subtitle: Text('${m['Version'] ?? '—'}')),
+              subtitle: Text('${m['Version'] ?? '-'}')),
           ListTile(
               leading: const Icon(Icons.computer_rounded),
               title: Text(l.adminOperatingSystemLabel),
-              subtitle: Text('${m['OperatingSystem'] ?? '—'}')),
+              subtitle: Text('${m['OperatingSystem'] ?? '-'}')),
           ListTile(
               leading: const Icon(Icons.memory_rounded),
               title: Text(l.adminArchitectureLabel),
-              subtitle: Text('${m['SystemArchitecture'] ?? '—'}')),
+              subtitle: Text('${m['SystemArchitecture'] ?? '-'}')),
           const Divider(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -382,7 +382,7 @@ class _UsersTab extends ConsumerWidget {
                 tag: u['PrimaryImageTag'] as String?,
                 radius: 20,
               ),
-              title: Text('${u['Name'] ?? '—'}'),
+              title: Text('${u['Name'] ?? '-'}'),
               subtitle: Text(disabled
                   ? l.adminUserDisabled
                   : (isAdmin ? l.adminUserAdministrator : l.adminUser)),
@@ -437,7 +437,7 @@ class _LibrariesTab extends ConsumerWidget {
                 final id = l['ItemId'] as String?;
                 return ListTile(
                   leading: const Icon(Icons.video_library_rounded),
-                  title: Text('${l['Name'] ?? '—'}'),
+                  title: Text('${l['Name'] ?? '-'}'),
                   subtitle: Text(loc.adminLibrarySubtitle(
                       '${l['CollectionType'] ?? loc.adminCollectionTypeMixed}',
                       locations)),
@@ -497,7 +497,7 @@ class _TasksTab extends ConsumerWidget {
             final state = '${t['State'] ?? 'Idle'}';
             final running = state == 'Running';
             return ListTile(
-              title: Text('${t['Name'] ?? '—'}'),
+              title: Text('${t['Name'] ?? '-'}'),
               subtitle: Text(state),
               trailing: IconButton(
                 tooltip: l.adminRunNow,
@@ -639,7 +639,7 @@ class _ActivityTab extends ConsumerWidget {
                     ? Theme.of(context).colorScheme.error
                     : null,
               ),
-              title: Text('${a['Name'] ?? '—'}',
+              title: Text('${a['Name'] ?? '-'}',
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle:
                   a['ShortOverview'] != null ? Text('${a['ShortOverview']}') : null,

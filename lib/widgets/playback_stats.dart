@@ -88,7 +88,7 @@ class _PlaybackStatsOverlayState extends State<PlaybackStatsOverlay> {
 
   // --- Derived, display-ready values (all tolerant of missing properties). ---
 
-  static const _dash = '—';
+  static const _dash = '-';
 
   String get _resolution {
     final w = _v['width'], h = _v['height'];

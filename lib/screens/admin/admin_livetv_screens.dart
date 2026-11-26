@@ -260,7 +260,7 @@ class AdminLiveTvScreen extends ConsumerWidget {
                     for (final t in tuners)
                       ListTile(
                         leading: const Icon(Icons.settings_input_antenna_rounded),
-                        title: Text('${t['FriendlyName'] ?? t['Url'] ?? '—'}'),
+                        title: Text('${t['FriendlyName'] ?? t['Url'] ?? '-'}'),
                         subtitle: Text(
                             '${_tunerType(l, t['Type'])}  ·  ${t['Url'] ?? ''}',
                             maxLines: 1,
@@ -639,7 +639,7 @@ class AdminDvrScreen extends ConsumerWidget {
               tile: (t) => ListTile(
                 leading: const Icon(Icons.fiber_manual_record_rounded,
                     color: Colors.red),
-                title: Text('${t['Name'] ?? '—'}'),
+                title: Text('${t['Name'] ?? '-'}'),
                 subtitle: Text(_timerSubtitle(context, t),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: IconButton(
@@ -663,7 +663,7 @@ class AdminDvrScreen extends ConsumerWidget {
               onInvalidate: () => ref.invalidate(adminSeriesTimersProvider),
               tile: (t) => ListTile(
                 leading: const Icon(Icons.repeat_rounded),
-                title: Text('${t['Name'] ?? '—'}'),
+                title: Text('${t['Name'] ?? '-'}'),
                 subtitle: Text(l.adminSeriesPad(
                     ((t['PrePaddingSeconds'] as num?)?.toInt() ?? 0) ~/ 60,
                     ((t['PostPaddingSeconds'] as num?)?.toInt() ?? 0) ~/ 60)),

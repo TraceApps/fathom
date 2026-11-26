@@ -266,7 +266,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            Text(user?.name ?? session?.userName ?? '—',
+            Text(user?.name ?? session?.userName ?? '-',
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 4),
             Text(session?.serverName ?? '',

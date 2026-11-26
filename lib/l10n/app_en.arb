@@ -1389,7 +1389,7 @@
   "@prefsSbSkip": {
     "description": "SponsorBlock toggle title: skip sponsor segments."
   },
-  "prefsSbSkipSub": "Skips ad reads inside the video. Not YouTube's ads — those never reach this app.",
+  "prefsSbSkipSub": "Skips ad reads inside the video. YouTube's own ads never reach this app.",
   "@prefsSbSkipSub": {
     "description": "SponsorBlock skip toggle subtitle."
   },
@@ -1546,11 +1546,11 @@
   "@seerrEnterCredentialsLocal": {
     "description": "Snackbar prompting the user to fill in all local sign-in fields (email instead of username)."
   },
-  "seerrLoginWithJellyfin": "Login with Jellyfin",
+  "seerrLoginWithJellyfin": "Sign In with Jellyfin",
   "@seerrLoginWithJellyfin": {
     "description": "Sign-in method button: use the Jellyfin account. 'Jellyfin' is a brand name."
   },
-  "seerrLoginWithSeerr": "Login with Seerr",
+  "seerrLoginWithSeerr": "Sign In with Seerr",
   "@seerrLoginWithSeerr": {
     "description": "Sign-in method button: use a local Seerr account (email + password created in Seerr). 'Seerr' is a brand name."
   },
@@ -1910,7 +1910,7 @@
   "@playerSubtitleHashMatch": {
     "description": "Tag on a search result whose timing matches this exact release."
   },
-  "playerSubtitleDownloads": "{count} downloads",
+  "playerSubtitleDownloads": "{count, plural, =1{1 download} other{{count} downloads}}",
   "@playerSubtitleDownloads": {
     "description": "How many times a subtitle has been downloaded from the provider.",
     "placeholders": { "count": { "type": "int" } }
@@ -2028,7 +2028,7 @@
   "@playerTrailer": {
     "description": "Default title for a trailer player when no title is provided."
   },
-  "playerTitleTrailer": "{title} — Trailer",
+  "playerTitleTrailer": "{title} · Trailer",
   "@playerTitleTrailer": {
     "description": "Title for a trailer player, appending a Trailer suffix to the item title.",
     "placeholders": {
@@ -2286,11 +2286,11 @@
   "@detailDownloaded": {
     "description": "Button label when an item is downloaded."
   },
-  "detailDownloadedTooltip": "Downloaded — tap to remove",
+  "detailDownloadedTooltip": "Downloaded. Tap to remove.",
   "@detailDownloadedTooltip": {
     "description": "Tooltip on a downloaded item: tap to remove the offline copy."
   },
-  "detailDownloadFailedTooltip": "Download failed — retry",
+  "detailDownloadFailedTooltip": "Download failed. Tap to retry.",
   "@detailDownloadFailedTooltip": {
     "description": "Tooltip when a download failed; tapping retries."
   },
@@ -3981,7 +3981,7 @@
       }
     }
   },
-  "ytDownloadsEmptyNoFfmpeg": "Use the menu on any video and pick Download. ffmpeg is not installed, so video is limited to 360p — audio downloads are unaffected.",
+  "ytDownloadsEmptyNoFfmpeg": "Use the menu on any video and pick Download. ffmpeg is not installed, so video is limited to 360p. Audio downloads are unaffected.",
   "@ytDownloadsEmptyNoFfmpeg": {
     "description": "Empty-state message on the YouTube Downloads tab when ffmpeg is missing."
   },
@@ -4013,7 +4013,7 @@
   "@ytFailed": {
     "description": "Status label when a download failed."
   },
-  "ytDownloadCancelled": "Cancelled",
+  "ytDownloadCancelled": "Canceled",
   "@ytDownloadCancelled": {
     "description": "Download status: cancelled by the user."
   },
@@ -4047,7 +4047,7 @@
     "description": "Confirmation after moving downloads to the new folder.",
     "placeholders": {"count": {"type": "int"}}
   },
-  "ytMoveDownloadsPartial": "Moved {moved} of {total} downloads. The rest couldn't be moved and stayed where they were.",
+  "ytMoveDownloadsPartial": "{total, plural, =1{Moved {moved} of 1 download.} other{Moved {moved} of {total} downloads.}} The rest couldn't be moved and stayed where they were.",
   "@ytMoveDownloadsPartial": {
     "description": "Some downloads could not be moved to the new folder.",
     "placeholders": {"moved": {"type": "int"}, "total": {"type": "int"}}
@@ -4397,7 +4397,7 @@
   "@ytNoPlaylistsDevice": {
     "description": "Shown in the add-to-playlist sheet when there are no playlists."
   },
-  "ytPlaylistSavedSubtitle": "{count}  ·  Saved — untick to remove",
+  "ytPlaylistSavedSubtitle": "{count}  ·  Saved. Untick to remove.",
   "@ytPlaylistSavedSubtitle": {
     "description": "Subtitle of a playlist row in the add-to-playlist sheet when the video is already in it. {count} is a preformatted count string.",
     "placeholders": {
@@ -7501,7 +7501,7 @@
   "@arrStatus": {"description": "Detail field label."},
   "arrStudio": "Studio",
   "@arrStudio": {"description": "Detail field label."},
-  "arrEpisodesOf": "{have} of {total} episodes",
+  "arrEpisodesOf": "{total, plural, =1{{have} of 1 episode} other{{have} of {total} episodes}}",
   "@arrEpisodesOf": {"description": "How many episodes have a file.", "placeholders": {"have": {"type": "int"}, "total": {"type": "int"}}},
   "arrSeason": "Season {number}",
   "@arrSeason": {"description": "Season heading.", "placeholders": {"number": {"type": "int"}}},
@@ -7833,7 +7833,7 @@
   "@arrMonitorEpisodes": {"description": "Monitoring dialog field: a choice of which episodes Sonarr looks for."},
   "arrMonitorKeep": "Keep As They Are",
   "@arrMonitorKeep": {"description": "Monitoring dialog choice: leave each episode's monitoring unchanged."},
-  "arrMonitorKeepHint": "{monitored} of {total} episodes are monitored now",
+  "arrMonitorKeepHint": "{total, plural, =1{{monitored} of 1 episode is monitored now} other{{monitored} of {total} episodes are monitored now}}",
   "@arrMonitorKeepHint": {"description": "Under the Keep As They Are choice.", "placeholders": {"monitored": {"type": "int"}, "total": {"type": "int"}}},
   "arrMonitorRecent": "Recent Episodes",
   "@arrMonitorRecent": {"description": "Monitoring choice: episodes from the last 90 days and ones not aired yet."},
@@ -7923,7 +7923,7 @@
   "@arrNoArtists": {"description": "Manage > Library > Music: empty state title."},
   "arrCountArtists": "{count, plural, =1{1 artist} other{{count} artists}}",
   "@arrCountArtists": {"description": "How many artists are picked, as a dialog's subtitle.", "placeholders": {"count": {"type": "int"}}},
-  "arrTracksOf": "{have} of {total} tracks",
+  "arrTracksOf": "{total, plural, =1{{have} of 1 track} other{{have} of {total} tracks}}",
   "@arrTracksOf": {"description": "How many of an artist's or album's tracks have a file.", "placeholders": {"have": {"type": "int"}, "total": {"type": "int"}}},
   "arrMissingTracks": "{count, plural, =1{1 track missing} other{{count} tracks missing}}",
   "@arrMissingTracks": {"description": "Chip on an artist's page: wanted tracks without a file.", "placeholders": {"count": {"type": "int"}}},
@@ -7967,7 +7967,7 @@
   "@arrMonitoredArtistHint": {"description": "Under Monitor This Artist."},
   "arrMonitorAlbums": "Albums to Monitor",
   "@arrMonitorAlbums": {"description": "Monitoring dialog: which of an artist's albums Lidarr looks for."},
-  "arrMonitorKeepAlbumsHint": "{monitored} of {total} albums are monitored now",
+  "arrMonitorKeepAlbumsHint": "{total, plural, =1{{monitored} of 1 album is monitored now} other{{monitored} of {total} albums are monitored now}}",
   "@arrMonitorKeepAlbumsHint": {"description": "Under Keep As They Are, for an artist's albums.", "placeholders": {"monitored": {"type": "int"}, "total": {"type": "int"}}},
   "arrMonitorAllAlbums": "All Albums",
   "@arrMonitorAllAlbums": {"description": "Monitoring choice: every album."},

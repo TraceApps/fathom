@@ -13,7 +13,7 @@ class ExoStatsPanel extends StatelessWidget {
   const ExoStatsPanel(
       {super.key, required this.controller, required this.onClose});
 
-  static const _dash = '—';
+  static const _dash = '-';
 
   // Map ExoPlayer's raw MIME subtypes to the friendly names the media_kit panel
   // shows (mpv reports "vp9"/"aac" already), so both players read the same.
