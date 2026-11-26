@@ -9,6 +9,7 @@ import '../services/diagnostics.dart';
 import '../state/app_info.dart';
 import '../state/preferences.dart';
 import '../state/session_controller.dart';
+import '../widgets/page_width.dart';
 import '../widgets/app_snack.dart';
 
 /// App-wide troubleshooting. Turning on Diagnostic Logging records global
@@ -27,8 +28,8 @@ class DiagnosticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.diagnosticsTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset, const EdgeInsets.all(20)),
         children: [
           Text(l.diagnosticsIntro,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -69,7 +70,7 @@ class DiagnosticsScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 

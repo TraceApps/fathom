@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/nav_destinations.dart';
 import '../state/preferences.dart';
+import '../widgets/page_width.dart';
 import '../widgets/reorder.dart';
 
 /// Reorder the sidebar / bottom-bar destinations and hide the ones you don't
@@ -30,15 +31,17 @@ class NavigationLayoutScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.navLayoutTitle)),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(l.navLayoutSubtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          PageHeader(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(l.navLayoutSubtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
           ),
           Expanded(
-            child: ReorderableListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+            child: PageWidth(builder: (_, inset) => ReorderableListView(
+              padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 8)),
               // We draw our own single handle on the LEFT; without this the list
               // also adds default handles on the right (two handles per row).
               buildDefaultDragHandles: false,
@@ -90,7 +93,7 @@ class NavigationLayoutScreen extends ConsumerWidget {
                     ),
                   ),
               ],
-            ),
+            )),
           ),
         ],
       ),

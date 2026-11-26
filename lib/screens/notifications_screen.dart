@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/app_notification.dart';
 import '../state/notifications_controller.dart';
+import '../widgets/page_width.dart';
 import '../widgets/empty_state.dart';
 
 /// The in-app notification centre: request status changes and finished
@@ -46,8 +47,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ? EmptyState(
               icon: Icons.notifications_none_rounded,
               title: l.appNoNotifications)
-          : ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+          : PageWidth(builder: (_, inset) => ListView.separated(
+              padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 8)),
               itemCount: list.length,
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, i) {
@@ -93,7 +94,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ),
                 );
               },
-            ),
+            )),
     );
   }
 

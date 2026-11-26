@@ -15,6 +15,7 @@ import '../services/shared_files.dart';
 import '../services/image_cache.dart';
 import '../services/tv_mode.dart';
 import '../state/preferences.dart';
+import '../widgets/page_width.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/score_pills.dart';
 import '../widgets/tv_focus.dart';
@@ -101,8 +102,8 @@ class PreferencesScreen extends ConsumerWidget {
           message: '$e',
           onRetry: () => ref.invalidate(preferencesProvider),
         ),
-        data: (p) => ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+        data: (p) => PageWidth(builder: (_, inset) => ListView(
+          padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 8)),
           children: switch (section) {
             'general' => _general(
               context,
@@ -119,7 +120,7 @@ class PreferencesScreen extends ConsumerWidget {
             'youtube' => _youtube(context, p, c),
             _ => const [],
           },
-        ),
+        )),
       ),
     );
   }

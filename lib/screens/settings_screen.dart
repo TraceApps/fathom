@@ -10,6 +10,7 @@ import '../services/tv_mode.dart';
 import '../state/app_info.dart';
 import '../state/preferences.dart';
 import '../state/session_controller.dart';
+import '../widgets/page_width.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/search_field.dart';
 import '../widgets/sign_out.dart';
@@ -71,21 +72,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: SearchField(
-              controller: _searchCtrl,
-              hint: l.settingsSearchHint,
-              onChanged: (v) => setState(() => _query = v),
+          PageHeader(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SearchField(
+                controller: _searchCtrl,
+                hint: l.settingsSearchHint,
+                onChanged: (v) => setState(() => _query = v),
+              ),
             ),
           ),
           Expanded(
             child: searching
                 ? _results(context)
-                : ListView(
-                    padding: const EdgeInsets.only(bottom: 8),
+                : PageWidth(builder: (_, inset) => ListView(
+                    padding: pageInsets(inset, const EdgeInsets.only(bottom: 8)),
                     children: _hub(context, session, theme),
-                  ),
+                  )),
           ),
         ],
       ),
@@ -104,8 +107,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 8),
+    return PageWidth(builder: (_, inset) => ListView.builder(
+      padding: pageInsets(inset, const EdgeInsets.only(bottom: 8)),
       itemCount: results.length,
       itemBuilder: (context, i) {
         final r = results[i];
@@ -117,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () => _open(r),
         );
       },
-    );
+    ));
   }
 
   List<Widget> _hub(

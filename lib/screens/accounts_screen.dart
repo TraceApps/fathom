@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../state/session_controller.dart';
+import '../widgets/page_width.dart';
 import '../widgets/ui_common.dart';
 
 /// Manage signed-in accounts across servers and users: switch, add, remove.
@@ -21,7 +22,8 @@ class AccountsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.accountTitle)),
-      body: ListView(
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset),
         children: [
           for (final s in accounts)
             Builder(builder: (context) {
@@ -77,7 +79,7 @@ class AccountsScreen extends ConsumerWidget {
             onTap: () => context.push('/connect'),
           ),
         ],
-      ),
+      )),
     );
   }
 }

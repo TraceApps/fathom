@@ -1,3 +1,4 @@
+import '../widgets/page_width.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -31,8 +32,8 @@ class SupportScreen extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsSupport)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset, const EdgeInsets.fromLTRB(16, 8, 16, 24)),
         children: [
           Card(
             margin: EdgeInsets.zero,
@@ -110,7 +111,7 @@ class SupportScreen extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }

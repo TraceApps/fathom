@@ -1,3 +1,4 @@
+import '../widgets/page_width.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,7 +58,8 @@ class KeyboardShortcutsScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: ListView(
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
@@ -79,7 +81,7 @@ class KeyboardShortcutsScreen extends ConsumerWidget {
               onTap: () => _rebind(context, ref, id),
             ),
         ],
-      ),
+      )),
     );
   }
 }

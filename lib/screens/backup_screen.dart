@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/settings_backup.dart';
 import '../state/radio.dart';
+import '../widgets/page_width.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 
@@ -202,8 +203,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.backupTitle)),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 8)),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -244,7 +245,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               child: Center(child: AppSpinner()),
             ),
         ],
-      ),
+      )),
     );
   }
 

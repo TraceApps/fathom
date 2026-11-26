@@ -194,7 +194,7 @@ Run most of Jellyfin from the app, without opening the web dashboard: manage use
 
 ## Personalization
 
-Light, dark, and AMOLED themes with a custom accent color, an Interface Size setting for high-resolution screens (desktop), a Home layout you can rearrange, a sidebar whose items you can reorder or hide (Libraries, Browse and Downloads each on their own), in-app updates with a Stable or Dev channel, system and in-app notifications, a Settings screen you can search, and a fully translatable interface.
+Light, dark, and AMOLED themes with a custom accent color, an Interface Size setting for high-resolution screens (desktop), a Home layout you can rearrange, a sidebar whose items you can reorder or hide (Libraries, Browse and Downloads each on their own), in-app updates with a Stable or Dev channel, system and in-app notifications, a Settings screen you can search, and a fully translatable interface. In a wide window, Settings and its pages keep to a centered column so a setting's name and its switch stay close together.
 
 - **Several accounts**: keep more than one Jellyfin account (or server) signed in and switch between them without re-entering anything.
 - **Screen readers**: cards announce themselves as a single item with their title and year, every icon-only button carries a label, and the Movie Night Wheel names its titles and reads out each result.

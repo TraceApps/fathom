@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/arr_providers.dart';
 import '../state/preferences.dart';
+import '../widgets/page_width.dart';
 import '../widgets/reorder.dart';
 
 /// Reorder and toggle the Home screen rows (Continue Watching / Recently Added
@@ -61,8 +62,8 @@ class HomeLayoutScreen extends ConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: ReorderableListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+            child: PageWidth(builder: (_, inset) => ReorderableListView(
+              padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 8)),
               // Single left-side grip (below); no default right-side handles.
               buildDefaultDragHandles: false,
               // ignore: deprecated_member_use
@@ -91,7 +92,7 @@ class HomeLayoutScreen extends ConsumerWidget {
                     ),
                   ),
               ],
-            ),
+            )),
           ),
           const Divider(height: 1),
           SwitchListTile(

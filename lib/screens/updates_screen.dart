@@ -8,6 +8,7 @@ import '../state/app_info.dart';
 import '../state/installer.dart';
 import '../state/preferences.dart';
 import '../state/updates.dart';
+import '../widgets/page_width.dart';
 import '../widgets/app_spinner.dart';
 
 /// In-app update checking: shows the current version, the release channel, and
@@ -26,8 +27,8 @@ class UpdatesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.updatesTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset, const EdgeInsets.all(20)),
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -101,7 +102,7 @@ class UpdatesScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           _result(context, ref, l, scheme, async),
         ],
-      ),
+      )),
     );
   }
 
