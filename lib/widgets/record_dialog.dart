@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/admin_providers.dart';
@@ -65,7 +66,7 @@ class _RecordDialogState extends ConsumerState<_RecordDialog> {
       _post.text = '${((d['PostPaddingSeconds'] as num?)?.toInt() ?? 0) ~/ 60}';
       if (mounted) setState(() => _defaults = d);
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = errorText(e));
     }
   }
 

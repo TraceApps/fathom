@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -235,7 +236,7 @@ class _ArrWantedTabState extends ConsumerState<ArrWantedTab> {
           Expanded(
             child: async.hasError
                 ? ErrorView(
-                    message: async.error.toString(),
+                    message: errorText(async.error!),
                     onRetry: () => ref.invalidate(arrWantedProvider),
                   )
                 : const ArrRowsSkeleton(),
@@ -557,7 +558,7 @@ class _ArrHistoryTabState extends ConsumerState<ArrHistoryTab> {
           Expanded(
             child: async.hasError
                 ? ErrorView(
-                    message: async.error.toString(),
+                    message: errorText(async.error!),
                     onRetry: () => ref.invalidate(arrRecentHistoryProvider),
                   )
                 : const ArrRowsSkeleton(),
@@ -727,7 +728,7 @@ class ArrHealthScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          message: errorText(e),
           onRetry: () => ref.invalidate(arrHealthProvider),
         ),
         data: (apps) => RefreshIndicator(
@@ -1090,7 +1091,7 @@ class _ArrRequestsViewState extends ConsumerState<ArrRequestsView> {
           Expanded(
             child: async.hasError
                 ? ErrorView(
-                    message: async.error.toString(),
+                    message: errorText(async.error!),
                     onRetry: () => ref.invalidate(seerrPendingRequestsProvider),
                   )
                 : const ArrRowsSkeleton(),
@@ -1253,7 +1254,7 @@ class _ArrBlocklistViewState extends ConsumerState<ArrBlocklistView> {
           Expanded(
             child: async.hasError
                 ? ErrorView(
-                    message: async.error.toString(),
+                    message: errorText(async.error!),
                     onRetry: () => ref.invalidate(arrBlocklistProvider),
                   )
                 : const ArrRowsSkeleton(),

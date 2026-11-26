@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_custom_slider.dart';
 import '../state/seerr_providers.dart';
@@ -125,7 +126,7 @@ class _AddSliderDialogState extends ConsumerState<_AddSliderDialog> {
                     child: Padding(
                         padding: EdgeInsets.all(8),
                         child: AppSpinner())),
-                error: (e, _) => Text('$e'),
+                error: (e, _) => Text(errorText(e)),
                 data: (genres) => DropdownButtonFormField<int>(
                   initialValue: _genreId,
                   isExpanded: true,

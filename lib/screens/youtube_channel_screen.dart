@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../api/error_text.dart';
 import '../widgets/cached_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +81,7 @@ class _YoutubeChannelScreenState extends ConsumerState<YoutubeChannelScreen> {
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(16),
                   child: ErrorView(
-                    message: '$e',
+                    message: errorText(e),
                     onRetry: () => ref.invalidate(youtubeChannelTabProvider(
                         (channelId: widget.channelId,
                         kind: YtChannelTabKind.videos))),
@@ -146,7 +147,7 @@ class _UploadsTab extends ConsumerWidget {
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(16),
           child: ErrorView(
-            message: '$e',
+            message: errorText(e),
             onRetry: () =>
                 ref.invalidate(youtubeChannelUploadsProvider(channelId)),
           ),
@@ -184,7 +185,7 @@ class _BrowseTab extends ConsumerWidget {
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(
               youtubeChannelTabProvider((channelId: channelId, kind: kind))),
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
@@ -27,7 +28,7 @@ class AdminLogsScreen extends ConsumerWidget {
       body: logs.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-            message: '$e',
+            message: errorText(e),
             onRetry: () => ref.invalidate(adminLogFilesProvider)),
         data: (list) => list.isEmpty
             ? EmptyState(icon: Icons.article_outlined, title: l.adminNoLogFiles)
@@ -80,7 +81,7 @@ class _AdminLogViewState extends ConsumerState<AdminLogViewScreen> {
           baseUrl: s.baseUrl, token: s.accessToken, name: widget.name);
       if (mounted) setState(() => _content = text);
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = errorText(e));
     }
   }
 

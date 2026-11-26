@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -188,7 +189,7 @@ class _IndexersState extends ConsumerState<_Indexers> {
         kind: problems == null ? SnackKind.success : SnackKind.error,
       );
     } catch (e) {
-      if (mounted) showSnack(context, e.toString(), kind: SnackKind.error);
+      if (mounted) showSnack(context, errorText(e), kind: SnackKind.error);
     } finally {
       if (mounted) setState(() => _testing.remove(i.id));
     }
@@ -216,7 +217,7 @@ class _IndexersState extends ConsumerState<_Indexers> {
       // A test can put an indexer back in use, or out of it.
       _changed();
     } catch (e) {
-      if (mounted) showSnack(context, e.toString(), kind: SnackKind.error);
+      if (mounted) showSnack(context, errorText(e), kind: SnackKind.error);
     } finally {
       if (mounted) setState(() => _testingAll = false);
     }
@@ -262,7 +263,7 @@ class _IndexersState extends ConsumerState<_Indexers> {
       child: async.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          message: errorText(e),
           onRetry: () => ref.invalidate(prowlarrIndexersProvider),
         ),
         data: (rows) {
@@ -637,7 +638,7 @@ class _SearchState extends ConsumerState<_Search> {
                     }
                     if (snap.hasError) {
                       return ErrorView(
-                        message: snap.error.toString(),
+                        message: errorText(snap.error!),
                         onRetry: _run,
                       );
                     }
@@ -782,7 +783,7 @@ class _Stats extends ConsumerWidget {
       child: async.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          message: errorText(e),
           onRetry: () => ref.invalidate(prowlarrStatsProvider),
         ),
         data: (list) {
@@ -875,7 +876,7 @@ class _HistoryState extends ConsumerState<_History> {
     if (page == null) {
       return async.hasError
           ? ErrorView(
-              message: async.error.toString(),
+              message: errorText(async.error!),
               onRetry: () => ref.invalidate(prowlarrHistoryProvider),
             )
           : const Center(child: AppSpinner());

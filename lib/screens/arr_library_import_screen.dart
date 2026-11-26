@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -255,7 +256,7 @@ class _ArrLibraryImportScreenState
     Widget body;
     if (setupAsync.hasError && setup == null) {
       body = ErrorView(
-        message: setupAsync.error.toString(),
+        message: errorText(setupAsync.error!),
         onRetry: () => ref.invalidate(arrAddSetupProvider(widget.kind)),
       );
     } else if (folders == null) {
@@ -563,7 +564,7 @@ class _FolderCard extends StatelessWidget {
     final app = client?.kind.appName ?? '';
     final (String? note, Color noteColor) = switch (state) {
       _Ready.noMatch => (l.arrLibraryImportNoMatch, arrWarningColor),
-      _Ready.failed => (folder.error.toString(), arrMissingColor),
+      _Ready.failed => (errorText(folder.error!), arrMissingColor),
       _Ready.inLibrary => (l.arrAlreadyInApp(app), scheme.onSurfaceVariant),
       _Ready.ready when duplicate => (
         l.arrLibraryImportDuplicate,
@@ -774,7 +775,7 @@ class _MatchDialogState extends State<_MatchDialog> {
             const SizedBox(height: 8),
             Expanded(
               child: _error != null
-                  ? Center(child: Text(_error.toString()))
+                  ? Center(child: Text(errorText(_error!)))
                   : results == null
                   ? const Center(child: AppSpinner(size: 24))
                   : results.isEmpty

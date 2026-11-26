@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -300,7 +301,7 @@ class _ArrReleasesScreenState extends ConsumerState<ArrReleasesScreen> {
             );
           }
           if (snap.hasError) {
-            return ErrorView(message: snap.error.toString(), onRetry: _search);
+            return ErrorView(message: errorText(snap.error!), onRetry: _search);
           }
           final all = snap.data ?? const [];
           final list = _apply(all);

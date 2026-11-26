@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/server_connection.dart';
@@ -87,7 +88,7 @@ class _ServerConnectScreenState extends ConsumerState<ServerConnectScreen> {
     } on JellyfinException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = l.appUnexpectedError('$e'));
+      setState(() => _error = l.appUnexpectedError(errorText(e)));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

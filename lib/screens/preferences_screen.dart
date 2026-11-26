@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../api/error_text.dart';
 import '../api/mdblist_client.dart';
 import '../state/arr_providers.dart';
 import '../state/interface_scale.dart';
@@ -99,7 +100,7 @@ class PreferencesScreen extends ConsumerWidget {
       body: prefsAsync.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(preferencesProvider),
         ),
         data: (p) => PageWidth(builder: (_, inset) => ListView(

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../api/error_text.dart';
 import '../api/seerr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/preferences.dart';
@@ -123,12 +124,12 @@ class _SeerrSettingsScreenState extends ConsumerState<SeerrSettingsScreen> {
         if (mounted) {
           setState(() {
             _busy = false;
-            _failed = e.toString();
+            _failed = errorText(e);
           });
         } else {
           showSnackOn(
             messenger,
-            'Seerr: ${l.arrTestFailed(e.toString())}',
+            'Seerr: ${l.arrTestFailed(errorText(e))}',
             kind: SnackKind.error,
           );
         }

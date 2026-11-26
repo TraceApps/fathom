@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../models/youtube_channel.dart';
 import '../models/youtube_history.dart';
 import '../models/youtube_video.dart';
@@ -328,7 +329,7 @@ class _FeedTab extends ConsumerWidget {
         child: feed.when(
           loading: () => const YoutubeVideosSkeleton(),
           error: (e, _) => ErrorView(
-            message: '$e',
+            message: errorText(e),
             onRetry: () => ref.invalidate(youtubeFeedProvider),
           ),
           data: (res) {
@@ -1622,7 +1623,7 @@ class _Results extends ConsumerWidget {
     return async.when(
       loading: () => const YoutubeVideosSkeleton(),
       error: (e, _) => ErrorView(
-        message: '$e',
+        message: errorText(e),
         onRetry: () => ref.invalidate(youtubeSearchProvider),
       ),
       data: (res) {

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../api/error_text.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/sleep_timer_sheet.dart';
@@ -443,7 +444,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _errorSub = _player.stream.error.listen((e) {
       if (!mounted) return;
       _maybeFallbackOrError(
-          AppLocalizations.of(context).playerPlaybackError(e.toString()));
+          AppLocalizations.of(context).playerPlaybackError(errorText(e)));
     });
     _playingSub = _player.stream.playing.listen((playing) {
       _mediaSession?.updatePlayback(playing: playing, token: _sessionToken);
@@ -907,7 +908,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     } on JellyfinException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) setState(() => _error = l.playerPlaybackFailed('$e'));
+      if (mounted) setState(() => _error = l.playerPlaybackFailed(errorText(e)));
     }
   }
 
@@ -998,7 +999,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       await _openAt(url, pos);
       _appliedTracks = false;
     } catch (e) {
-      if (mounted) setState(() => _error = l.playerQualityChangeFailed('$e'));
+      if (mounted) setState(() => _error = l.playerQualityChangeFailed(errorText(e)));
     }
   }
 
@@ -1211,7 +1212,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         }
       });
     } catch (e) {
-      if (mounted) setState(() => _error = l.playerPlaybackFailed('$e'));
+      if (mounted) setState(() => _error = l.playerPlaybackFailed(errorText(e)));
     }
   }
 

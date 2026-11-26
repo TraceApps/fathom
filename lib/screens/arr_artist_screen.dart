@@ -58,7 +58,7 @@ class ArrArtistScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
-          message: e.toString(),
+          message: errorText(e),
           onRetry: () => ref.invalidate(lidarrArtistProvider(id)),
         ),
         data: (a) {
@@ -192,7 +192,7 @@ class ArrArtistScreen extends ConsumerWidget {
                     SliverToBoxAdapter(
                       child: _Body(
                         child: ErrorView(
-                          message: albums.error.toString(),
+                          message: errorText(albums.error!),
                           onRetry: () =>
                               ref.invalidate(lidarrAlbumsProvider(id)),
                         ),
@@ -660,7 +660,7 @@ class _AlbumTracks extends ConsumerWidget {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: ErrorView(
-          message: tracks.error.toString(),
+          message: errorText(tracks.error!),
           onRetry: () => ref.invalidate(lidarrTracksProvider(album.id)),
         ),
       );

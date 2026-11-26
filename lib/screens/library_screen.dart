@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
@@ -179,7 +180,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     } on JellyfinException catch (e) {
       if (mounted && load == _load) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted && load == _load) setState(() => _error = '$e');
+      if (mounted && load == _load) setState(() => _error = errorText(e));
     } finally {
       if (mounted && load == _load) setState(() => _loading = false);
     }

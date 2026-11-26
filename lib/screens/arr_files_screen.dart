@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../state/arr_providers.dart';
@@ -156,7 +157,7 @@ class _ArrSeriesFilesScreenState extends ConsumerState<ArrSeriesFilesScreen> {
     Widget body;
     if (filesAsync.hasError) {
       body = ErrorView(
-        message: filesAsync.error.toString(),
+        message: errorText(filesAsync.error!),
         onRetry: _refresh,
       );
     } else if (!filesAsync.hasValue) {

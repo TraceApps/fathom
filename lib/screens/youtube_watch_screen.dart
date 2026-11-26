@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../api/error_text.dart';
 import '../widgets/reorder.dart';
 import '../widgets/cached_image.dart';
 
@@ -287,7 +288,7 @@ class _YoutubeWatchScreenState extends ConsumerState<YoutubeWatchScreen> {
           showDescription: prefs?.youtubeShowDescription ?? true,
         ),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(youtubeWatchProvider(_videoId)),
         ),
         data: (d) => _Body(

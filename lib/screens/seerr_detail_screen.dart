@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
 import '../models/base_item.dart';
@@ -52,7 +53,7 @@ class SeerrDetailScreen extends ConsumerWidget {
       body: async.when(
         loading: () => _loadingHeader(context),
         error: (e, _) => _ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(seerrDetailProvider(key)),
         ),
         data: (d) => _DetailBody(detail: d),

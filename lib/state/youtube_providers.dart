@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+import '../api/error_text.dart';
 import '../l10n/l10n.dart';
 import '../models/youtube_channel.dart';
 import '../models/youtube_history.dart';
@@ -1656,7 +1657,7 @@ class YoutubeDownloads extends AsyncNotifier<List<YoutubeDownload>> {
               ));
     } catch (e) {
       _update(video.id,
-          (d) => d.copyWith(status: YtDownloadStatus.failed, error: '$e'));
+          (d) => d.copyWith(status: YtDownloadStatus.failed, error: errorText(e)));
     } finally {
       _cancels.remove(video.id);
       // Hand the slot to whoever's next.

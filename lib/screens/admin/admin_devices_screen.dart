@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
@@ -37,7 +38,7 @@ class AdminDevicesScreen extends ConsumerWidget {
       body: devices.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-            message: '$e', onRetry: () => ref.invalidate(adminDevicesProvider)),
+            message: errorText(e), onRetry: () => ref.invalidate(adminDevicesProvider)),
         data: (list) => list.isEmpty
             ? EmptyState(icon: Icons.devices_rounded, title: l.adminNoDevices)
             : RefreshIndicator(

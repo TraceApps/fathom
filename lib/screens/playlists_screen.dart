@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
@@ -79,7 +80,7 @@ class PlaylistsScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const PosterGridSkeleton(aspectRatio: 0.62),
-        error: (e, _) => ErrorView(message: '$e', onRetry: () => ref.invalidate(playlistsProvider)),
+        error: (e, _) => ErrorView(message: errorText(e), onRetry: () => ref.invalidate(playlistsProvider)),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

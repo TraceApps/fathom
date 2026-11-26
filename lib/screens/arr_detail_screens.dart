@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -62,7 +63,7 @@ class ArrMovieScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
-          message: e.toString(),
+          message: errorText(e),
           onRetry: () => ref.invalidate(radarrMovieProvider(id)),
         ),
         data: (m) {
@@ -240,7 +241,7 @@ class ArrSeriesScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const _LoadingPage(),
         error: (e, _) => _ErrorPage(
-          message: e.toString(),
+          message: errorText(e),
           onRetry: () => ref.invalidate(sonarrSeriesProvider(id)),
         ),
         data: (s) {
@@ -371,7 +372,7 @@ class ArrSeriesScreen extends ConsumerWidget {
                   SliverToBoxAdapter(
                     child: _Body(
                       child: ErrorView(
-                        message: episodes.error.toString(),
+                        message: errorText(episodes.error!),
                         onRetry: () =>
                             ref.invalidate(sonarrEpisodesProvider(id)),
                       ),
@@ -1594,7 +1595,7 @@ class _HistorySection extends StatelessWidget {
         Text(l.arrHistory, style: arrSectionStyle(theme)),
         const SizedBox(height: 8),
         if (history.hasError)
-          Text(history.error.toString(), style: TextStyle(color: scheme.error))
+          Text(errorText(history.error!), style: TextStyle(color: scheme.error))
         else if (items == null)
           const _BlocksSkeleton(height: 40)
         else if (items.isEmpty)

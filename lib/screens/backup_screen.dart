@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/settings_backup.dart';
 import '../state/radio.dart';
@@ -87,7 +88,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         _snack(l.backupSavedTo(path));
       }
     } catch (e) {
-      _snack(l.backupFailed('$e'));
+      _snack(l.backupFailed(errorText(e)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -127,7 +128,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     } on FormatException {
       _snack(l.backupInvalid);
     } catch (e) {
-      _snack(l.backupFailed('$e'));
+      _snack(l.backupFailed(errorText(e)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

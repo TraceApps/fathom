@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
@@ -90,7 +91,7 @@ class AdminApiKeysScreen extends ConsumerWidget {
       body: keys.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-            message: '$e', onRetry: () => ref.invalidate(adminApiKeysProvider)),
+            message: errorText(e), onRetry: () => ref.invalidate(adminApiKeysProvider)),
         data: (list) => list.isEmpty
             ? EmptyState(icon: Icons.key_rounded, title: l.adminNoApiKeys)
             : PageWidth(builder: (c, inset) => ListView.separated(

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -771,7 +772,7 @@ class _QueueTabState extends ConsumerState<_QueueTab> {
             Expanded(
               child: async.hasError
                   ? ErrorView(
-                      message: async.error.toString(),
+                      message: errorText(async.error!),
                       onRetry: () => ref.invalidate(arrQueueProvider),
                     )
                   : const ArrRowsSkeleton(cards: true),
@@ -1416,7 +1417,7 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
         error: (e, _) => SliverFillRemaining(
           hasScrollBody: true,
           child: ErrorView(
-            message: e.toString(),
+            message: errorText(e),
             onRetry: () => ref.invalidate(radarrMoviesProvider),
           ),
         ),
@@ -1620,7 +1621,7 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
         error: (e, _) => SliverFillRemaining(
           hasScrollBody: true,
           child: ErrorView(
-            message: e.toString(),
+            message: errorText(e),
             onRetry: () => ref.invalidate(sonarrSeriesListProvider),
           ),
         ),
@@ -1822,7 +1823,7 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
           error: (e, _) => SliverFillRemaining(
             hasScrollBody: true,
             child: ErrorView(
-              message: e.toString(),
+              message: errorText(e),
               onRetry: () => ref.invalidate(lidarrArtistsProvider),
             ),
           ),

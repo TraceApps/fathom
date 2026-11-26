@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -48,7 +49,7 @@ class _ArrCollectionsScreenState extends ConsumerState<ArrCollectionsScreen> {
     if (all == null) {
       body = async.hasError
           ? ErrorView(
-              message: async.error.toString(),
+              message: errorText(async.error!),
               onRetry: () => ref.invalidate(radarrCollectionsProvider),
             )
           : const Center(child: AppSpinner());
@@ -493,7 +494,7 @@ class _CollectionDialogState extends ConsumerState<_CollectionDialog> {
         } catch (_) {}
       }
     } catch (e) {
-      showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+      showSnackOn(messenger, errorText(e), kind: SnackKind.error);
     }
     if (ok) {
       showSnackOn(

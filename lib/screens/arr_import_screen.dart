@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -155,7 +156,7 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
       });
     } catch (e) {
       if (mounted) {
-        showSnack(context, e.toString(), kind: SnackKind.error);
+        showSnack(context, errorText(e), kind: SnackKind.error);
       }
     } finally {
       if (mounted) setState(() => _checking.removeAll(ids));
@@ -253,7 +254,7 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
       ref.invalidate(arrQueueProvider);
       if (mounted) context.pop(true);
     } catch (e) {
-      showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+      showSnackOn(messenger, errorText(e), kind: SnackKind.error);
       if (mounted) setState(() => _importing = false);
     }
   }
@@ -282,7 +283,7 @@ class _ArrImportScreenState extends ConsumerState<ArrImportScreen> {
 
     Widget body;
     if (_error != null) {
-      body = ErrorView(message: _error.toString(), onRetry: _load);
+      body = ErrorView(message: errorText(_error!), onRetry: _load);
     } else if (items == null) {
       body = const Center(child: AppSpinner());
     } else if (items.isEmpty) {
@@ -848,7 +849,7 @@ class _FolderDialogState extends ConsumerState<_FolderDialog> {
               child: _error != null
                   ? Center(
                       child: Text(
-                        _error.toString(),
+                        errorText(_error!),
                         textAlign: TextAlign.center,
                       ),
                     )

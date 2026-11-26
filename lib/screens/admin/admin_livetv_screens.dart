@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
@@ -235,7 +236,7 @@ class AdminLiveTvScreen extends ConsumerWidget {
         body: info.when(
           loading: () => const Center(child: AppSpinner()),
           error: (e, _) => ErrorView(
-              message: '$e',
+              message: errorText(e),
               onRetry: () => ref.invalidate(adminLiveTvInfoProvider)),
           data: (m) {
             final tuners = (m['TunerHosts'] as List?)
@@ -713,7 +714,7 @@ class AdminDvrScreen extends ConsumerWidget {
   }) {
     return async.when(
       loading: () => const Center(child: AppSpinner()),
-      error: (e, _) => ErrorView(message: '$e', onRetry: onInvalidate),
+      error: (e, _) => ErrorView(message: errorText(e), onRetry: onInvalidate),
       data: (list) => list.isEmpty
           ? EmptyState(icon: Icons.live_tv_rounded, title: empty)
           : RefreshIndicator(
@@ -742,7 +743,7 @@ class _RecordedTab extends ConsumerWidget {
     return async.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(adminRecordingsProvider)),
       data: (list) => list.isEmpty
           ? EmptyState(icon: Icons.videocam_rounded, title: l.adminNoRecordings)
@@ -869,7 +870,7 @@ class _SchedulesDirectDialogState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = '$e';
+          _error = errorText(e);
           _busy = false;
         });
       }
@@ -906,7 +907,7 @@ class _SchedulesDirectDialogState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = '$e';
+          _error = errorText(e);
           _busy = false;
         });
       }
@@ -931,7 +932,7 @@ class _SchedulesDirectDialogState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = '$e';
+          _error = errorText(e);
           _busy = false;
         });
       }

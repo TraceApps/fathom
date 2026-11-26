@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
@@ -159,7 +160,7 @@ class AlbumView extends ConsumerWidget {
             ),
             error: (e, _) => SliverToBoxAdapter(
               child: SectionError(
-                message: '$e',
+                message: errorText(e),
                 onRetry: () => ref.invalidate(albumTracksProvider(album.id)),
               ),
             ),

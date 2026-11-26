@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/admin_providers.dart';
 import '../state/providers.dart';
@@ -170,7 +171,7 @@ Widget _async(
 }) {
   return async.when(
     loading: () => const Center(child: AppSpinner()),
-    error: (e, _) => ErrorView(message: '$e', onRetry: onRetry),
+    error: (e, _) => ErrorView(message: errorText(e), onRetry: onRetry),
     data: (list) => list.isEmpty
         ? EmptyState(
             icon: Icons.inbox_rounded,
@@ -222,7 +223,7 @@ class _SystemTab extends ConsumerWidget {
     return info.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-        message: '$e',
+        message: errorText(e),
         onRetry: () => ref.invalidate(adminSystemProvider),
       ),
       data: (m) => PageWidth(builder: (c, inset) => ListView(

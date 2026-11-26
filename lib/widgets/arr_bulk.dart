@@ -1,3 +1,4 @@
+import '../api/error_text.dart';
 import 'pick_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -174,7 +175,7 @@ class _ArrBulkBarState extends ConsumerState<ArrBulkBar> {
         return;
       }
     } catch (e) {
-      showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+      showSnackOn(messenger, errorText(e), kind: SnackKind.error);
       return;
     }
     if (!mounted) return;

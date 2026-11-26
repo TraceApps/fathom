@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/authentication_result.dart';
@@ -64,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } on JellyfinException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) setState(() => _error = l.appUnexpectedError('$e'));
+      if (mounted) setState(() => _error = l.appUnexpectedError(errorText(e)));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -121,7 +122,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } on JellyfinException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) setState(() => _error = l.appUnexpectedError('$e'));
+      if (mounted) setState(() => _error = l.appUnexpectedError(errorText(e)));
     } finally {
       if (mounted) setState(() => _qcLoading = false);
     }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../services/tv_mode.dart';
@@ -81,7 +82,7 @@ class DetailScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: ErrorView(
-                  message: '$e',
+                  message: errorText(e),
                   onRetry: () => ref.invalidate(itemDetailProvider(item.id)),
                 ),
               ),
@@ -682,7 +683,7 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
       loading: () => const SliverToBoxAdapter(child: EpisodeListSkeleton()),
       error: (e, _) => SliverToBoxAdapter(
         child: SectionError(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(episodesProvider(widget.seriesId)),
         ),
       ),
@@ -1538,7 +1539,7 @@ extension on _ItemMenu {
           showSnackOn(messenger, l.arrSearchStarted(match.kind.appName),
               kind: SnackKind.success);
         } catch (e) {
-          showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+          showSnackOn(messenger, errorText(e), kind: SnackKind.error);
         }
     }
   }

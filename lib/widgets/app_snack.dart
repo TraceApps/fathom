@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../api/error_text.dart';
 
 /// The tone of a snackbar, which picks its icon and accent.
 enum SnackKind { info, success, error }
@@ -85,7 +86,7 @@ void showSnackOn(
 void showErrorOn(ScaffoldMessengerState messenger, Object error,
         {String? prefix}) =>
     showSnackOn(messenger,
-        prefix == null ? error.toString() : '$prefix: $error',
+        prefix == null ? errorText(error) : '$prefix: ${errorText(error)}',
         kind: SnackKind.error);
 
 /// The same styled snackbar, fired through the app-wide messenger so it works
@@ -102,7 +103,7 @@ void showGlobalSnack(String message, {SnackKind kind = SnackKind.info}) {
 
 /// Convenience for the common error case.
 void showError(BuildContext context, Object error, {String? prefix}) {
-  final msg = error.toString();
+  final msg = errorText(error);
   showSnack(context, prefix == null ? msg : '$prefix: $msg',
       kind: SnackKind.error);
 }

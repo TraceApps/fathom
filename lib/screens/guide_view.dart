@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../models/guide_data.dart';
@@ -104,7 +105,7 @@ class _GuideViewState extends ConsumerState<GuideView> {
     return guide.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(guideProvider),
         ),
       data: (data) {

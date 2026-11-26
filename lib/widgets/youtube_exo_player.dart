@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/youtube_caption.dart';
 import '../models/youtube_chapter.dart';
@@ -199,7 +200,7 @@ class _YoutubeExoPlayerState extends ConsumerState<YoutubeExoPlayer> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = '$e';
+          _error = errorText(e);
           _loading = false;
         });
       }

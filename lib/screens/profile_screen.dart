@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/library_providers.dart';
 import '../state/providers.dart';
@@ -151,7 +152,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               } catch (e) {
                 setSt(() {
                   submitting = false;
-                  error = '$e';
+                  error = errorText(e);
                 });
               }
             }

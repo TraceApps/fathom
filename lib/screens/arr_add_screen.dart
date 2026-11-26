@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -415,7 +416,7 @@ class _ResultSection extends ConsumerWidget {
             child: Center(child: AppSpinner()),
           );
         } else if (snap.hasError) {
-          body = ErrorView(message: snap.error.toString(), onRetry: onRetry);
+          body = ErrorView(message: errorText(snap.error!), onRetry: onRetry);
         } else if (snap.data!.isEmpty) {
           body = titled
               ? Padding(
@@ -700,7 +701,7 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
     Widget body;
     if (setupAsync.hasError && setup == null) {
       body = Text(
-        setupAsync.error.toString(),
+        errorText(setupAsync.error!),
         style: TextStyle(color: theme.colorScheme.error),
       );
     } else if (setup == null) {

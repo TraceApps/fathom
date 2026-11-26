@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_detail.dart';
 import '../state/seerr_providers.dart';
@@ -30,7 +31,7 @@ class SeerrSeasonScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(seerrSeasonProvider((tvId: tvId, seasonNumber: seasonNumber))),
         ),
         data: (episodes) => episodes.isEmpty

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../state/audio_player.dart' show audioControllerProvider;
@@ -138,7 +139,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(playlistItemsProvider(playlist.id)),
         ),
         data: (items) {

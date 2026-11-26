@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../services/tv_mode.dart';
 import '../state/audio_player.dart';
 import '../state/youtube_providers.dart';
@@ -90,7 +91,7 @@ class YoutubePlaylistScreen extends ConsumerWidget {
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(16),
           child: ErrorView(
-            message: '$e',
+            message: errorText(e),
             onRetry: () => ref.invalidate(youtubePlaylistProvider(playlistId)),
           ),
         ),

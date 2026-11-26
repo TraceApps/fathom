@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -57,7 +58,7 @@ class _ArrTagPickerState extends ConsumerState<ArrTagPicker> {
       ref.invalidate(arrTagsProvider(widget.client.kind));
       if (!widget.selected.contains(tag.id)) _toggle(tag.id, true);
     } catch (e) {
-      showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+      showSnackOn(messenger, errorText(e), kind: SnackKind.error);
     } finally {
       if (mounted) setState(() => _creating = false);
     }

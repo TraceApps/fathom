@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/library_providers.dart';
@@ -111,7 +112,7 @@ class _AdminBrandingState extends ConsumerState<AdminBrandingScreen> {
       _splashEnabled = branding['SplashscreenEnabled'] == true;
       if (mounted) setState(() => _config = branding);
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = errorText(e));
     }
   }
 

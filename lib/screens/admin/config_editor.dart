@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../api/error_text.dart';
 import '../../api/jellyfin_client.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/session.dart';
@@ -51,7 +52,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
       final cfg = await load(client, session);
       if (mounted) setState(() => draft = cfg);
     } catch (e) {
-      if (mounted) setState(() => loadError = '$e');
+      if (mounted) setState(() => loadError = errorText(e));
     }
   }
 

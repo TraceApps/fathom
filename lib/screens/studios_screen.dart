@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
@@ -26,7 +27,7 @@ class StudiosScreen extends ConsumerWidget {
       appBar: AppBar(leading: mobileLeading(context), title: Text(l.browseStudios)),
       body: async.when(
         loading: () => const ChipWrapSkeleton(),
-        error: (e, _) => ErrorView(message: '$e', onRetry: () => ref.invalidate(studiosProvider)),
+        error: (e, _) => ErrorView(message: errorText(e), onRetry: () => ref.invalidate(studiosProvider)),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

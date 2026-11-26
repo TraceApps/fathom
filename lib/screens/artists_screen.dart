@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
@@ -29,7 +30,7 @@ class ArtistsScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const PosterGridSkeleton(
             maxExtent: 150, aspectRatio: 0.8, circular: true),
-        error: (e, _) => ErrorView(message: '$e', onRetry: () => ref.invalidate(artistsProvider)),
+        error: (e, _) => ErrorView(message: errorText(e), onRetry: () => ref.invalidate(artistsProvider)),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -29,7 +30,7 @@ Future<bool> arrRun(
     showSnackOn(messenger, done, kind: SnackKind.success);
     return true;
   } catch (e) {
-    showSnackOn(messenger, e.toString(), kind: SnackKind.error);
+    showSnackOn(messenger, errorText(e), kind: SnackKind.error);
     return false;
   }
 }
@@ -565,7 +566,7 @@ class _EditDialogState extends ConsumerState<_EditDialog> {
         _path.text = _pathBefore;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = errorText(e));
     }
   }
 
@@ -846,7 +847,7 @@ class _RenameDialogState extends State<_RenameDialog> {
         Widget body;
         if (snap.hasError) {
           body = Text(
-            snap.error.toString(),
+            errorText(snap.error!),
             style: TextStyle(color: scheme.error),
           );
         } else if (files == null) {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../api/bazarr_client.dart';
 import '../api/jellyfin_client.dart';
@@ -211,7 +212,7 @@ Future<ArrMerged<T>> _both<T>(
   final lists = await Future.wait([
     for (final c in clients)
       load(c).catchError((Object e) {
-        errors[c.kind] = e.toString();
+        errors[c.kind] = errorText(e);
         return <T>[];
       }),
   ]);
@@ -994,7 +995,7 @@ Future<ArrMerged<T>> _bothPaged<T>(
               return p.items;
             })
             .catchError((Object e) {
-              errors[c.kind] = e.toString();
+              errors[c.kind] = errorText(e);
               return <T>[];
             }),
   ]);
@@ -1100,7 +1101,7 @@ final arrHealthProvider = FutureProvider.autoDispose<List<ArrAppHealth>>((
         issues: r[1] as List<ArrHealth>,
       );
     } catch (e) {
-      return ArrAppHealth(c.kind, error: e.toString());
+      return ArrAppHealth(c.kind, error: errorText(e));
     }
   }
 
@@ -1112,7 +1113,7 @@ final arrHealthProvider = FutureProvider.autoDispose<List<ArrAppHealth>>((
         issues: r[1] as List<ArrHealth>,
       );
     } catch (e) {
-      return ArrAppHealth.prowlarr(error: e.toString());
+      return ArrAppHealth.prowlarr(error: errorText(e));
     }
   }
 
@@ -1124,7 +1125,7 @@ final arrHealthProvider = FutureProvider.autoDispose<List<ArrAppHealth>>((
         issues: r[1] as List<ArrHealth>,
       );
     } catch (e) {
-      return ArrAppHealth.bazarr(error: e.toString());
+      return ArrAppHealth.bazarr(error: errorText(e));
     }
   }
 

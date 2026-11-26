@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -336,7 +337,7 @@ class _Agenda extends ConsumerWidget {
           top,
           Expanded(
             child: ErrorView(
-              message: e.toString(),
+              message: errorText(e),
               onRetry: () => ref.invalidate(arrCalendarProvider),
             ),
           ),
@@ -583,7 +584,7 @@ class _Month extends ConsumerWidget {
     // the last answer up as if it were this one.
     if (async.hasError && !async.isLoading) {
       body = ErrorView(
-        message: async.error.toString(),
+        message: errorText(async.error!),
         onRetry: () => ref.invalidate(arrCalendarProvider),
       );
     } else {

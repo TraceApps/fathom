@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/arr.dart';
@@ -115,7 +116,7 @@ class _MonitoringDialogState extends State<_MonitoringDialog> {
         _newSeasons = _newSeasonsBefore = raw['monitorNewItems'] != 'none';
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = errorText(e));
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/download_clients.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/download_client.dart';
@@ -340,7 +341,7 @@ class _DownloadClientsScreenState extends ConsumerState<DownloadClientsScreen> {
         ArrListColumn(
           child: async.hasError
               ? ErrorView(
-                  message: async.error.toString(),
+                  message: errorText(async.error!),
                   onRetry: () => _reload(c.kind),
                 )
               : const Padding(
@@ -359,7 +360,7 @@ class _DownloadClientsScreenState extends ConsumerState<DownloadClientsScreen> {
         child: _ClientHeader(
           client: c,
           state: state,
-          error: async.hasError ? async.error.toString() : null,
+          error: async.hasError ? errorText(async.error!) : null,
           onAll: (pause) => _all(c, pause, state.items),
           onChanged: () => _reloadSoon(c.kind),
         ),
@@ -1128,7 +1129,7 @@ class _HistoryState extends ConsumerState<_History> {
     if (list == null) {
       return async.hasError
           ? ErrorView(
-              message: async.error.toString(),
+              message: errorText(async.error!),
               onRetry: () => ref.invalidate(sabHistoryProvider),
             )
           : const Center(child: AppSpinner());

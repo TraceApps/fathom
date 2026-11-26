@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/playlist_providers.dart';
 import '../state/providers.dart';
@@ -131,7 +132,7 @@ class _AddToPlaylistSheet extends ConsumerWidget {
                 ),
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('$e',
+                  child: Text(errorText(e),
                       style: TextStyle(color: theme.colorScheme.error)),
                 ),
                 data: (list) => list.isEmpty

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../api/error_text.dart';
 import '../../api/jellyfin_client.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
@@ -42,7 +43,7 @@ class AdminBackupsScreen extends ConsumerWidget {
       body: backups.when(
         loading: () => const Center(child: AppSpinner()),
         error: (e, _) => ErrorView(
-            message: '$e',
+            message: errorText(e),
             onRetry: () => ref.invalidate(adminBackupsProvider)),
         data: (list) {
           if (list == null) {

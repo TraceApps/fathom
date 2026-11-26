@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_person.dart';
 import '../state/seerr_providers.dart';
@@ -36,7 +37,7 @@ class _SeerrPersonScreenState extends ConsumerState<SeerrPersonScreen> {
             children: [
               const Align(alignment: Alignment.centerLeft, child: BackButton()),
               Expanded(child: ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(seerrPersonProvider(widget.personId)),
         )),
             ],

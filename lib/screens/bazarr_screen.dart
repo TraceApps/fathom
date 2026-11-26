@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/bazarr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../state/arr_providers.dart';
@@ -184,7 +185,7 @@ class _WantedState extends ConsumerState<_Wanted> {
     if (page == null) {
       return async.hasError
           ? ErrorView(
-              message: async.error.toString(),
+              message: errorText(async.error!),
               onRetry: () => ref.invalidate(bazarrWantedProvider),
             )
           : const Center(child: AppSpinner());
@@ -403,7 +404,7 @@ class _ManualSearchState extends State<_ManualSearch> {
           builder: (context, snap) {
             if (snap.hasError) {
               return ErrorView(
-                message: snap.error.toString(),
+                message: errorText(snap.error!),
                 onRetry: () => setState(() {
                   _results = widget.client.manualSearch(widget.wanted);
                 }),
@@ -516,7 +517,7 @@ class _HistoryState extends ConsumerState<_History> {
     if (page == null) {
       return async.hasError
           ? ErrorView(
-              message: async.error.toString(),
+              message: errorText(async.error!),
               onRetry: () => ref.invalidate(bazarrHistoryProvider),
             )
           : const Center(child: AppSpinner());
@@ -642,7 +643,7 @@ class _Providers extends ConsumerWidget {
     return async.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-        message: e.toString(),
+        message: errorText(e),
         onRetry: () => ref.invalidate(bazarrProvidersProvider),
       ),
       data: (list) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../api/bazarr_client.dart';
 import '../api/download_clients.dart';
@@ -979,13 +980,13 @@ class _ConnectionPageState extends ConsumerState<_ConnectionPage> {
         if (mounted) {
           setState(() {
             _busy = false;
-            _failed = e.toString();
+            _failed = errorText(e);
           });
         } else {
           // Left before the answer: nothing saved, and said so.
           showSnackOn(
             messenger,
-            '${app.appName}: ${l.arrTestFailed(e.toString())}',
+            '${app.appName}: ${l.arrTestFailed(errorText(e))}',
             kind: SnackKind.error,
           );
         }
@@ -1305,7 +1306,7 @@ class _DefaultsDialogState extends ConsumerState<_DefaultsDialog> {
     final Widget content;
     if (setup == null && async.hasError) {
       content = Text(
-        async.error.toString(),
+        errorText(async.error!),
         style: TextStyle(color: theme.colorScheme.error),
       );
     } else if (setup == null) {

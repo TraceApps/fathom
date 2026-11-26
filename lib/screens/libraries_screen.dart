@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
@@ -42,7 +43,7 @@ class LibrariesScreen extends ConsumerWidget {
               loading: () => const PosterGridSkeleton(
                   maxExtent: 300, aspectRatio: 16 / 10),
               error: (e, _) => ErrorView(
-                message: '$e',
+                message: errorText(e),
                 onRetry: () => ref.invalidate(userViewsProvider),
               ),
               data: (all) {

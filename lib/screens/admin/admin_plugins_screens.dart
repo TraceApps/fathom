@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../api/error_text.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/library_providers.dart';
@@ -89,7 +90,7 @@ class _InstalledPlugins extends ConsumerWidget {
     return plugins.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-          message: '$e', onRetry: () => ref.invalidate(adminPluginsProvider)),
+          message: errorText(e), onRetry: () => ref.invalidate(adminPluginsProvider)),
       data: (list) => list.isEmpty
           ? EmptyState(icon: Icons.extension_rounded, title: l.adminNoPlugins)
           : RefreshIndicator(
@@ -164,7 +165,7 @@ class _PluginCatalog extends ConsumerWidget {
     return packages.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-          message: '$e', onRetry: () => ref.invalidate(adminPackagesProvider)),
+          message: errorText(e), onRetry: () => ref.invalidate(adminPackagesProvider)),
       data: (list) => list.isEmpty
           ? Center(
               child: Padding(
@@ -292,7 +293,7 @@ class _PluginRepositories extends ConsumerWidget {
     return repos.when(
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(adminRepositoriesProvider)),
       data: (list) => Scaffold(
         floatingActionButton: FloatingActionButton.extended(

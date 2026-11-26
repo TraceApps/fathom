@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/error_text.dart';
 import '../services/app_installer.dart';
 import '../services/app_updates.dart';
 
@@ -30,7 +31,7 @@ class InstallController extends Notifier<InstallProgress> {
       // nothing more to do here, so settle back to idle.
       state = const InstallProgress();
     } catch (e) {
-      state = InstallProgress(error: e.toString());
+      state = InstallProgress(error: errorText(e));
     } finally {
       // The button's Install / Download & Install label follows what's on disk.
       ref.invalidate(updateStagedProvider);

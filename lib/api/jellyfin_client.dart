@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 
+import 'error_text.dart';
 import '../models/authentication_result.dart';
 import '../models/base_item.dart';
 import '../models/items_result.dart';
@@ -156,35 +157,9 @@ final Dio _dio;
     return url.replaceAll(RegExp(r'/+$'), '');
   }
 
-String _friendlyDioError(DioException e, {bool connecting = false}) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return 'The server took too long to respond. Check the address and '
-            'that the server is running.';
-      case DioExceptionType.connectionError:
-        return connecting
-            ? 'Could not reach that server. Check the address, port, and your '
-                  'network connection.'
-            : 'Lost connection to the server.';
-      case DioExceptionType.badCertificate:
-        return "The server's security certificate could not be verified.";
-      case DioExceptionType.badResponse:
-        final code = e.response?.statusCode;
-        if (code == 404) {
-          return connecting
-              ? 'No Jellyfin server was found at that address.'
-              : 'The requested resource was not found (404).';
-        }
-        if (code == 401 && !connecting) {
-          return 'Your sign-in to this server has ended. Sign in again.';
-        }
-        return 'The server returned an error (${code ?? 'unknown'}).';
-      default:
-        return 'Something went wrong talking to the server.';
-    }
-  }
+String _friendlyDioError(DioException e, {bool connecting = false}) =>
+    dioErrorText(e, connecting: connecting);
+
   /// Calls a route Jellyfin 12 documents, falling back to the per-user route
   /// older servers use.
   ///

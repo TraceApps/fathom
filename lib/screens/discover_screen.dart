@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/error_text.dart';
 import '../api/seerr_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
@@ -1048,7 +1049,7 @@ class SeerrCategoryScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const PosterGridSkeleton(),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(provider),
         ),
         data: (list) => list.isEmpty
@@ -1153,7 +1154,7 @@ class _SeerrGenreScreenState extends ConsumerState<SeerrGenreScreen> {
       body: async.when(
         loading: () => const PosterGridSkeleton(),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(seerrGenreResultsProvider(( mediaType: widget.mediaType, genreId: widget.genreId, sortBy: _sortBy, ))),
         ),
         data: (list) => list.isEmpty
@@ -1201,7 +1202,7 @@ class _SeerrCompanyScreenState extends ConsumerState<SeerrCompanyScreen> {
       body: async.when(
         loading: () => const PosterGridSkeleton(),
         error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(seerrCompanyResultsProvider((kind: widget.kind, id: widget.id, sortBy: _sortBy))),
         ),
         data: (list) => list.isEmpty
@@ -1460,7 +1461,7 @@ class _SeerrSearchTabState extends ConsumerState<_SeerrSearchTab> {
               : async.when(
                   loading: () => const PosterGridSkeleton(),
                   error: (e, _) => ErrorView(
-                    message: '$e',
+                    message: errorText(e),
                     onRetry: () => ref.invalidate(seerrSearchProvider),
                   ),
                   data: (list) => list.isEmpty
@@ -1632,7 +1633,7 @@ class _RequestsTab extends ConsumerWidget {
           child: async.when(
             loading: () => const Center(child: AppSpinner()),
             error: (e, _) => ErrorView(
-          message: '$e',
+          message: errorText(e),
           onRetry: () => ref.invalidate(seerrRequestsProvider),
         ),
             data: (list) => list.isEmpty
