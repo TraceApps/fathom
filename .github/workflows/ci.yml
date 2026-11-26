@@ -46,3 +46,41 @@ jobs:
         # running) fails here rather than holding the runner for hours.
         timeout-minutes: 20
         run: flutter test
+
+  server:
+    # The core flows against real Jellyfin servers, an old one and the
+    # current one, so a server change that breaks Fathom fails here.
+    name: Real server (Jellyfin ${{ matrix.jellyfin }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jellyfin: ['10.8.13', '10.10.7', 'latest']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Install ffmpeg
+        # Makes the short test movie.
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Start Jellyfin ${{ matrix.jellyfin }}
+        run: ./tool/server_test_setup.sh "jellyfin/jellyfin:${{ matrix.jellyfin }}" | grep '^FATHOM_' >> "$GITHUB_ENV"
+
+      - name: Sign in, browse, play, resume, mark watched, subtitles
+        timeout-minutes: 10
+        run: flutter test test/server/jellyfin_flows_test.dart
+
+      - name: Server log, when it failed
+        if: failure()
+        run: docker logs --tail 200 fathom-server-test

@@ -5,7 +5,7 @@ What's done, what's next, and what's parked. The client is feature-complete for 
 ## Road to 1.0
 
 - [x] **0.13.1 stable**: released, now getting real use.
-- [ ] **Real-server tests**: run the core flows (sign in, browse, play, resume, mark watched, subtitles) in CI against real Jellyfin servers, old and current, so a break is caught by a failing check rather than by a user.
+- [x] **Real-server tests**: the core flows (sign in, browse, search, play, resume, mark watched, favorites, subtitles) run in CI against real Jellyfin servers (10.8, 10.10 and the current release), so a break is caught by a failing check rather than by a user.
 - [x] **Decide 1.0's scope**: Linux, Windows, Android phones and tablets, and Android TV are in.
 - [x] **Translations**: open to everyone on Weblate.
 - [x] **Sonarr, Radarr and Lidarr in Fathom**: Library, Calendar, Activity (queue, history, blocklist) and Wanted, with detail pages, searches (automatic and interactive), adding, monitoring (with the apps' own options), editing, renaming, deleting, picking several titles to change together, Manual Import, Import Library, Radarr's collections, shortcuts from Jellyfin's own pages, and Seerr requests in Discover. Also Prowlarr's indexers, Bazarr's subtitles, the download clients (qBittorrent and SABnzbd), more than one server of an app, notifications (on Android, while Fathom is closed too), right-click menus and keyboard shortcuts on a desktop, and Android TV.
