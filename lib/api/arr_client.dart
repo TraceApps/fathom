@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
+import '../l10n/l10n.dart';
 import '../models/arr.dart';
 
 int _int(Object? v) => (v as num?)?.toInt() ?? 0;
@@ -249,12 +250,12 @@ abstract class ArrClient {
   Future<ArrStatus> status() async {
     final data = await _get('system/status');
     if (data is! Map) {
-      throw ArrException('${kind.appName} sent something unexpected.');
+      throw ArrException(tr.errAppUnexpected(kind.appName));
     }
     final s = ArrStatus.fromJson(Map<String, dynamic>.from(data));
     if (s.appName.isNotEmpty &&
         s.appName.toLowerCase() != kind.appName.toLowerCase()) {
-      throw ArrException('This address is ${s.appName}, not ${kind.appName}.');
+      throw ArrException(tr.errAppIsOther(s.appName, kind.appName));
     }
     return s;
   }
@@ -591,7 +592,7 @@ String arrErrorMessage(ArrKind kind, DioException e) =>
 /// [arrErrorMessage] for any of the apps by name (Prowlarr too).
 String arrAppErrorMessage(String app, DioException e) {
   final code = e.response?.statusCode;
-  if (code == 401) return '$app rejected the API key.';
+  if (code == 401) return tr.errAppRejectedKey(app);
   final data = e.response?.data;
   String? message;
   if (data is Map) {
@@ -611,14 +612,14 @@ String arrAppErrorMessage(String app, DioException e) {
   switch (e.type) {
     case DioExceptionType.connectionError:
     case DioExceptionType.connectionTimeout:
-      return 'Could not reach $app.';
+      return tr.errAppUnreachable(app);
     case DioExceptionType.receiveTimeout:
-      return '$app took too long to answer.';
+      return tr.errAppTimeout(app);
     default:
       break;
   }
-  if (code == 404) return "$app isn't at this address (404).";
-  return '$app error (${code ?? 'unknown'}).';
+  if (code == 404) return tr.errAppNotHere(app);
+  return tr.errAppCode(app, '${code ?? '?'}');
 }
 
 class SonarrClient extends ArrClient {
@@ -1679,11 +1680,11 @@ class ProwlarrClient {
   Future<ArrStatus> status() async {
     final data = await _get('system/status');
     if (data is! Map) {
-      throw ArrException('$appName sent something unexpected.');
+      throw ArrException(tr.errAppUnexpected(appName));
     }
     final s = ArrStatus.fromJson(Map<String, dynamic>.from(data));
     if (s.appName.isNotEmpty && s.appName.toLowerCase() != 'prowlarr') {
-      throw ArrException('This address is ${s.appName}, not $appName.');
+      throw ArrException(tr.errAppIsOther(s.appName, appName));
     }
     return s;
   }

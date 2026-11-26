@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../l10n/l10n.dart';
 
 /// Ratings for one title from MDBList, each a normalized 0-100 score (null when
 /// that source has no rating). MDBList aggregates sources that have no API of
@@ -48,15 +49,15 @@ class MdbListClient {
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) {
-        throw MdbListException('$appName rejected the API key.');
+        throw MdbListException(tr.errAppRejectedKey(appName));
       }
       if (code == 429) {
-        throw MdbListException("$appName's limit for today is used up.");
+        throw MdbListException(tr.errAppDailyLimit(appName));
       }
       if (e.response == null) {
-        throw MdbListException('Could not reach $appName.');
+        throw MdbListException(tr.errAppUnreachable(appName));
       }
-      throw MdbListException('$appName error ($code).');
+      throw MdbListException(tr.errAppCode(appName, '$code'));
     }
   }
 

@@ -33,7 +33,7 @@ extension JellyfinAuthApi on JellyfinClient {
   ) async {
     final trimmed = input.trim();
     if (trimmed.isEmpty) {
-      throw JellyfinException('Please enter a server address.');
+      throw JellyfinException(tr.errEnterAddress);
     }
     final hasScheme =
         trimmed.startsWith('http://') || trimmed.startsWith('https://');
@@ -64,9 +64,7 @@ extension JellyfinAuthApi on JellyfinClient {
               info: PublicSystemInfo.fromJson(Map<String, dynamic>.from(data)),
             );
           }
-          lastErr = JellyfinException(
-            'That address did not return a Jellyfin server response.',
-          );
+          lastErr = JellyfinException(tr.errNotJellyfin);
         } on DioException catch (e) {
           lastErr = JellyfinException(_friendlyDioError(e, connecting: true));
         }
@@ -74,7 +72,7 @@ extension JellyfinAuthApi on JellyfinClient {
     } finally {
       probe.close();
     }
-    throw lastErr ?? JellyfinException('Could not reach that server.');
+    throw lastErr ?? JellyfinException(tr.errUnreachable);
   }
 
 /// Validates that [baseUrl] points at a reachable Jellyfin server.
@@ -83,9 +81,7 @@ extension JellyfinAuthApi on JellyfinClient {
       final res = await _dio.get('$baseUrl/System/Info/Public');
       final data = res.data;
       if (data is! Map) {
-        throw JellyfinException(
-          'That address did not return a Jellyfin server response.',
-        );
+        throw JellyfinException(tr.errNotJellyfin);
       }
       return PublicSystemInfo.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
@@ -115,7 +111,7 @@ extension JellyfinAuthApi on JellyfinClient {
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw JellyfinException('Incorrect username or password.');
+        throw JellyfinException(tr.errWrongPassword);
       }
       throw JellyfinException(_friendlyDioError(e));
     }
@@ -171,7 +167,7 @@ extension JellyfinAuthApi on JellyfinClient {
     } on DioException catch (e) {
       // 404 means the request expired or was cancelled server-side.
       if (e.response?.statusCode == 404) {
-        throw JellyfinException('This Quick Connect request expired.');
+        throw JellyfinException(tr.errQuickConnectExpired);
       }
       throw JellyfinException(_friendlyDioError(e));
     }
@@ -193,7 +189,7 @@ extension JellyfinAuthApi on JellyfinClient {
       return res.data == true || res.data == 'true';
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        throw JellyfinException('That code was not found or has expired.');
+        throw JellyfinException(tr.errQuickConnectCode);
       }
       throw JellyfinException(_friendlyDioError(e));
     }

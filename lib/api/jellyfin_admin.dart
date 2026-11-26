@@ -106,12 +106,9 @@ Future<void> deleteUser({
       // a specific reason instead of the generic "error (400)".
       if (e.response?.statusCode == 400) {
         if (newPassword != null && newPassword.isEmpty) {
-          throw JellyfinException('Administrator accounts must have a '
-              'password and can\'t be left blank.');
+          throw JellyfinException(tr.errAdminNeedsPassword);
         }
-        throw JellyfinException(
-            'Couldn\'t change the password. Check that your current '
-            'password is correct.');
+        throw JellyfinException(tr.errPasswordChange);
       }
       throw JellyfinException(_friendlyDioError(e));
     }

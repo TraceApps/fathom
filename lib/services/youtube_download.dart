@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_audio/return_code.dart';
 
+import '../l10n/l10n.dart';
 import 'youtube_streams.dart';
 
 /// What a download produces.
@@ -383,12 +384,11 @@ class YoutubeDownloader {
     if (kind == YtDownloadKind.audio) {
       final audio = streams.audioUrl;
       if (audio == null) {
-        throw Exception('No audio-only stream for this video.');
+        throw Exception(tr.errYtNoAudio);
       }
       if (audioFormat == YtAudioFormat.mp3) {
         if (!await hasFfmpeg()) {
-          throw Exception(
-              'ffmpeg is needed to save as MP3. Install it, or choose M4A.');
+          throw Exception(tr.errYtNeedsFfmpegMp3);
         }
         final aTmp = File(
             '${into.path}/.fathom-${DateTime.now().microsecondsSinceEpoch}.audio');
@@ -453,7 +453,7 @@ class YoutubeDownloader {
 
     final quality = _pick(streams.qualities, preferredHeight);
     if (quality == null || streams.audioUrl == null) {
-      throw Exception('No downloadable stream for this video.');
+      throw Exception(tr.errYtNoStream);
     }
 
     // Scratch files next to the target, then merged and cleaned up. A temp dir

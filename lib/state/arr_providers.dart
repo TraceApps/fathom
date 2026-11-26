@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/l10n.dart';
 import '../api/error_text.dart';
 import '../api/arr_client.dart';
 import '../api/bazarr_client.dart';
@@ -611,7 +612,7 @@ final radarrMovieProvider = FutureProvider.autoDispose.family<ArrMovie, int>((
   id,
 ) async {
   final c = ref.watch(radarrClientProvider);
-  if (c == null) throw ArrException('Radarr is not connected.');
+  if (c == null) throw ArrException(tr.errAppNotConnected('Radarr'));
   return c.movie(id);
 });
 
@@ -627,7 +628,7 @@ final sonarrSeriesProvider = FutureProvider.autoDispose.family<ArrSeries, int>((
   id,
 ) async {
   final c = ref.watch(sonarrClientProvider);
-  if (c == null) throw ArrException('Sonarr is not connected.');
+  if (c == null) throw ArrException(tr.errAppNotConnected('Sonarr'));
   return c.seriesById(id);
 });
 
@@ -685,7 +686,7 @@ final lidarrArtistProvider = FutureProvider.autoDispose.family<ArrArtist, int>((
   id,
 ) async {
   final c = ref.watch(lidarrClientProvider);
-  if (c == null) throw ArrException('Lidarr is not connected.');
+  if (c == null) throw ArrException(tr.errAppNotConnected('Lidarr'));
   return c.artist(id);
 });
 
@@ -701,7 +702,7 @@ final lidarrAlbumProvider = FutureProvider.autoDispose.family<ArrAlbum, int>((
   id,
 ) async {
   final c = ref.watch(lidarrClientProvider);
-  if (c == null) throw ArrException('Lidarr is not connected.');
+  if (c == null) throw ArrException(tr.errAppNotConnected('Lidarr'));
   return c.album(id);
 });
 

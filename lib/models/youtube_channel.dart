@@ -1,3 +1,5 @@
+import '../l10n/l10n.dart';
+
 /// A YouTube channel. Subscriptions are stored locally, so the fields we
 /// persist are just enough to render the list without a network round-trip.
 class YoutubeChannel {
@@ -35,11 +37,11 @@ class YoutubeChannel {
     final n = subscribersCount;
     if (n == null || n <= 0) return '';
     if (n >= 1000000000) {
-      return '${(n / 1000000000).toStringAsFixed(1)}B subscribers';
+      return tr.ytSubscribers('${(n / 1000000000).toStringAsFixed(1)}B');
     }
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M subscribers';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K subscribers';
-    return '$n subscribers';
+    if (n >= 1000000) return tr.ytSubscribers('${(n / 1000000).toStringAsFixed(1)}M');
+    if (n >= 1000) return tr.ytSubscribers('${(n / 1000).toStringAsFixed(1)}K');
+    return tr.ytSubscribers('$n');
   }
 
   Map<String, dynamic> toJson() => {

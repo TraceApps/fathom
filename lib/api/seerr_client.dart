@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
+import '../l10n/l10n.dart';
 import '../models/seerr_detail.dart';
 import '../models/seerr_genre.dart';
 import '../models/seerr_person.dart';
@@ -65,16 +66,16 @@ Future<String> _seerrCookieLogin(
       final pair = c.split(';').first.trim();
       if (pair.startsWith('connect.sid=')) return pair;
     }
-    throw SeerrException('Signed in, but no session cookie was returned.');
+    throw SeerrException(tr.errSeerrNoCookie);
   } on DioException catch (e) {
     final code = e.response?.statusCode;
     if (code == 401 || code == 403) {
-      throw SeerrException('Wrong username or password.');
+      throw SeerrException(tr.errWrongPassword);
     }
     if (e.type == DioExceptionType.connectionError) {
-      throw SeerrException('Could not reach the Seerr server.');
+      throw SeerrException(tr.errAppUnreachable('Seerr'));
     }
-    throw SeerrException('Sign-in failed (${code ?? 'unknown'}).');
+    throw SeerrException(tr.errSignInFailed('${code ?? '?'}'));
   }
 }
 
@@ -778,7 +779,7 @@ class SeerrClient {
       final data = r.data;
       final v = data is Map ? data['version'] : null;
       if (v is! String) {
-        throw SeerrException("This address doesn't answer as Seerr.");
+        throw SeerrException(tr.errAppNotAnswering('Seerr'));
       }
       try {
         await _dio.get('$baseUrl/api/v1/auth/me', options: _opts);
@@ -787,8 +788,8 @@ class SeerrClient {
         if (code == 401 || code == 403) {
           throw SeerrException(
             cookie != null && cookie!.isNotEmpty
-                ? 'Your sign-in to Seerr has ended. Sign in again.'
-                : 'Seerr rejected the API key.',
+                ? tr.errSeerrSignInEnded
+                : tr.errAppRejectedKey('Seerr'),
           );
         }
         rethrow;
@@ -798,17 +799,17 @@ class SeerrClient {
       switch (e.type) {
         case DioExceptionType.connectionError:
         case DioExceptionType.connectionTimeout:
-          throw SeerrException('Could not reach Seerr.');
+          throw SeerrException(tr.errAppUnreachable('Seerr'));
         case DioExceptionType.receiveTimeout:
-          throw SeerrException('Seerr took too long to answer.');
+          throw SeerrException(tr.errAppTimeout('Seerr'));
         default:
           break;
       }
       final code = e.response?.statusCode;
       if (code == 404) {
-        throw SeerrException("Seerr isn't at this address (404).");
+        throw SeerrException(tr.errAppNotHere('Seerr'));
       }
-      throw SeerrException('Seerr error (${code ?? 'unknown'}).');
+      throw SeerrException(tr.errAppCode('Seerr', '${code ?? '?'}'));
     }
   }
 
@@ -828,10 +829,10 @@ String seerrErrorMessage(DioException e) {
     return 'Seerr: ${message.trim()}';
   }
   if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-    return 'Seerr rejected the API key.';
+    return tr.errAppRejectedKey('Seerr');
   }
   if (e.type == DioExceptionType.connectionError) {
-    return 'Could not reach the Seerr server.';
+    return tr.errAppUnreachable('Seerr');
   }
-  return 'Seerr error (${e.response?.statusCode ?? 'unknown'}).';
+  return tr.errAppCode('Seerr', '${e.response?.statusCode ?? '?'}');
 }

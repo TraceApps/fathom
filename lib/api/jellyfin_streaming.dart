@@ -53,7 +53,7 @@ extension JellyfinStreamingApi on JellyfinClient {
       final playSessionId = data['PlaySessionId'] as String?;
       final sources = (data['MediaSources'] as List?) ?? const [];
       if (sources.isEmpty) {
-        throw JellyfinException('No playable source for this video.');
+        throw JellyfinException(tr.errNoSourceVideo);
       }
       final ms = Map<String, dynamic>.from(sources.first as Map);
       final transcodingUrl = ms['TranscodingUrl'] as String?;
@@ -108,7 +108,7 @@ extension JellyfinStreamingApi on JellyfinClient {
       final playSessionId = data['PlaySessionId'] as String?;
       final sources = (data['MediaSources'] as List?) ?? const [];
       if (sources.isEmpty) {
-        throw JellyfinException('No playable source for this video.');
+        throw JellyfinException(tr.errNoSourceVideo);
       }
       final ms = Map<String, dynamic>.from(sources.first as Map);
       final transcodingUrl = ms['TranscodingUrl'] as String?;
@@ -255,7 +255,7 @@ Future<LiveStreamHandle> _requestLiveStream({
       final playSessionId = data['PlaySessionId'] as String?;
       final sources = (data['MediaSources'] as List?) ?? const [];
       if (sources.isEmpty) {
-        throw JellyfinException('No playable source for this channel.');
+        throw JellyfinException(tr.errNoSourceChannel);
       }
       final ms = Map<String, dynamic>.from(sources.first as Map);
       final liveStreamId = ms['LiveStreamId'] as String?;

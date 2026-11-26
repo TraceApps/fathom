@@ -109,4 +109,19 @@ void main() {
       isEmpty,
     );
   });
+
+  test("the clients' own messages come from the strings file", () {
+    // A message written in English inside a client can't be translated. The
+    // app's name in front of a server's own words ("SABnzbd: ...") is fine.
+    final english = RegExp(r'''Exception\(\s*['"](?![A-Za-z]+: \$)[A-Z][a-z]+ [a-z]''');
+    expect(
+      [
+        for (final dir in ['lib/api', 'lib/state', 'lib/models'])
+          for (final f in Directory(dir).listSync(recursive: true).whereType<File>())
+            if (f.path.endsWith('.dart') && english.hasMatch(f.readAsStringSync()))
+              f.path,
+      ],
+      isEmpty,
+    );
+  });
 }

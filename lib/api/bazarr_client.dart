@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../l10n/l10n.dart';
 import '../models/arr.dart';
 import 'arr_client.dart' show ArrException, arrAppErrorMessage;
 
@@ -317,7 +318,7 @@ class BazarrClient {
     final s = data is Map ? data['data'] : null;
     final v = s is Map ? s['bazarr_version'] : null;
     if (v is! String) {
-      throw ArrException("This address doesn't answer as Bazarr.");
+      throw ArrException(tr.errAppNotAnswering('Bazarr'));
     }
     return v;
   }

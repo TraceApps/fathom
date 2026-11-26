@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../l10n/l10n.dart';
 import '../models/download_client.dart';
 import 'arr_client.dart' show ArrException;
 
@@ -37,9 +38,9 @@ String downloadErrorMessage(String app, DioException e) {
   switch (e.type) {
     case DioExceptionType.connectionError:
     case DioExceptionType.connectionTimeout:
-      return 'Could not reach $app.';
+      return tr.errAppUnreachable(app);
     case DioExceptionType.receiveTimeout:
-      return '$app took too long to answer.';
+      return tr.errAppTimeout(app);
     default:
       break;
   }
@@ -48,8 +49,8 @@ String downloadErrorMessage(String app, DioException e) {
   if (data is Map && data['error'] is String) {
     return '$app: ${data['error']}';
   }
-  if (code == 404) return "$app isn't at this address (404).";
-  return '$app error (${code ?? 'unknown'}).';
+  if (code == 404) return tr.errAppNotHere(app);
+  return tr.errAppCode(app, '${code ?? '?'}');
 }
 
 // -------------------------------------------------------------- qBittorrent
@@ -117,16 +118,13 @@ class QbitClient extends DownloadClient {
         // expect, the same way.
         throw ArrException(
           _refused =
-              "qBittorrent refused the sign-in. Check the username and "
-              "password. Behind a reverse proxy or a mapped port, turn off "
-              "Host header validation in qBittorrent's Options > WebUI.",
+              tr.errQbitRefusedProxy,
         );
       }
       if (code == 403) {
         throw ArrException(
           _refused =
-              'qBittorrent has blocked this device after too many failed '
-              'sign-ins. Try again later.',
+              tr.errQbitBlocked,
         );
       }
       throw ArrException(downloadErrorMessage(appName, e));
@@ -135,7 +133,7 @@ class QbitClient extends DownloadClient {
     if ('${r.data}'.trim() == 'Fails.') {
       throw ArrException(
         _refused =
-            'qBittorrent refused the sign-in. Check the username and password.',
+            tr.errQbitRefused,
       );
     }
     final cookies = r.headers['set-cookie'] ?? const <String>[];
@@ -178,14 +176,12 @@ class QbitClient extends DownloadClient {
       }
       if (e.response?.statusCode == 403) {
         throw ArrException(
-          'qBittorrent wants a sign-in. Add the username and password in '
-          'Settings.',
+          tr.errQbitWantsSignIn,
         );
       }
       if (e.response?.statusCode == 409 && path == 'torrents/add') {
         throw ArrException(
-          "qBittorrent couldn't add it: it's already there, or the link "
-          "isn't a torrent.",
+          tr.errQbitCouldNotAdd,
         );
       }
       throw ArrException(downloadErrorMessage(appName, e));
@@ -197,7 +193,7 @@ class QbitClient extends DownloadClient {
     final v = '${await _send('GET', 'app/version')}'.trim();
     // "v5.3.0": anything else at this address isn't qBittorrent.
     if (!RegExp(r'^v?\d+\.\d+').hasMatch(v)) {
-      throw ArrException("This address doesn't answer as qBittorrent.");
+      throw ArrException(tr.errAppNotAnswering('qBittorrent'));
     }
     return v.startsWith('v') ? v.substring(1) : v;
   }
@@ -207,7 +203,7 @@ class QbitClient extends DownloadClient {
   Future<DownloadClientState> load() async {
     final data = await _send('GET', 'sync/maindata', query: {'rid': _rid});
     if (data is! Map) {
-      throw ArrException('qBittorrent sent something unexpected.');
+      throw ArrException(tr.errAppUnexpected('qBittorrent'));
     }
     _merge(data);
     final s = _server;
@@ -326,8 +322,7 @@ class QbitClient extends DownloadClient {
     // 4.x answers 200 either way, "Fails." for a link it couldn't add.
     if ('$r'.trim() == 'Fails.') {
       throw ArrException(
-        "qBittorrent couldn't add it: it's already there, or the link "
-        "isn't a torrent.",
+        tr.errQbitCouldNotAdd,
       );
     }
   }
@@ -382,7 +377,7 @@ class SabClient extends DownloadClient {
       final data = r.data;
       // A wrong key is a 403 in 5.x, or "API Key Incorrect" text in 200.
       if (data is String && data.toLowerCase().contains('api key')) {
-        throw ArrException('SABnzbd rejected the API key.');
+        throw ArrException(tr.errAppRejectedKey('SABnzbd'));
       }
       if (data is Map && data['status'] == false && data['error'] is String) {
         throw ArrException('SABnzbd: ${data['error']}');
@@ -391,7 +386,7 @@ class SabClient extends DownloadClient {
     } on DioException catch (e) {
       final body = '${e.response?.data ?? ''}'.toLowerCase();
       if (e.response?.statusCode == 403 || body.contains('api key')) {
-        throw ArrException('SABnzbd rejected the API key.');
+        throw ArrException(tr.errAppRejectedKey('SABnzbd'));
       }
       throw ArrException(downloadErrorMessage(appName, e));
     }
@@ -403,7 +398,7 @@ class SabClient extends DownloadClient {
     final data = await _api('queue', {'limit': 1});
     final q = data is Map ? data['queue'] : null;
     if (q is! Map) {
-      throw ArrException("This address doesn't answer as SABnzbd.");
+      throw ArrException(tr.errAppNotAnswering('SABnzbd'));
     }
     return '${q['version'] ?? ''}';
   }
@@ -413,7 +408,7 @@ class SabClient extends DownloadClient {
     final data = await _api('queue');
     final q = data is Map ? data['queue'] : null;
     if (q is! Map) {
-      throw ArrException('SABnzbd sent something unexpected.');
+      throw ArrException(tr.errAppUnexpected('SABnzbd'));
     }
     final paused = q['paused'] == true;
     final free = downloadDouble(q['diskspace1']);

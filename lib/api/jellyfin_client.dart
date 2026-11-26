@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 
+import '../l10n/l10n.dart';
 import 'error_text.dart';
 import '../models/authentication_result.dart';
 import '../models/base_item.dart';
@@ -149,7 +150,7 @@ final Dio _dio;
   static String normalizeBaseUrl(String input) {
     var url = input.trim();
     if (url.isEmpty) {
-      throw JellyfinException('Please enter a server address.');
+      throw JellyfinException(tr.errEnterAddress);
     }
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://$url';
