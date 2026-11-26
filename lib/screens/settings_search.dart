@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../services/tv_mode.dart';
 import '../api/mdblist_client.dart';
 import '../state/interface_scale.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -32,6 +33,10 @@ class SettingResult {
   /// The [extra] of the result that opens the Server Addresses dialog.
   static const serverAddresses = 'server-addresses';
 
+  /// The [extra]s of the two things Settings does itself.
+  static const licenses = 'licenses';
+  static const signOut = 'sign-out';
+
   const SettingResult({
     required this.title,
     required this.section,
@@ -48,7 +53,12 @@ class SettingResult {
         '$title $section ${keywords.join(' ')}'.toLowerCase();
     final terms = query.toLowerCase().split(RegExp(r'\s+'))
       ..removeWhere((t) => t.isEmpty);
-    return terms.every(hay.contains);
+    // A plural finds its singular: "notifications" finds every notification
+    // setting, not only the one with the word in its name.
+    bool found(String t) =>
+        hay.contains(t) ||
+        (t.length > 3 && t.endsWith('s') && hay.contains(t.substring(0, t.length - 1)));
+    return terms.every(found);
   }
 }
 
@@ -62,14 +72,59 @@ const _ratings = Icons.star_half_rounded;
 const _youtube = Icons.smart_display_rounded;
 const _integrations = Icons.travel_explore_rounded;
 
-/// Every searchable user setting. Grouped by section for upkeep.
-List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
+/// Every searchable user setting that exists on this device and with what's
+/// connected: a result always opens a page that has the setting on it.
+///
+/// [manage] is whether Sonarr, Radarr or Lidarr is connected, [youtube]
+/// whether YouTube is turned on, [seerr] whether Seerr is connected. With
+/// nothing known (the defaults) everything a platform has is listed.
+List<SettingResult> userSettingsIndex(
+  AppLocalizations l, {
+  bool manage = true,
+  bool youtube = true,
+  bool seerr = true,
+}) {
+  final desktop = !Platform.isAndroid && !Platform.isIOS;
+  final needsManage = {
+    l.prefsNotifArrImported,
+    l.prefsNotifArrFailed,
+    l.prefsNotifArrGrabbed,
+    l.prefsNotifArrHealth,
+    l.prefsCheckArr,
+    l.arrNewTitleDefaults,
+  };
+  bool here(SettingResult r) {
+    // The system's own notifications and display sync: a computer's.
+    if (r.title == l.searchDesktopNotifications || r.title == l.prefsDisplaySync) {
+      return desktop;
+    }
+    // The choice of player: Android's.
+    if (r.title == l.prefsPlayerBackend) return Platform.isAndroid;
+    if (r.title == l.searchInterfaceSize) return !isTvDevice;
+    if (needsManage.contains(r.title)) return manage;
+    if (r.title == l.browseCustomizeDiscover) return seerr;
+    // With YouTube off its page has the one switch that turns it on.
+    if (r.section == l.searchYouTube && r.title != l.searchEnableYouTube) {
+      return youtube;
+    }
+    return true;
+  }
+
+  return [
+    for (final r in _everySetting(l))
+      if (here(r)) r,
+  ];
+}
+
+/// Every searchable user setting, on any device. Grouped by section for
+/// upkeep; [userSettingsIndex] leaves out what isn't here.
+List<SettingResult> _everySetting(AppLocalizations l) => <SettingResult>[
   // General — Startup
   SettingResult(title: l.searchOpenOnStartup, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['startup', 'launch', 'start screen', 'default screen', 'boot']),
   // General — Notifications
   SettingResult(title: l.searchDesktopNotifications, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'notify', 'alerts', 'popup', 'toast', 'os', 'system', 'bell', 'background', 'push']),
   SettingResult(title: l.searchNewRequest, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'pending', 'approval', 'new']),
-  SettingResult(title: l.prefsNotifArrImported, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'downloaded', 'imported', 'failed', 'grabbed', 'health', 'manage', 'arr']),
+  SettingResult(title: l.prefsNotifArrImported, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'downloaded', 'imported', 'manage', 'arr']),
   SettingResult(title: l.prefsNotifArrFailed, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'failed', 'failure', 'download failed', 'error']),
   SettingResult(title: l.prefsNotifArrGrabbed, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'grabbed', 'grab', 'release', 'sent']),
   SettingResult(title: l.prefsNotifArrHealth, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'sonarr', 'radarr', 'lidarr', 'manage', 'arr', 'health', 'problem', 'problems', 'warning', 'check']),
@@ -80,23 +135,27 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.searchNowAvailable, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'seerr', 'request', 'available', 'downloaded', 'ready']),
   SettingResult(title: l.searchCheckForRequestUpdates, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['seerr', 'poll', 'interval', 'refresh', 'status', 'updates', 'requests']),
   // Integrations — Seerr connection / sign-in
-  SettingResult(title: l.searchSeerrConnection, section: l.settingsArr, icon: _integrations, route: '/seerr-settings', keywords: ['seerr', 'jellyseerr', 'overseerr', 'discover', 'connect', 'connection', 'login', 'log in', 'sign in', 'signin', 'account', 'jellyfin', 'local', 'api key', 'apikey', 'token', 'email', 'password', 'url', 'server', 'requests']),
+  SettingResult(title: l.searchSeerrConnection, section: l.settingsArr, icon: _integrations, route: '/seerr-settings', keywords: ['seerr', 'jellyseerr', 'overseerr', 'connect', 'connection', 'login', 'log in', 'sign in', 'signin', 'account', 'jellyfin', 'local', 'api key', 'apikey', 'token', 'email', 'password', 'url', 'server', 'requests']),
   // Integrations: Sonarr, Radarr and Lidarr connections
-  SettingResult(title: l.settingsArr, section: l.settingsSectionIntegrations, icon: Icons.dns_rounded, route: '/arr-settings', keywords: ['connections', 'seerr', 'jellyseerr', 'overseerr', 'requests', 'mdblist', 'ratings', 'sonarr', 'radarr', 'lidarr', 'prowlarr', 'bazarr', 'subtitles', 'subtitle', 'indexers', 'indexer', 'qbittorrent', 'sabnzbd', 'download client', 'download clients', 'torrent', 'torrents', 'usenet', 'nzb', 'speed limit', 'password', 'music', 'artists', 'albums', 'arr', 'servarr', 'manage', 'library', 'activity', 'history', 'blocklist', 'wanted', 'shows', 'series', 'movies', 'calendar', 'queue', 'downloads', 'api key', 'apikey', 'connect', 'connection', 'url', 'server']),
+  SettingResult(title: l.settingsArr, section: l.settingsSectionIntegrations, icon: Icons.dns_rounded, route: '/arr-settings', keywords: ['connections', 'seerr', 'jellyseerr', 'overseerr', 'requests', 'mdblist', 'ratings', 'sonarr', 'radarr', 'lidarr', 'prowlarr', 'bazarr', 'subtitles', 'subtitle', 'indexers', 'indexer', 'qbittorrent', 'sabnzbd', 'download client', 'download clients', 'torrent', 'torrents', 'usenet', 'nzb', 'password', 'music', 'artists', 'albums', 'arr', 'servarr', 'manage', 'library', 'shows', 'series', 'movies', 'downloads', 'api key', 'apikey', 'connect', 'connection', 'url', 'server', 'add', 'add connection', 'disconnect', 'remove', 'test']),
   SettingResult(title: MdbListClient.appName, section: l.settingsArr, icon: Icons.star_rounded, route: '/connections/mdblist', keywords: ['mdblist', 'api key', 'apikey', 'ratings', 'letterboxd', 'metacritic', 'trakt', 'connect', 'connection']),
-  SettingResult(title: l.arrNewTitleDefaults, section: l.settingsArr, icon: Icons.tune_rounded, route: '/arr-settings', keywords: ['sonarr', 'radarr', 'default', 'defaults', 'quality', 'quality profile', 'profile', 'root folder', 'folder', 'monitor', 'add', 'new', 'minimum availability', 'series type', 'season folders', '1080p', '4k']),
+  SettingResult(title: l.arrNewTitleDefaults, section: l.settingsArr, icon: Icons.tune_rounded, route: '/arr-settings', keywords: ['sonarr', 'radarr', 'default', 'defaults', 'quality', 'quality profile', 'profile', 'root folder', 'folder', 'monitor', 'add', 'new', 'minimum availability', 'series type', 'season folders', '1080p', '4k', 'clear', 'reset']),
   // System — updates, backup, diagnostics
   SettingResult(title: l.settingsAccounts, section: l.settingsSectionAccount, icon: Icons.switch_account_rounded, route: '/accounts', keywords: ['account', 'accounts', 'user', 'users', 'switch', 'server', 'servers', 'add account', 'another server', 'sign in', 'login', 'remove']),
   // A dialog on the Settings page itself, not a page: Settings opens it.
   SettingResult(title: l.serverAddressesTitle, section: l.settingsSectionAccount, icon: Icons.dns_rounded, route: '/settings', extra: SettingResult.serverAddresses, keywords: ['server', 'address', 'addresses', 'url', 'home', 'remote', 'internal', 'external', 'local', 'lan', 'network', 'tailscale', 'vpn', 'reverse proxy', 'domain', 'ip']),
   // Desktop only, as the Settings row is: nothing to bind on a phone or a TV.
   if (!Platform.isAndroid && !Platform.isIOS)
-    SettingResult(title: l.settingsShortcuts, section: l.settingsSectionPreferences, icon: Icons.keyboard_rounded, route: '/shortcuts', keywords: ['shortcut', 'shortcuts', 'keyboard', 'keys', 'hotkey', 'hotkeys', 'key binding', 'bindings', 'rebind']),
-  SettingResult(title: l.settingsUpdates, section: l.settingsSectionSystem, icon: Icons.system_update_alt_rounded, route: '/updates', keywords: ['update', 'updates', 'upgrade', 'auto update', 'auto-update', 'version', 'new version', 'release', 'check for updates', 'download', 'channel', 'dev', 'beta', 'stable', 'latest', 'frequency', 'daily', 'weekly', 'launch', 'how often']),
+    SettingResult(title: l.settingsShortcuts, section: l.settingsSectionPreferences, icon: Icons.keyboard_rounded, route: '/shortcuts', keywords: ['shortcut', 'shortcuts', 'keyboard', 'keys', 'hotkey', 'hotkeys', 'key binding', 'bindings', 'rebind', 'play', 'pause', 'seek', 'volume', 'mute', 'fullscreen', 'reset', 'keys']),
+  SettingResult(title: l.settingsUpdates, section: l.settingsSectionSystem, icon: Icons.system_update_alt_rounded, route: '/updates', keywords: ['update', 'updates', 'upgrade', 'auto update', 'auto-update', 'version', 'new version', 'release', 'check for updates', 'download', 'channel', 'dev', 'beta', 'stable', 'latest', 'frequency', 'daily', 'weekly', 'launch', 'how often', 'automatic', 'checks', 'every launch', 'check for updates']),
   SettingResult(title: l.settingsBackup, section: l.settingsSectionSystem, icon: Icons.settings_backup_restore_rounded, route: '/backup', keywords: ['backup', 'restore', 'export', 'import', 'settings', 'save settings', 'transfer', 'migrate', 'move', 'sync', 'json', 'share', 'download settings']),
   SettingResult(title: l.settingsSupport, section: l.settingsSectionAbout, icon: Icons.volunteer_activism_rounded, route: '/support', keywords: ['support', 'donate', 'donation', 'sponsor', 'github sponsors', 'ko-fi', 'kofi', 'tip', 'star', 'report a bug', 'bug', 'translate', 'translation', 'help']),
-  SettingResult(title: l.diagnosticsTitle, section: l.settingsSectionSystem, icon: Icons.bug_report_rounded, route: '/diagnostics', keywords: ['diagnostic', 'diagnostics', 'log', 'logging', 'verbose', 'debug', 'troubleshoot', 'troubleshooting', 'bug report', 'mpv log', 'copy log', 'crash', 'issue']),
-  SettingResult(title: l.profileChangePassword, section: l.settingsSectionSystem, icon: Icons.password_rounded, route: '/profile', keywords: ['password', 'change password', 'reset password', 'passcode', 'credentials', 'account', 'profile', 'security', 'login', 'sign in']),
+  SettingResult(title: l.diagnosticsTitle, section: l.settingsSectionSystem, icon: Icons.bug_report_rounded, route: '/diagnostics', keywords: ['diagnostic', 'diagnostics', 'log', 'logging', 'verbose', 'debug', 'troubleshoot', 'troubleshooting', 'bug report', 'mpv log', 'copy log', 'crash', 'issue', 'clear', 'captured', 'copy', 'report']),
+  SettingResult(title: l.profileChangePassword, section: l.settingsSectionAccount, icon: Icons.password_rounded, route: '/profile', keywords: ['password', 'change password', 'reset password', 'passcode', 'credentials', 'account', 'profile', 'security', 'login', 'sign in']),
+  SettingResult(title: l.profileChangePhoto, section: l.settingsSectionAccount, icon: Icons.account_circle_rounded, route: '/profile', keywords: ['photo', 'picture', 'avatar', 'profile picture', 'image', 'remove photo']),
+  // Two things Settings does itself, not pages: Settings runs them.
+  SettingResult(title: l.settingsLicenses, section: l.settingsSectionAbout, icon: Icons.description_outlined, route: '/settings', extra: SettingResult.licenses, keywords: ['licenses', 'license', 'open source', 'third party', 'credits', 'legal']),
+  SettingResult(title: l.settingsSignOut, section: l.settingsSectionAccount, icon: Icons.logout_rounded, route: '/settings', extra: SettingResult.signOut, keywords: ['sign out', 'log out', 'logout', 'signout', 'leave']),
   SettingResult(title: l.searchDownloadComplete, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['notification', 'download', 'complete', 'finished', 'youtube']),
   // General — Storage
   SettingResult(title: l.searchImageCache, section: l.searchGeneral, icon: _general, route: '/preferences', extra: 'general', keywords: ['cache', 'storage', 'clear cache', 'disk', 'data', 'space', 'thumbnails', 'posters']),
@@ -112,7 +171,10 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
 
   // Home
   SettingResult(title: l.searchHomeBanner, section: l.searchHome, icon: _home, route: '/preferences', extra: 'home', keywords: ['banner', 'hero', 'featured', 'spotlight']),
-  SettingResult(title: l.searchHomeLayout, section: l.searchHome, icon: _home, route: '/preferences', extra: 'home', keywords: ['layout', 'rows', 'reorder', 'sections', 'customize home', 'downloading now', 'coming this week', 'sonarr', 'radarr']),
+  SettingResult(title: l.searchHomeLayout, section: l.searchHome, icon: _home, route: '/home-layout', keywords: ['layout', 'rows', 'reorder', 'sections', 'customize home', 'downloading now', 'coming this week', 'sonarr', 'radarr', 'latest', 'library', 'genre', 'genres', 'continue watching', 'recently added', 'my media', 'next up', 'downloading now', 'coming this week', 'hide', 'show']),
+  SettingResult(title: l.homeLayoutLatestByLibrary, section: l.searchHome, icon: _home, route: '/home-layout', keywords: ['latest', 'library', 'libraries', 'rows', 'home']),
+  SettingResult(title: l.homeLayoutGenreRows, section: l.searchHome, icon: _home, route: '/home-layout', keywords: ['genre', 'genres', 'rows', 'home']),
+  SettingResult(title: l.browseCustomizeDiscover, section: l.settingsArr, icon: Icons.tune_rounded, route: '/seerr-layout', keywords: ['discover', 'customize', 'layout', 'rows', 'slider', 'sliders', 'reorder', 'hide', 'seerr', 'add slider', 'reset']),
   SettingResult(title: l.navLayoutTitle, section: l.searchHome, icon: Icons.view_sidebar_rounded, route: '/navigation-layout', keywords: ['navigation', 'sidebar', 'nav', 'rail', 'reorder', 'hide', 'menu', 'tabs', 'bottom bar', 'destinations', 'order', 'move']),
 
   // Player
@@ -130,12 +192,13 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.searchUpNextStyle, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['up next', 'next episode', 'style', 'card', 'pill', 'netflix', 'progress', 'countdown']),
   SettingResult(title: l.searchHardwareDecoding, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['hardware', 'hwdec', 'gpu', 'decode', 'acceleration', 'glitch']),
   SettingResult(title: l.prefsAudioPassthrough, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['audio', 'passthrough', 'atmos', 'dolby', 'dts', 'surround', 'receiver', 'bitstream', 'spdif', 'hdmi', 'ac3', 'eac3', 'truehd', 'avr']),
-  SettingResult(title: l.searchPlayerBackend, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['exoplayer', 'exo', 'media_kit', 'mediakit', 'libmpv', 'backend', 'engine', 'hdr', '4k', 'tunneling', 'android tv']),
+  SettingResult(title: l.prefsPlayerBackend, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['exoplayer', 'exo', 'media_kit', 'mediakit', 'libmpv', 'backend', 'engine', 'hdr', '4k', 'tunneling', 'android tv', 'video player', 'engine', 'android']),
   SettingResult(title: l.prefsDisplaySync, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['smooth', 'motion', 'display sync', 'vsync', 'judder', 'stutter', 'tearing', 'refresh', 'frame pacing', 'interpolation']),
 
   // Audio & Subtitles
   SettingResult(title: l.searchAudioLanguage, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['audio', 'language', 'dub', 'track', 'default audio']),
-  SettingResult(title: l.prefsReplayGain, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['replaygain', 'replay gain', 'volume', 'loudness', 'normalize', 'normalise', 'levelling', 'leveling', 'gain', 'music', 'quiet', 'loud']),
+  SettingResult(title: l.prefsReplayGain, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['replaygain', 'replay gain', 'volume', 'loudness', 'normalize', 'normalise', 'levelling', 'leveling', 'gain', 'music', 'quiet', 'loud', 'untagged', 'fallback', 'per track', 'per album']),
+  SettingResult(title: l.prefsReplayGainFallback, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['untagged', 'fallback', 'no tags', 'db', 'gain', 'replaygain', 'volume levelling', 'music']),
   SettingResult(title: l.searchSubtitleLanguage, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['subtitle', 'caption', 'cc', 'language', 'subs']),
   SettingResult(title: l.searchSubtitleSize, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['subtitle', 'caption', 'size', 'scale', 'font', 'text size']),
   SettingResult(title: l.searchSubtitleColor, section: l.searchAudioSubtitles, icon: _audio, route: '/preferences', extra: 'audio', keywords: ['subtitle', 'caption', 'color', 'colour', 'text color']),
@@ -172,7 +235,7 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.searchKeepWatchHistory, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'history', 'watch history', 'privacy']),
   SettingResult(title: l.searchResumePlayback, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'resume', 'continue', 'position']),
   SettingResult(title: l.searchKeepSearchHistory, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'search history', 'privacy']),
-  SettingResult(title: l.searchSkipSponsorSegments, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'sponsorblock', 'sponsor', 'skip', 'ads', 'segments', 'intro', 'outro']),
+  SettingResult(title: l.searchSkipSponsorSegments, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'sponsorblock', 'sponsor', 'skip', 'ads', 'segments', 'intro', 'outro', 'categories', 'self-promotion', 'selfpromo', 'interaction', 'like and subscribe', 'preview', 'recap', 'filler', 'non-music', 'intro', 'outro']),
   SettingResult(title: l.searchClearWatchHistory, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'clear', 'delete', 'history', 'wipe']),
   SettingResult(title: l.searchClearSearchHistory, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'clear', 'delete', 'search history', 'wipe']),
   SettingResult(title: l.searchConfirmBeforeClearingQueue, section: l.searchYouTube, icon: _youtube, route: '/preferences', extra: 'youtube', keywords: ['youtube', 'confirm', 'queue', 'clear queue', 'prompt']),
@@ -209,65 +272,65 @@ const _aPlugins = Icons.extension_rounded;
 /// add or amend an entry (with synonyms) whenever an admin setting changes.
 List<SettingResult> adminSettingsIndex(AppLocalizations l) => <SettingResult>[
   // General
-  SettingResult(title: l.searchGeneral, section: l.searchServerConfiguration, icon: _aGeneral, route: '/admin/general', keywords: ['name', 'language', 'display', 'resume', 'metadata', 'country']),
+  SettingResult(title: l.searchGeneral, section: l.searchServerConfiguration, icon: _aGeneral, route: '/admin/general', keywords: ['name', 'language', 'display', 'resume', 'metadata', 'country', 'hidden files', 'save metadata', 'external content', 'suggestions', 'minimum resume', 'maximum resume']),
   SettingResult(title: l.searchServerName, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['server name', 'title']),
   SettingResult(title: l.searchPreferredMetadataLanguage, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['metadata', 'language', 'preferred']),
   SettingResult(title: l.searchCountry, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['country', 'region', 'metadata']),
   SettingResult(title: l.searchQuickConnect, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['quick connect', 'code', 'login', 'pairing']),
   SettingResult(title: l.searchShowFolderView, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['folder view', 'library display']),
-  SettingResult(title: l.searchResumeThresholds, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['resume', 'min', 'max', 'played', 'watched', 'percentage']),
+  SettingResult(title: l.searchResumeThresholds, section: l.searchGeneral, icon: _aGeneral, route: '/admin/general', keywords: ['resume', 'min', 'max', 'played', 'watched', 'percentage', 'minimum', 'maximum', 'duration']),
 
   // Playback / transcoding
-  SettingResult(title: l.searchPlayback, section: l.searchServerConfiguration, icon: _aPlayback, route: '/admin/playback', keywords: ['transcoding', 'transcode', 'hardware', 'acceleration', 'encoding', 'trickplay']),
+  SettingResult(title: l.searchPlayback, section: l.searchServerConfiguration, icon: _aPlayback, route: '/admin/playback', keywords: ['transcoding', 'transcode', 'hardware', 'acceleration', 'encoding', 'trickplay', 'crf', 'h.264', 'h.265', 'h264', 'temp path', 'transcoding temp', 'keyframe', 'tile', 'jpeg quality', 'process priority', 'interval', 'threads']),
   SettingResult(title: l.searchHardwareAcceleration, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['hardware', 'acceleration', 'hwaccel', 'vaapi', 'nvenc', 'qsv', 'quicksync', 'gpu', 'transcode']),
   SettingResult(title: l.searchEnableHardwareEncoding, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['hardware', 'encoding', 'encode', 'gpu']),
   SettingResult(title: l.searchAllowHevcAv1Encoding, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['hevc', 'h265', 'av1', 'encoding', 'codec']),
   SettingResult(title: l.searchEncoderPreset, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['encoder', 'preset', 'speed', 'quality', 'transcode']),
-  SettingResult(title: l.searchEncodingThreadCount, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['thread', 'cpu', 'cores', 'encoding']),
+  SettingResult(title: l.searchEncodingThreadCount, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['thread', 'cpu', 'cores', 'encoding', 'transcode thread', 'threads', 'auto']),
   SettingResult(title: l.searchToneMapping, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['tone mapping', 'hdr', 'vpp', 'color']),
   SettingResult(title: l.searchSubtitleExtraction, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['subtitle', 'extraction', 'burn']),
-  SettingResult(title: l.searchTrickplay, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['trickplay', 'scrub', 'preview', 'thumbnails', 'generate']),
+  SettingResult(title: l.searchTrickplay, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['trickplay', 'scrub', 'preview', 'thumbnails', 'generate', 'keyframe', 'scan behavior', 'process priority', 'interval', 'width', 'tile', 'jpeg quality', 'threads']),
   SettingResult(title: l.searchTranscodeThrottling, section: l.searchPlayback, icon: _aPlayback, route: '/admin/playback', keywords: ['throttle', 'throttling', 'transcode']),
 
   // Branding
   SettingResult(title: l.searchBranding, section: l.searchServerConfiguration, icon: _aBranding, route: '/admin/branding', keywords: ['branding', 'splash', 'login message', 'custom css']),
-  SettingResult(title: l.searchLoginMessage, section: l.searchBranding, icon: _aBranding, route: '/admin/branding', keywords: ['login', 'message', 'disclaimer', 'welcome']),
+  SettingResult(title: l.searchLoginMessage, section: l.searchBranding, icon: _aBranding, route: '/admin/branding', keywords: ['login', 'message', 'disclaimer', 'welcome', 'login message', 'login disclaimer']),
   SettingResult(title: l.searchCustomCss, section: l.searchBranding, icon: _aBranding, route: '/admin/branding', keywords: ['css', 'custom', 'style', 'theme']),
   SettingResult(title: l.searchSplashScreenImage, section: l.searchBranding, icon: _aBranding, route: '/admin/branding', keywords: ['splash', 'image', 'screen']),
 
   // Networking
   SettingResult(title: l.searchNetworking, section: l.searchServerConfiguration, icon: _aNetwork, route: '/admin/network', keywords: ['network', 'remote', 'access', 'url', 'ports', 'https', 'proxy']),
   SettingResult(title: l.searchAllowRemoteConnections, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['remote', 'access', 'external', 'wan']),
-  SettingResult(title: l.searchPublishedServerUrl, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['base url', 'published', 'domain', 'address', 'external url']),
+  SettingResult(title: l.searchPublishedServerUrl, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['base url', 'published', 'domain', 'address', 'external url', 'published server url', 'base url']),
   SettingResult(title: l.searchHttpHttpsPorts, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['port', 'http', 'https', 'public port', 'internal port', '8096', '8920']),
-  SettingResult(title: l.searchEnableHttps, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['https', 'ssl', 'tls', 'certificate', 'secure']),
+  SettingResult(title: l.searchEnableHttps, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['https', 'ssl', 'tls', 'certificate', 'secure', 'require https', 'force https']),
   SettingResult(title: l.searchCertificatePathPassword, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['certificate', 'pfx', 'ssl', 'tls', 'password']),
   SettingResult(title: l.searchEnableUpnp, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['upnp', 'port forwarding', 'router']),
   SettingResult(title: l.searchEnableIpv6, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['ipv6']),
   SettingResult(title: l.searchKnownProxies, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['proxy', 'reverse proxy', 'known proxies', 'forwarded']),
   SettingResult(title: l.searchLanNetworks, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['lan', 'local network', 'subnet']),
-  SettingResult(title: l.searchAutodiscovery, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['autodiscovery', 'discovery', 'dlna']),
+  SettingResult(title: l.searchAutodiscovery, section: l.searchNetworking, icon: _aNetwork, route: '/admin/network', keywords: ['autodiscovery', 'discovery']),
 
   // Content & access
-  SettingResult(title: l.searchApiKeys, section: l.searchServerConfiguration, icon: _aKeys, route: '/admin/apikeys', keywords: ['api', 'keys', 'tokens', 'access']),
+  SettingResult(title: l.searchApiKeys, section: l.searchServerConfiguration, icon: _aKeys, route: '/admin/apikeys', keywords: ['api', 'keys', 'tokens', 'access', 'new api key', 'create key', 'revoke', 'delete key']),
   SettingResult(title: l.searchLibraries, section: l.searchContentAccess, icon: _aLibraries, route: '/admin/libraries', keywords: ['library', 'media', 'folders', 'scan', 'refresh']),
-  SettingResult(title: l.searchUsers, section: l.searchContentAccess, icon: _aUsers, route: '/admin/users', keywords: ['users', 'accounts', 'permissions', 'password', 'create user']),
+  SettingResult(title: l.searchUsers, section: l.searchContentAccess, icon: _aUsers, route: '/admin/users', keywords: ['users', 'accounts', 'permissions', 'password', 'create user', 'parental', 'rating', 'maximum allowed rating', 'tags', 'access schedule', 'schedule', 'syncplay access', 'simultaneous streams', 'remote streaming limit', 'bitrate', 'authentication provider', 'set password', 'reset password', 'delete user', 'hide from login', 'allow downloads', 'allow media deletion', 'library access', 'new user']),
   SettingResult(title: l.searchDevices, section: l.searchContentAccess, icon: _aDevices, route: '/admin/devices', keywords: ['devices', 'clients', 'registered']),
   SettingResult(title: l.searchActiveSessions, section: l.searchContentAccess, icon: _aSessions, route: '/admin/sessions', keywords: ['sessions', 'connected', 'now playing', 'send message']),
 
   // Live TV
-  SettingResult(title: l.searchLiveTv, section: l.searchLiveTv, icon: _aLiveTv, route: '/admin/livetv', keywords: ['live tv', 'tuner', 'guide', 'xmltv', 'schedules direct', 'hdhomerun', 'm3u']),
-  SettingResult(title: l.searchDvr, section: l.searchLiveTv, icon: _aDvr, route: '/admin/dvr', keywords: ['dvr', 'recording', 'scheduled', 'series', 'timers']),
+  SettingResult(title: l.searchLiveTv, section: l.searchLiveTv, icon: _aLiveTv, route: '/admin/livetv', keywords: ['live tv', 'tuner', 'guide', 'xmltv', 'schedules direct', 'hdhomerun', 'm3u', 'recording', 'recording path', 'guide days', 'padding', 'pre-padding', 'post-padding', 'subfolders', 'nfo', 'series recording', 'movie recording', 'tuner hosts', 'listings', 'provider']),
+  SettingResult(title: l.searchDvr, section: l.searchLiveTv, icon: _aDvr, route: '/admin/dvr', keywords: ['dvr', 'scheduled', 'series', 'timers', 'recordings', 'recorded', 'cancel recording']),
 
   // Maintenance
-  SettingResult(title: l.searchScheduledTasks, section: l.searchMaintenance, icon: _aTasks, route: '/admin/tasks', keywords: ['tasks', 'scheduled', 'jobs', 'scan', 'background', 'cron']),
+  SettingResult(title: l.searchScheduledTasks, section: l.searchMaintenance, icon: _aTasks, route: '/admin/tasks', keywords: ['tasks', 'scheduled', 'jobs', 'scan', 'background', 'cron', 'run now', 'run', 'trigger']),
   SettingResult(title: l.searchActivityLog, section: l.searchMaintenance, icon: _aActivity, route: '/admin/activity', keywords: ['activity', 'events', 'log', 'history']),
   SettingResult(title: l.searchLogs, section: l.searchMaintenance, icon: _aLogs, route: '/admin/logs', keywords: ['logs', 'log files', 'debug', 'ffmpeg']),
-  SettingResult(title: l.adminBackupsTitle, section: l.searchMaintenance, icon: _aBackups, route: '/admin/backups', keywords: ['backup', 'backups', 'restore', 'snapshot', 'database', 'migrate']),
+  SettingResult(title: l.adminBackupsTitle, section: l.searchMaintenance, icon: _aBackups, route: '/admin/backups', keywords: ['backup', 'backups', 'restore', 'snapshot', 'database', 'migrate', 'create backup', 'new backup']),
   SettingResult(title: l.searchSystem, section: l.searchMaintenance, icon: _aSystem, route: '/admin/system', keywords: ['system', 'server info', 'restart', 'shutdown', 'version']),
 
   // Extensions
-  SettingResult(title: l.searchPlugins, section: l.searchExtensions, icon: _aPlugins, route: '/admin/plugins', keywords: ['plugins', 'catalog', 'repositories', 'install', 'extensions']),
+  SettingResult(title: l.searchPlugins, section: l.searchExtensions, icon: _aPlugins, route: '/admin/plugins', keywords: ['plugins', 'catalog', 'repositories', 'install', 'extensions', 'repository', 'add repository', 'uninstall', 'update plugin', 'enable', 'disable']),
 ];
 
 /// Filters an index to entries matching [query], keeping list order.

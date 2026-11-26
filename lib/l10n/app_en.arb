@@ -7035,7 +7035,7 @@
   "@searchEncoderPreset": {
     "description": "Admin settings search result title: transcoder speed/quality preset."
   },
-  "searchEncodingThreadCount": "Encoding Thread Count",
+  "searchEncodingThreadCount": "Transcode Thread Count",
   "@searchEncodingThreadCount": {
     "description": "Admin settings search result title: number of CPU threads used for encoding."
   },
@@ -7059,7 +7059,7 @@
   "@searchBranding": {
     "description": "Admin settings search section/title: server Branding (login message, custom CSS, splash)."
   },
-  "searchLoginMessage": "Login Message",
+  "searchLoginMessage": "Login Disclaimer",
   "@searchLoginMessage": {
     "description": "Admin settings search result title: custom message shown on the login screen."
   },
@@ -7079,7 +7079,7 @@
   "@searchAllowRemoteConnections": {
     "description": "Admin settings search result title: allow external/remote (WAN) connections."
   },
-  "searchPublishedServerUrl": "Published Server URL",
+  "searchPublishedServerUrl": "Base URL",
   "@searchPublishedServerUrl": {
     "description": "Admin settings search result title: the externally published server URL/domain."
   },

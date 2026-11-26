@@ -7,6 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/session.dart';
 import '../services/tv_mode.dart';
+import '../state/seerr_providers.dart';
+import '../state/youtube_providers.dart';
+import '../state/arr_providers.dart';
 import '../state/app_info.dart';
 import '../state/preferences.dart';
 import '../state/session_controller.dart';
@@ -63,8 +66,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (session != null) _editServerAddresses(context, session);
       return;
     }
+    if (r.extra == SettingResult.licenses) return _showLicenses();
+    if (r.extra == SettingResult.signOut) {
+      confirmSignOut(context, ref);
+      return;
+    }
+    // A switch on this very page (Radio, Watch Together, the Wheel): the
+    // search is cleared and the page is already here. Opening Settings
+    // again on top of itself was what this used to do.
+    if (r.route == '/settings' && r.extra == null) return;
     context.push(r.route, extra: r.extra);
   }
+
+  void _showLicenses() => showLicensePage(
+    context: context,
+    applicationName: AppLocalizations.of(context).appName,
+    applicationVersion: ref.read(appVersionProvider).asData?.value,
+    applicationIcon: const Padding(
+      padding: EdgeInsets.all(12),
+      child: SizedBox(width: 48, height: 48, child: FathomLogo(size: 48)),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +123,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _results(BuildContext context) {
-    final results = searchSettings(userSettingsIndex(AppLocalizations.of(context)), _query);
+    final results = searchSettings(
+      userSettingsIndex(
+        AppLocalizations.of(context),
+        manage: ref.watch(arrLibraryKindsProvider).isNotEmpty,
+        youtube: ref.watch(youtubeEnabledProvider),
+        seerr: ref.watch(seerrConfiguredProvider),
+      ),
+      _query,
+    );
     if (results.isEmpty) {
       return Center(
         child: Padding(
@@ -328,15 +358,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(l.settingsLicenses),
         subtitle: Text(l.settingsLicensesSubtitle),
         trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => showLicensePage(
-          context: context,
-          applicationName: l.appName,
-          applicationVersion: version,
-          applicationIcon: const Padding(
-            padding: EdgeInsets.all(12),
-            child: SizedBox(width: 48, height: 48, child: FathomLogo(size: 48)),
-          ),
-        ),
+        onTap: _showLicenses,
       ),
       const SizedBox(height: 24),
       Padding(
