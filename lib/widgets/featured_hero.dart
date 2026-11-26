@@ -210,6 +210,7 @@ class _FeaturedHeroState extends State<FeaturedHero> {
                   landscape: true,
                   maxWidth: 1920,
                   filterQuality: FilterQuality.medium,
+                  placeholder: const BannerBackdropFallback(),
                 ),
               ),
             ),
@@ -222,36 +223,7 @@ class _FeaturedHeroState extends State<FeaturedHero> {
               return Transform.translate(offset: Offset(0, dy), child: child);
             },
           ),
-          // Bottom scrim (fades art into the page).
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    theme.colorScheme.surface.withValues(alpha: 0.35),
-                    theme.colorScheme.surface.withValues(alpha: 0.97),
-                  ],
-                  stops: const [0.35, 0.72, 1],
-                ),
-              ),
-            ),
-          ),
-          // Gentle left scrim for text legibility.
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Colors.black54, Colors.transparent],
-                  stops: [0.0, 0.45],
-                ),
-              ),
-            ),
-          ),
+          ...bannerScrims(theme),
           // Content overlay — in the OUTER stack (bounded), so bottom-left is
           // reliable. Crossfades as the page changes. Width is capped at 620 on
           // wide windows but shrinks to fit the screen on a phone (left inset +
@@ -594,36 +566,10 @@ class DetailedHeroBanner extends StatelessWidget {
               landscape: true,
               maxWidth: 1920,
               filterQuality: FilterQuality.medium,
+              placeholder: const BannerBackdropFallback(),
             ),
           ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    theme.colorScheme.surface.withValues(alpha: 0.4),
-                    theme.colorScheme.surface.withValues(alpha: 0.98),
-                  ],
-                  stops: const [0.3, 0.7, 1],
-                ),
-              ),
-            ),
-          ),
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Colors.black54, Colors.transparent],
-                  stops: [0.0, 0.5],
-                ),
-              ),
-            ),
-          ),
+          ...bannerScrims(theme),
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(40, 24, 40, 34),
@@ -747,6 +693,90 @@ class _BannerMeta extends StatelessWidget {
         fontWeight: FontWeight.w600,
         shadows: [Shadow(blurRadius: 6, color: Colors.black)],
       ),
+    );
+  }
+}
+
+/// The shading over a banner's art, under its words.
+///
+/// The words are white, whatever the theme, because they sit on a picture.
+/// In the dark theme the art fades into a dark page, which the words read
+/// on. In the light theme the same fade is toward white: over a pale picture
+/// (or none) the description came out pale on pale. There the fade into the
+/// page is kept to the bottom edge, and a dark shade from the bottom left
+/// stands behind the words instead.
+@visibleForTesting
+List<Widget> bannerScrims(ThemeData theme) {
+  final page = theme.colorScheme.surface;
+  final light = theme.brightness == Brightness.light;
+  return [
+    if (light)
+      const Positioned.fill(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomLeft,
+              end: Alignment(0.35, -0.7),
+              colors: [Color(0xB8000000), Colors.transparent],
+            ),
+          ),
+        ),
+      ),
+    // Fades the art into the page.
+    Positioned.fill(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              page.withValues(alpha: 0.35),
+              page.withValues(alpha: 0.97),
+            ],
+            stops: light ? const [0.86, 0.95, 1] : const [0.35, 0.72, 1],
+          ),
+        ),
+      ),
+    ),
+    // Gentle left shade for the words.
+    const Positioned.fill(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Colors.black54, Colors.transparent],
+            stops: [0.0, 0.45],
+          ),
+        ),
+      ),
+    ),
+  ];
+}
+
+/// What a banner shows for a title with no backdrop picture: a quiet dark
+/// field in the accent's hue, which the white words read on in either
+/// theme. It used to be the small "no picture" icon on a pale box.
+class BannerBackdropFallback extends StatelessWidget {
+  const BannerBackdropFallback({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    const night = Color(0xFF14171F);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(accent.withValues(alpha: 0.38), night),
+            Color.alphaBlend(accent.withValues(alpha: 0.10), night),
+          ],
+        ),
+      ),
+      child: const SizedBox.expand(),
     );
   }
 }

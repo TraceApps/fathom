@@ -19,6 +19,11 @@ class MediaImage extends ConsumerWidget {
   final bool landscape;
   final IconData placeholderIcon;
 
+  /// What to show when there is no picture, in place of the icon on a
+  /// tinted box: for a large surface (the Home banner) where a small icon
+  /// adrift in the middle reads as a mistake.
+  final Widget? placeholder;
+
   /// Requested image dimensions. Defaults suit small cards; pass a larger
   /// [maxWidth] for full-width art (e.g. the Home hero) so it isn't upscaled.
   final int? maxWidth;
@@ -37,6 +42,7 @@ class MediaImage extends ConsumerWidget {
     required this.item,
     this.landscape = false,
     this.placeholderIcon = Icons.movie_rounded,
+    this.placeholder,
     this.maxWidth,
     this.maxHeight,
     this.alignment = Alignment.center,
@@ -156,6 +162,7 @@ class MediaImage extends ConsumerWidget {
   }
 
   Widget _placeholder(BuildContext context) {
+    if (placeholder != null) return placeholder!;
     final scheme = Theme.of(context).colorScheme;
     return Container(
       color: scheme.surfaceContainerHighest,
