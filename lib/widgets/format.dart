@@ -11,3 +11,11 @@ String clockTime(BuildContext context, DateTime t) {
       : DateFormat.jm(locale);
   return format.format(t.toLocal());
 }
+
+/// A day and a time without the year, for lists of recent things: "Nov 26,
+/// 3:05 PM", the day as the viewer's language writes it.
+String shortDateTime(BuildContext context, DateTime t) {
+  final locale = Localizations.localeOf(context).toString();
+  final day = DateFormat.MMMd(locale).format(t.toLocal());
+  return '$day, ${clockTime(context, t)}';
+}

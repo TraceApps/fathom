@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/app_snack.dart';
 import '../../widgets/app_spinner.dart';
 import '../../widgets/error_view.dart';
@@ -61,10 +62,7 @@ class AdminBackupsScreen extends ConsumerWidget {
                     style: TextStyle(color: Theme.of(context).hintColor)),
               ),
               if (list.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Center(child: Text(l.adminBackupsNone)),
-                )
+                EmptyState(icon: Icons.backup_rounded, title: l.adminBackupsNone)
               else
                 for (final b in list) ...[
                   ListTile(

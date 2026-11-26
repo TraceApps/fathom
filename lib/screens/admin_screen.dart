@@ -6,6 +6,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../state/admin_providers.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
+import '../widgets/format.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/search_field.dart';
 import '../widgets/tv_keyboard.dart';
@@ -165,7 +167,10 @@ Widget _async(
     loading: () => const Center(child: AppSpinner()),
     error: (e, _) => ErrorView(message: '$e', onRetry: onRetry),
     data: (list) => list.isEmpty
-        ? Center(child: Text(AppLocalizations.of(context).adminNothingHere))
+        ? EmptyState(
+            icon: Icons.inbox_rounded,
+            title: AppLocalizations.of(context).adminNothingHere,
+          )
         : builder(list),
   );
 }
@@ -626,7 +631,7 @@ class _ActivityTab extends ConsumerWidget {
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle:
                   a['ShortOverview'] != null ? Text('${a['ShortOverview']}') : null,
-              trailing: Text(_shortDate(a['Date'] as String?),
+              trailing: Text(_shortDate(context, a['Date'] as String?),
                   style: Theme.of(context).textTheme.bodySmall),
             );
           },
@@ -637,15 +642,9 @@ class _ActivityTab extends ConsumerWidget {
   }
 }
 
-String _shortDate(String? iso) {
-  if (iso == null) return '';
-  final d = DateTime.tryParse(iso)?.toLocal();
-  if (d == null) return '';
-  final mm = d.month.toString().padLeft(2, '0');
-  final dd = d.day.toString().padLeft(2, '0');
-  final hh = d.hour.toString().padLeft(2, '0');
-  final min = d.minute.toString().padLeft(2, '0');
-  return '$mm/$dd $hh:$min';
+String _shortDate(BuildContext context, String? iso) {
+  final d = iso == null ? null : DateTime.tryParse(iso);
+  return d == null ? '' : shortDateTime(context, d);
 }
 
 // Public wrappers so the admin landing can route to each section as its own

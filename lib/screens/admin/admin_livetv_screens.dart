@@ -10,6 +10,8 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/format.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/tv_keyboard.dart';
 import '../../widgets/ui_common.dart';
@@ -359,7 +361,7 @@ class AdminLiveTvScreen extends ConsumerWidget {
         ),
         Expanded(
           child: items.isEmpty
-              ? Center(child: Text(empty))
+              ? EmptyState(icon: Icons.live_tv_rounded, title: empty)
               : ListView.separated(
                   itemCount: items.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
@@ -635,7 +637,7 @@ class AdminDvrScreen extends ConsumerWidget {
                 leading: const Icon(Icons.fiber_manual_record_rounded,
                     color: Colors.red),
                 title: Text('${t['Name'] ?? '—'}'),
-                subtitle: Text(_timerSubtitle(t),
+                subtitle: Text(_timerSubtitle(context, t),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: IconButton(
                   tooltip: l.commonCancel,
@@ -691,13 +693,12 @@ class AdminDvrScreen extends ConsumerWidget {
     );
   }
 
-  static String _timerSubtitle(Map<String, dynamic> t) {
-    final start = DateTime.tryParse('${t['StartDate'] ?? ''}')?.toLocal();
+  static String _timerSubtitle(BuildContext context, Map<String, dynamic> t) {
+    final start = DateTime.tryParse('${t['StartDate'] ?? ''}');
     final chan = '${t['ChannelName'] ?? ''}';
     final when = start == null
         ? ''
-        : '${start.month}/${start.day} '
-            '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+        : shortDateTime(context, start);
     return [chan, when].where((x) => x.isNotEmpty).join('  ·  ');
   }
 
@@ -712,7 +713,7 @@ class AdminDvrScreen extends ConsumerWidget {
       loading: () => const Center(child: AppSpinner()),
       error: (e, _) => ErrorView(message: '$e', onRetry: onInvalidate),
       data: (list) => list.isEmpty
-          ? Center(child: Text(empty))
+          ? EmptyState(icon: Icons.live_tv_rounded, title: empty)
           : RefreshIndicator(
               onRefresh: () async => onInvalidate(),
               child: ListView.separated(
@@ -741,7 +742,7 @@ class _RecordedTab extends ConsumerWidget {
           message: '$e',
           onRetry: () => ref.invalidate(adminRecordingsProvider)),
       data: (list) => list.isEmpty
-          ? Center(child: Text(l.adminNoRecordings))
+          ? EmptyState(icon: Icons.videocam_rounded, title: l.adminNoRecordings)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(adminRecordingsProvider),
               child: ListView.separated(

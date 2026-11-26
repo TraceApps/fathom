@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/app_spinner.dart';
 import '../../api/jellyfin_client.dart';
@@ -28,7 +29,7 @@ class AdminLogsScreen extends ConsumerWidget {
             message: '$e',
             onRetry: () => ref.invalidate(adminLogFilesProvider)),
         data: (list) => list.isEmpty
-            ? Center(child: Text(l.adminNoLogFiles))
+            ? EmptyState(icon: Icons.article_outlined, title: l.adminNoLogFiles)
             : ListView.separated(
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),

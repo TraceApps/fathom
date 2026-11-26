@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/app_snack.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/ui_common.dart';
@@ -37,7 +38,7 @@ class AdminDevicesScreen extends ConsumerWidget {
         error: (e, _) => ErrorView(
             message: '$e', onRetry: () => ref.invalidate(adminDevicesProvider)),
         data: (list) => list.isEmpty
-            ? Center(child: Text(l.adminNoDevices))
+            ? EmptyState(icon: Icons.devices_rounded, title: l.adminNoDevices)
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(adminDevicesProvider),
                 child: ListView.separated(

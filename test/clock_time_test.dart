@@ -76,4 +76,39 @@ void main() {
       isEmpty,
     );
   });
+
+  testWidgets('a day and a time: Nov 25, 3:05 PM', (t) async {
+    late String text;
+    await t.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            text = shortDateTime(context, afternoon);
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    expect(text.replaceAll('\u202f', ' '), 'Nov 25, 3:05 PM');
+  });
+
+  test('Administration builds no dates by hand, and no bare empty lines', () {
+    final admin = [
+      File('lib/screens/admin_screen.dart'),
+      ...Directory('lib/screens/admin').listSync().whereType<File>(),
+    ];
+    final byHand = RegExp(r"\.(month|day|hour|minute)\.toString\(\)\.padLeft");
+    final bareEmpty = RegExp(r'Center\(child: Text\(');
+    expect(
+      [
+        for (final f in admin)
+          if (byHand.hasMatch(f.readAsStringSync()) ||
+              bareEmpty.hasMatch(f.readAsStringSync()))
+            f.path,
+      ],
+      isEmpty,
+    );
+  });
 }

@@ -9,6 +9,7 @@ import '../../state/admin_providers.dart';
 import '../../state/library_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/tv_keyboard.dart';
 import '../../widgets/ui_common.dart';
@@ -89,7 +90,7 @@ class _InstalledPlugins extends ConsumerWidget {
       error: (e, _) => ErrorView(
           message: '$e', onRetry: () => ref.invalidate(adminPluginsProvider)),
       data: (list) => list.isEmpty
-          ? Center(child: Text(l.adminNoPlugins))
+          ? EmptyState(icon: Icons.extension_rounded, title: l.adminNoPlugins)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(adminPluginsProvider),
               child: ListView.separated(
@@ -297,7 +298,7 @@ class _PluginRepositories extends ConsumerWidget {
           label: Text(l.adminAddRepository),
         ),
         body: list.isEmpty
-            ? Center(child: Text(l.adminNoRepositories))
+            ? EmptyState(icon: Icons.source_rounded, title: l.adminNoRepositories)
             : ListView.separated(
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),

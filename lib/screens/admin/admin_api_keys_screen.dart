@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/tv_keyboard.dart';
 import '../../widgets/ui_common.dart';
@@ -90,7 +91,7 @@ class AdminApiKeysScreen extends ConsumerWidget {
         error: (e, _) => ErrorView(
             message: '$e', onRetry: () => ref.invalidate(adminApiKeysProvider)),
         data: (list) => list.isEmpty
-            ? Center(child: Text(l.adminNoApiKeys))
+            ? EmptyState(icon: Icons.key_rounded, title: l.adminNoApiKeys)
             : ListView.separated(
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
