@@ -74,4 +74,26 @@ void main() {
   testWidgets("a title's page leaves the section it came from lit", (t) async {
     expect(await _after(t, '/item'), '/home');
   });
+
+  group('where a TV remote lands in the side menu', () {
+    const routes = ['/home', '/search', '/libraries', '/browse', '/favorites'];
+
+    test('inside a library: on Libraries, not Home', () {
+      expect(navAnchor('/library', routes), '/libraries');
+      expect(navAnchor('/libraries', routes), '/libraries');
+    });
+
+    test('on a Browse page: on Browse', () {
+      expect(navAnchor('/genres', routes), '/browse');
+    });
+
+    test('on a page with a tile: that tile', () {
+      expect(navAnchor('/favorites', routes), '/favorites');
+    });
+
+    test('on a page with none: the first tile, so there is somewhere', () {
+      expect(navAnchor('/item', routes), '/home');
+      expect(navAnchor('/library', ['/home', '/favorites']), '/home');
+    });
+  });
 }

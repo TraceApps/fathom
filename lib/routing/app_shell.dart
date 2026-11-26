@@ -155,6 +155,33 @@ const _settingsPages = [
 ///
 /// The router's matched location stays on the section underneath a pushed
 /// page, which lit Home while Settings was open.
+/// The pages under the side menu's Browse row.
+const _browsePages = ['/playlists', '/genres', '/studios', '/artists'];
+
+/// The tile a TV remote lands on when it comes Left into the side menu: the
+/// one for the page showing, a group's own row for a page under it (a
+/// library under Libraries), and the first plain tile for a page that has
+/// none, so there is always somewhere to land.
+@visibleForTesting
+String navAnchor(String location, List<String> routes) {
+  if (routes.contains('/libraries') &&
+      (location.startsWith('/libraries') || location.startsWith('/library'))) {
+    return '/libraries';
+  }
+  if (routes.contains(navBrowseGroup) &&
+      _browsePages.any(location.startsWith)) {
+    return navBrowseGroup;
+  }
+  final plain = [
+    for (final r in routes)
+      if (r != '/libraries' && r != navBrowseGroup) r,
+  ];
+  for (final r in plain) {
+    if (location.startsWith(r)) return r;
+  }
+  return plain.isEmpty ? routes.first : plain.first;
+}
+
 @visibleForTesting
 String navLocation(GoRouterState state, Iterable<String> routes) {
   final shown = state.uri.path;
@@ -370,24 +397,28 @@ class NavSidebar extends ConsumerWidget {
     final storedAdmin =
         ref.watch(sessionControllerProvider).asData?.value?.isAdmin ?? false;
     final isAdmin = liveAdmin ?? storedAdmin;
-    // The rail's D-pad landing tile (tvNavBarNode). Prefer the active
-    // destination, but a pushed route (e.g. /item detail) matches nothing, so
-    // fall back to the first plain tile — never the expandable Libraries group —
-    // so the node is ALWAYS attached and LEFT-from-content reliably reaches the
-    // rail on every screen.
-    final plain = destinations.where(
-        (d) => d.route != '/libraries' && d.route != navBrowseGroup);
-    final navAnchorRoute = plain
-        .firstWhere((d) => location.startsWith(d.route),
-            orElse: () => plain.isEmpty ? destinations.first : plain.first)
-        .route;
+    // The rail's D-pad landing tile (tvNavBarNode): see [navAnchor].
+    final navAnchorRoute = navAnchor(
+      location,
+      [for (final d in destinations) d.route],
+    );
+    FocusNode? landing(String route) =>
+        isTvDevice && route == navAnchorRoute ? tvNavBarNode : null;
     // The scrollable nav destinations (shared by both layouts).
     final navTiles = <Widget>[
       for (final d in destinations)
         if (d.route == '/libraries')
-          _LibrariesNav(extended: extended, location: location)
+          _LibrariesNav(
+            extended: extended,
+            location: location,
+            focusNode: landing(d.route),
+          )
         else if (d.route == navBrowseGroup)
-          _BrowseNav(extended: extended, location: location)
+          _BrowseNav(
+            extended: extended,
+            location: location,
+            focusNode: landing(d.route),
+          )
         else
           _NavTile(
             label: d.label,
@@ -395,9 +426,7 @@ class NavSidebar extends ConsumerWidget {
             selected: location.startsWith(d.route),
             // On TV the anchor tile owns the rail's landing node, so
             // LEFT from content always reaches the rail (see navAnchorRoute).
-            focusNode: (isTvDevice && d.route == navAnchorRoute)
-                ? tvNavBarNode
-                : null,
+            focusNode: landing(d.route),
             icon: d.route == '/discover' ? null : d.icon,
             iconBuilder: d.route == '/discover'
                 ? (color) => SeerrIcon(color: color)
@@ -1300,7 +1329,12 @@ class _NavTileState extends State<_NavTile> {
 class _BrowseNav extends ConsumerWidget {
   final bool extended;
   final String location;
-  const _BrowseNav({required this.extended, required this.location});
+  final FocusNode? focusNode;
+  const _BrowseNav({
+    required this.extended,
+    required this.location,
+    this.focusNode,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1319,7 +1353,7 @@ class _BrowseNav extends ConsumerWidget {
       (l.miscNavStudios, '/studios', Icons.business_rounded),
       (l.miscNavArtists, '/artists', Icons.groups_rounded),
     ];
-    final selected = items.any((i) => location.startsWith(i.$2));
+    final selected = _browsePages.any(location.startsWith);
 
     // Collapsed: no room to expand inline, and these are distinct pages (not a
     // single hub), so tapping opens a flyout menu of the destinations.
@@ -1338,6 +1372,7 @@ class _BrowseNav extends ConsumerWidget {
           icon: Icons.grid_view_rounded,
           extended: false,
           selected: selected,
+          focusNode: focusNode,
           onTap: () =>
               controller.isOpen ? controller.close() : controller.open(),
         ),
@@ -1351,6 +1386,7 @@ class _BrowseNav extends ConsumerWidget {
           icon: Icons.grid_view_rounded,
           extended: extended,
           selected: selected,
+          focusNode: focusNode,
           onTap: () => ref.read(browseNavExpandedProvider.notifier).toggle(),
           trailing: AnimatedRotation(
             turns: expanded ? 0.25 : 0,
@@ -1395,7 +1431,12 @@ class _BrowseNav extends ConsumerWidget {
 class _LibrariesNav extends ConsumerWidget {
   final bool extended;
   final String location;
-  const _LibrariesNav({required this.extended, required this.location});
+  final FocusNode? focusNode;
+  const _LibrariesNav({
+    required this.extended,
+    required this.location,
+    this.focusNode,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1417,6 +1458,7 @@ class _LibrariesNav extends ConsumerWidget {
           icon: Icons.video_library_rounded,
           extended: extended,
           selected: selected,
+          focusNode: focusNode,
           // Always opens Libraries, whatever the menu's width; with room
           // for it, the list of libraries folds out too. On Libraries
           // already, it folds the list in and out.
