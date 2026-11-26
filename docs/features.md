@@ -78,7 +78,7 @@ Because Fathom is sideloaded rather than installed from the Play Store, the firs
 
 ## Android TV
 
-Fathom on Android TV is driven with the remote alone (experimental; see [Install](install.md)).
+Fathom on Android TV is driven with the remote alone.
 
 - **Getting around**: Left goes to the side menu from anywhere and lands on the section you're in; Right comes back. A page opens with the remote on its first item, and what sits above it (a search box, **Filter**, **Sort**) is one press of Up away.
 - **The remote's media buttons** work in every player: **Play**, **Pause**, **Rewind**, **Fast Forward**, and **Next** and **Previous** for episodes.

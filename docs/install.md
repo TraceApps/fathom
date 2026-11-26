@@ -1,6 +1,6 @@
 # Install
 
-Fathom runs on **Linux**, **Windows**, and **Android** (phones and tablets, with Android Auto, and Android TV as an experimental option). Each download is self-contained: libmpv and the media codecs are bundled, so there is nothing else to install.
+Fathom runs on **Linux**, **Windows**, and **Android** (phones and tablets, with Android Auto, and Android TV). Each download is self-contained: libmpv and the media codecs are bundled, so there is nothing else to install.
 
 Grab the newest build from the [Releases page](https://github.com/TraceApps/fathom/releases/latest).
 
@@ -61,7 +61,7 @@ It builds for `x86_64-linux` and `aarch64-linux`, pulls in mpv itself, and insta
 
 ## Android
 
-Download the APK from [Releases](https://github.com/TraceApps/fathom/releases) (named like `Fathom-0.13.1.apk`) and open it. Android asks you to allow installing unknown apps the first time; grant it and confirm. Fathom runs on phones and tablets, and on Android TV, where the interface is D-pad friendly. Android TV support is experimental for now and still being refined.
+Download the APK from [Releases](https://github.com/TraceApps/fathom/releases) (named like `Fathom-0.13.1.apk`) and open it. Android asks you to allow installing unknown apps the first time; grant it and confirm. Fathom runs on phones and tablets, and on Android TV, where everything is driven with the remote.
 
 After that, Fathom keeps itself up to date from **Settings → Updates**: it downloads the new APK and hands it to the system installer for you to confirm. Pick the **Dev** channel there if you want the pre-release test builds.
 

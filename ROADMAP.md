@@ -6,8 +6,10 @@ What's done, what's next, and what's parked. The client is feature-complete for 
 
 - [x] **0.13.1 stable**: released, now getting real use.
 - [ ] **Real-server tests**: run the core flows (sign in, browse, play, resume, mark watched, subtitles) in CI against real Jellyfin servers, old and current, so a break is caught by a failing check rather than by a user.
-- [ ] **Decide 1.0's scope**: Linux, Windows, and Android phones and tablets are in. Android TV is either finished or stays marked experimental.
-- [x] **Translations- [x] **Sonarr, Radarr and Lidarr in Fathom**: Library, Calendar, Activity (queue, history, blocklist) and Wanted, with detail pages, searches (automatic and interactive), adding, monitoring (with the apps' own options), editing, renaming, deleting, picking several titles to change together, Manual Import, Import Library, Radarr's collections, shortcuts from Jellyfin's own pages, and Seerr requests in Discover. Also Prowlarr's indexers, Bazarr's subtitles, the download clients (qBittorrent and SABnzbd), more than one server of an app, notifications (on Android, while Fathom is closed too), right-click menus and keyboard shortcuts on a desktop, and Android TV.es are in. A design pass remains.
+- [x] **Decide 1.0's scope**: Linux, Windows, Android phones and tablets, and Android TV are in.
+- [x] **Translations**: open to everyone on Weblate.
+- [x] **Sonarr, Radarr and Lidarr in Fathom**: Library, Calendar, Activity (queue, history, blocklist) and Wanted, with detail pages, searches (automatic and interactive), adding, monitoring (with the apps' own options), editing, renaming, deleting, picking several titles to change together, Manual Import, Import Library, Radarr's collections, shortcuts from Jellyfin's own pages, and Seerr requests in Discover. Also Prowlarr's indexers, Bazarr's subtitles, the download clients (qBittorrent and SABnzbd), more than one server of an app, notifications (on Android, while Fathom is closed too), right-click menus and keyboard shortcuts on a desktop, and Android TV.
+- [x] **Design pass**: one look and one way of doing things across the app: one Connections screen, one toolbar for every library, the same menus, errors and loading everywhere, readable colors in the light theme, and a remote that reaches everything on Android TV.
 - [ ] **1.0.0 release candidate**: bug fixes only, for a few weeks.
 - [ ] **1.0.0**
 
@@ -51,7 +53,7 @@ What's done, what's next, and what's parked. The client is feature-complete for 
 - [x] Android app for phones, tablets, and foldables, with Android Auto
 - [x] Nix flake
 - [x] In-app updates with a Stable or Dev channel
-- [ ] Android TV (available, still experimental)
+- [x] Android TV
 - [ ] macOS and iOS builds (pending Mac hardware and a paid Apple Developer account)
 
 ## Next
