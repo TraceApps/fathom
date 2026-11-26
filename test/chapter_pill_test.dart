@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 
+import 'support/fake_player.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
 import 'package:fathom/widgets/player_controls.dart';
 
@@ -15,8 +16,7 @@ const _chapters = <PlayerMarker>[
 void main() {
   late Player player;
   setUpAll(() {
-    MediaKit.ensureInitialized();
-    player = Player();
+    player = FakePlayer();
   });
 
   test('the current chapter is the last one that has started', () {

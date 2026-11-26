@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 
+import 'support/fake_player.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/widgets/volume_control.dart';
@@ -27,8 +28,7 @@ void main() {
   // inside it waits on real native work that never completes there.
   late Player player;
   setUpAll(() {
-    MediaKit.ensureInitialized();
-    player = Player();
+    player = FakePlayer();
   });
 
   testWidgets('the floating volume sits right of Play and opens in place',

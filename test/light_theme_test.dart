@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 
+import 'support/fake_player.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/theme/app_theme.dart';
@@ -25,8 +26,7 @@ class _FakePrefs extends PreferencesController {
 void main() {
   late Player player;
   setUpAll(() {
-    MediaKit.ensureInitialized();
-    player = Player();
+    player = FakePlayer();
   });
 
   testWidgets('the volume pill takes its surface from the light theme',
