@@ -67,7 +67,7 @@ void main() {
   testWidgets('a phone folds the actions into one menu', (t) async {
     final ran = await _show(t, 360);
     expect(find.byTooltip('Delete'), findsNothing);
-    await t.tap(find.byTooltip('More Options'));
+    await t.tap(find.byTooltip('More'));
     await t.pumpAndSettle();
     await t.tap(find.text('Delete'));
     await t.pumpAndSettle();

@@ -987,7 +987,7 @@ void main() {
 
       // Everything the row does is under its menu, the way to Radarr above
       // the ones that end the request.
-      await t.tap(find.byTooltip('More Options'));
+      await t.tap(find.byTooltip('More'));
       await _move(t);
       double top(String name) => t.getTopLeft(find.text(name).last).dy;
       final names = [
@@ -1015,7 +1015,7 @@ void main() {
       );
       expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
       expect(find.byType(FilledButton), findsOneWidget);
-      await t.tap(find.byTooltip('More Options'));
+      await t.tap(find.byTooltip('More'));
       await _move(t);
       expect(find.text('Manage in Radarr'), findsOneWidget);
       expect(find.text('Approve'), findsNothing);
@@ -1046,7 +1046,7 @@ void main() {
       expect(find.widgetWithText(FilledButton, 'Approve'), findsNothing);
       expect(find.widgetWithText(FilledButton, 'Decline'), findsNothing);
       // Their own request, still theirs to take back.
-      await t.tap(find.byTooltip('More Options'));
+      await t.tap(find.byTooltip('More'));
       await _move(t);
       expect(find.text('Delete Request'), findsOneWidget);
       expect(find.text('Approve'), findsNothing);
@@ -1078,7 +1078,7 @@ void main() {
       expect(radarr.asked, [27205]);
       expect(find.textContaining('Manage in'), findsNothing);
       expect(find.byType(FilledButton), findsNothing);
-      await t.tap(find.byTooltip('More Options'));
+      await t.tap(find.byTooltip('More'));
       await _move(t);
       expect(find.textContaining('Manage in'), findsNothing);
       expect(find.text('Delete Request'), findsOneWidget);
@@ -1203,7 +1203,7 @@ void main() {
       final radarr = _App(ArrKind.radarr, {27205: 5});
       await _open(t, '/requests', seerr: movie(), radarr: radarr, size: _phone);
       expect(find.text('Manage in Radarr'), findsNothing);
-      await t.tap(find.byTooltip('More Options'));
+      await t.tap(find.byTooltip('More'));
       await _move(t);
       expect(find.text('Manage in Radarr'), findsOneWidget);
       expect(
@@ -1223,7 +1223,7 @@ void main() {
         radarr: _App(ArrKind.radarr),
         size: _phone,
       );
-      await t.tap(find.byTooltip('More Options'));
+      await t.tap(find.byTooltip('More'));
       await _move(t);
       expect(find.text('Delete Request'), findsOneWidget);
       expect(find.textContaining('Manage in'), findsNothing);
@@ -1394,7 +1394,7 @@ void main() {
           expect(find.text(name), findsOneWidget, reason: name);
         }
         // No menu to open, and none of the card that has one.
-        expect(find.byTooltip('More Options'), findsNothing);
+        expect(find.byTooltip('More'), findsNothing);
         expect(_cardPoster(), findsNothing);
         // The way to Radarr is one of the buttons, and opens the title there.
         expect(radarr.asked, [27205]);

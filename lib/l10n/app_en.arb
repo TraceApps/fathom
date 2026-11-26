@@ -3911,7 +3911,7 @@
       }
     }
   },
-  "ytOptions": "Options",
+  "ytOptions": "More",
   "@ytOptions": {
     "description": "Tooltip on an overflow / options menu button."
   },
@@ -7396,7 +7396,7 @@
   "@sleepTimerTurnOff": { "description": "Button that cancels a running sleep timer." },
   "commonRepeat": "Repeat",
   "@commonRepeat": { "description": "Tooltip / screen-reader label for the repeat (off / all / one) button." },
-  "commonMoreOptions": "More Options",
+  "commonMoreOptions": "More",
   "@commonMoreOptions": { "description": "Tooltip / screen-reader label for a three-dot overflow menu button." },
   "loginShowPassword": "Show Password",
   "@loginShowPassword": { "description": "Tooltip / screen-reader label for the button that reveals the typed password." },
