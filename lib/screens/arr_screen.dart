@@ -33,6 +33,7 @@ import '../widgets/arr_pane.dart';
 import '../widgets/arr_queue_poll.dart';
 import '../widgets/arr_skeletons.dart';
 import '../widgets/arr_widgets.dart';
+import '../widgets/list_toolbar.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/media_cards.dart';
@@ -1175,6 +1176,9 @@ class _QueueCard extends ConsumerWidget {
 
 enum _Sort { title, added, year, size }
 
+/// Titles read A to Z; the rest start from the newest or the largest.
+bool _sortStartsDescending(_Sort s) => s != _Sort.title;
+
 enum _Filter {
   all,
   monitored,
@@ -1298,6 +1302,7 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
     with _Picking<_MoviesTab> {
   TextEditingController get _search => widget.search;
   _Sort _sort = _Sort.title;
+  bool _desc = false;
   _Filter _filter = _Filter.all;
 
   List<ArrMovie> _apply(List<ArrMovie> all) {
@@ -1322,7 +1327,9 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
       _Sort.year => (a, b) => (b.year ?? 0).compareTo(a.year ?? 0),
       _Sort.size => (a, b) => b.sizeOnDisk.compareTo(a.sizeOnDisk),
     });
-    return list;
+    return _desc == _sortStartsDescending(_sort)
+        ? list
+        : list.reversed.toList();
   }
 
   @override
@@ -1347,7 +1354,11 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
         reshown();
       },
       sort: _sort,
-      onSort: (s) => setState(() => _sort = s),
+      descending: _desc,
+      onSort: (s, desc) => setState(() {
+        _sort = s;
+        _desc = desc;
+      }),
       filter: _filter,
       filters: const [
         _Filter.all,
@@ -1363,14 +1374,14 @@ class _MoviesTabState extends ConsumerState<_MoviesTab>
       onRefresh: () => ref.refresh(radarrMoviesProvider.future),
       tools: [
         // Radarr's Collections: film series, and monitoring them.
-        _LibraryTool(
+        ListTool(
           Icons.collections_bookmark_rounded,
           l.arrCollections,
           () => context.push('/arr/collections'),
         ),
         // Folders to go through and match: not with a remote.
         if (!isTvDevice)
-          _LibraryTool(
+          ListTool(
             Icons.library_add_rounded,
             l.arrLibraryImport,
             () => context.push('/arr/library-import?app=radarr'),
@@ -1497,6 +1508,7 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
     with _Picking<_ShowsTab> {
   TextEditingController get _search => widget.search;
   _Sort _sort = _Sort.title;
+  bool _desc = false;
   _Filter _filter = _Filter.all;
 
   List<ArrSeries> _apply(List<ArrSeries> all) {
@@ -1522,7 +1534,9 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
       _Sort.year => (a, b) => (b.year ?? 0).compareTo(a.year ?? 0),
       _Sort.size => (a, b) => b.sizeOnDisk.compareTo(a.sizeOnDisk),
     });
-    return list;
+    return _desc == _sortStartsDescending(_sort)
+        ? list
+        : list.reversed.toList();
   }
 
   @override
@@ -1548,7 +1562,11 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
         reshown();
       },
       sort: _sort,
-      onSort: (s) => setState(() => _sort = s),
+      descending: _desc,
+      onSort: (s, desc) => setState(() {
+        _sort = s;
+        _desc = desc;
+      }),
       filter: _filter,
       filters: const [
         _Filter.all,
@@ -1567,7 +1585,7 @@ class _ShowsTabState extends ConsumerState<_ShowsTab>
         // Sonarr's Library Import: shows already on disk, all at once.
         // Folders to go through and match: not with a remote.
         if (!isTvDevice)
-          _LibraryTool(
+          ListTool(
             Icons.library_add_rounded,
             l.arrLibraryImport,
             () => context.push('/arr/library-import?app=sonarr'),
@@ -1702,6 +1720,7 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
     with _Picking<_ArtistsTab> {
   TextEditingController get _search => widget.search;
   _Sort _sort = _Sort.title;
+  bool _desc = false;
   _Filter _filter = _Filter.all;
 
   List<ArrArtist> _apply(List<ArrArtist> all) {
@@ -1727,7 +1746,9 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
       _Sort.size => (a, b) => b.sizeOnDisk.compareTo(a.sizeOnDisk),
       _ => byName,
     });
-    return list;
+    return _desc == _sortStartsDescending(_sort)
+        ? list
+        : list.reversed.toList();
   }
 
   @override
@@ -1758,7 +1779,11 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
         sort: _sort,
         // An artist has no year of its own.
         sorts: const [_Sort.title, _Sort.added, _Sort.size],
-        onSort: (s) => setState(() => _sort = s),
+        descending: _desc,
+      onSort: (s, desc) => setState(() {
+        _sort = s;
+        _desc = desc;
+      }),
         filter: _filter,
         filters: const [
           _Filter.all,
@@ -1874,16 +1899,6 @@ class _ArtistsTabState extends ConsumerState<_ArtistsTab>
   }
 }
 
-/// Something more a library offers beside Sort and Filter (Collections,
-/// Import Library): a button on a wide window, a line of the More menu on a
-/// phone.
-class _LibraryTool {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _LibraryTool(this.icon, this.label, this.onTap);
-}
-
 /// The Movies and Shows switch, the search box and the Sort and Filter
 /// menus, above a scrolling grid.
 class _LibraryFrame extends StatelessWidget {
@@ -1897,7 +1912,8 @@ class _LibraryFrame extends StatelessWidget {
 
   /// The orders this library offers.
   final List<_Sort> sorts;
-  final ValueChanged<_Sort> onSort;
+  final bool descending;
+  final void Function(_Sort sort, bool descending) onSort;
   final _Filter filter;
   final List<_Filter> filters;
   final ValueChanged<_Filter> onFilter;
@@ -1912,7 +1928,7 @@ class _LibraryFrame extends StatelessWidget {
   final Widget? bar;
 
   /// What else this library offers (Movies: Collections, Import Library).
-  final List<_LibraryTool> tools;
+  final List<ListTool> tools;
 
   /// The app new titles are added to, for the "Add" row under a search.
   final ArrKind kind;
@@ -1929,6 +1945,7 @@ class _LibraryFrame extends StatelessWidget {
     required this.onSearch,
     required this.sort,
     this.sorts = _Sort.values,
+    required this.descending,
     required this.onSort,
     required this.filter,
     required this.filters,
@@ -1941,11 +1958,8 @@ class _LibraryFrame extends StatelessWidget {
     this.tools = const [],
   });
 
-  /// The row above the grid. A window wide enough takes everything on one
-  /// line, each tool as its own button. A phone gets the switch and the menus
-  /// on one line and the search box, full width, on the next; what doesn't
-  /// fit there (the tools, Select) goes under More.
-  Widget _toolbar(BuildContext context, double width) {
+  /// The row above the grid: the toolbar every library shares.
+  Widget _toolbar(BuildContext context) {
     final l = AppLocalizations.of(context);
     String sortLabel(_Sort s) => switch (s) {
       _Sort.title => l.arrSortTitle,
@@ -1962,130 +1976,41 @@ class _LibraryFrame extends StatelessWidget {
       _Filter.continuing => l.arrContinuing,
       _Filter.ended => l.arrEnded,
     };
-    final searchBox = SearchField(
-      controller: search,
-      focusNode: searchFocus,
-      hint: hint,
-      onChanged: (_) => onSearch(),
-    );
-    final filterMenu = PopupMenuButton<_Filter>(
-      tooltip: l.arrFilter,
-      icon: Icon(
-        filter == _Filter.all
-            ? Icons.filter_list_rounded
-            : Icons.filter_alt_rounded,
+    return ListToolbar(
+      switcher: switcher,
+      search: SearchField(
+        controller: search,
+        focusNode: searchFocus,
+        hint: hint,
+        onChanged: (_) => onSearch(),
       ),
-      initialValue: filter,
-      onSelected: onFilter,
-      itemBuilder: (_) => [
-        for (final f in filters)
-          CheckedPopupMenuItem(
-            value: f,
-            checked: f == filter,
-            child: Text(filterLabel(f)),
-          ),
-      ],
-    );
-    final sortMenu = PopupMenuButton<_Sort>(
-      tooltip: l.arrSort,
-      icon: const Icon(Icons.sort_rounded),
-      initialValue: sort,
-      onSelected: onSort,
-      itemBuilder: (_) => [
-        for (final s in sorts)
-          CheckedPopupMenuItem(
-            value: s,
-            checked: s == sort,
-            child: Text(sortLabel(s)),
-          ),
-      ],
-    );
-    if (width >= 720) {
-      return Row(
-        children: [
-          if (switcher != null) ...[switcher!, const SizedBox(width: 12)],
-          // The box stops growing: a search field across a whole desktop
-          // window reads as a banner, not a field.
-          Expanded(
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: searchBox,
+      menus: [
+        PopupMenuButton<_Filter>(
+          tooltip: l.arrFilter,
+          icon: ListFilterIcon(active: filter == _Filter.all ? 0 : 1),
+          initialValue: filter,
+          onSelected: onFilter,
+          itemBuilder: (_) => [
+            for (final f in filters)
+              CheckedPopupMenuItem(
+                value: f,
+                checked: f == filter,
+                child: Text(filterLabel(f)),
               ),
-            ),
-          ),
-          filterMenu,
-          sortMenu,
-          for (final t in tools)
-            IconButton(
-              tooltip: t.label,
-              icon: Icon(t.icon),
-              onPressed: t.onTap,
-            ),
-          if (onSelect != null)
-            IconButton(
-              tooltip: l.arrSelect,
-              icon: const Icon(Icons.checklist_rounded),
-              onPressed: onSelect,
-            ),
-        ],
-      );
-    }
-    final more = [
-      ...tools,
-      if (onSelect != null)
-        _LibraryTool(Icons.checklist_rounded, l.arrSelect, onSelect!),
-    ];
-    final moreMenu = more.isEmpty
-        ? null
-        : PopupMenuButton<_LibraryTool>(
-            tooltip: l.arrMore,
-            icon: const Icon(Icons.more_vert_rounded),
-            onSelected: (t) => t.onTap(),
-            itemBuilder: (_) => [
-              for (final t in more)
-                PopupMenuItem(
-                  value: t,
-                  child: Row(
-                    children: [
-                      Icon(t.icon, size: 20),
-                      const SizedBox(width: 14),
-                      Flexible(child: Text(t.label)),
-                    ],
-                  ),
-                ),
-            ],
-          );
-    if (switcher == null) {
-      return Row(
-        children: [
-          Expanded(child: searchBox),
-          filterMenu,
-          sortMenu,
-          ?moreMenu,
-        ],
-      );
-    }
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: switcher!,
-              ),
-            ),
-            filterMenu,
-            sortMenu,
-            ?moreMenu,
           ],
         ),
-        const SizedBox(height: 8),
-        // The row's own right edge is 8 in, for the icon buttons; the box
-        // lines up with the grid instead.
-        Padding(padding: const EdgeInsets.only(right: 8), child: searchBox),
+        SortMenu<_Sort>(
+          value: sort,
+          options: {for (final s in sorts) s: sortLabel(s)},
+          descending: descending,
+          onChanged: onSort,
+          startsDescending: _sortStartsDescending,
+        ),
+      ],
+      tools: [
+        ...tools,
+        if (onSelect != null)
+          ListTool(Icons.checklist_rounded, l.arrSelect, onSelect!),
       ],
     );
   }
@@ -2096,17 +2021,7 @@ class _LibraryFrame extends StatelessWidget {
       onRefresh: onRefresh,
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-              // A TV opens the library on its first poster.
-              child: TvChrome(
-                child: LayoutBuilder(
-                  builder: (context, c) => _toolbar(context, c.maxWidth),
-                ),
-              ),
-            ),
-          ),
+          SliverToBoxAdapter(child: _toolbar(context)),
           body,
           // Typed something? Offer to look it up online, whether or not the
           // library had it: "Dune" may match the 1984 film you own when you

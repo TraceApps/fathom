@@ -3122,6 +3122,10 @@
   "@browseNoWatchlist": {
     "description": "Empty state: the user's Watchlist has nothing in it yet."
   },
+  "browseSearchLibrary": "Search this library",
+  "@browseSearchLibrary": {"description": "Hint in the search box above one Jellyfin library."},
+  "browseClearFilters": "Clear Filters",
+  "@browseClearFilters": {"description": "Button under Nothing matches in a library: clears the search and the filters."},
   "browseLibraryEmpty": "This library is empty",
   "@browseLibraryEmpty": {
     "description": "Empty state: the library has no items."

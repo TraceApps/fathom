@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
 import '../state/library_providers.dart';
+import '../widgets/list_toolbar.dart';
 import '../widgets/browse_tile.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
@@ -80,31 +81,15 @@ class _StudioItemsScreenState extends ConsumerState<StudioItemsScreen> {
       appBar: AppBar(
         title: Text(widget.studio),
         actions: [
-          IconButton(
-            tooltip:
-                _sortOrder == 'Ascending' ? l.browseAscending : l.browseDescending,
-            icon: Icon(_sortOrder == 'Ascending'
-                ? Icons.arrow_upward_rounded
-                : Icons.arrow_downward_rounded),
-            onPressed: () => setState(() => _sortOrder =
-                _sortOrder == 'Ascending' ? 'Descending' : 'Ascending'),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: l.browseSortBy,
-            initialValue: _sortBy,
-            onSelected: (v) => setState(() {
+          SortMenu<String>(
+            value: _sortBy,
+            options: sortOptions,
+            descending: _sortOrder == 'Descending',
+            startsDescending: (v) => v != 'SortName',
+            onChanged: (v, desc) => setState(() {
               _sortBy = v;
-              _sortOrder = v == 'SortName' ? 'Ascending' : 'Descending';
+              _sortOrder = desc ? 'Descending' : 'Ascending';
             }),
-            itemBuilder: (_) => [
-              for (final e in sortOptions.entries)
-                CheckedPopupMenuItem(
-                  value: e.key,
-                  checked: _sortBy == e.key,
-                  child: Text(e.value),
-                ),
-            ],
           ),
         ],
       ),

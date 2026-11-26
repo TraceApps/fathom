@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +13,10 @@ import '../state/preferences.dart';
 import '../state/session_controller.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
+import '../widgets/arr_widgets.dart' show ArrRefreshKeys;
 import '../widgets/item_selection.dart';
+import '../widgets/list_toolbar.dart';
+import '../widgets/search_field.dart';
 import '../state/library_providers.dart';
 import '../widgets/media_cards.dart';
 import '../widgets/media_image.dart';
@@ -33,6 +38,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   static const _pageSize = 100;
   final _scroll = ScrollController();
   final _selection = ItemSelection();
+  final _search = TextEditingController();
+  Timer? _searchWait;
+  String _query = '';
+
+  /// Counts reloads, so a page asked for before one doesn't arrive after it.
+  int _load = 0;
   final List<BaseItemDto> _items = [];
   int _total = 0;
   bool _loading = false;
@@ -52,8 +63,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       (_favoritesOnly ? 1 : 0) +
       (_genre != null ? 1 : 0);
 
-  void _reload() {
+  bool get _narrowed => _activeFilters > 0 || _query.isNotEmpty;
+
+  void _clearNarrowing() {
+    _searchWait?.cancel();
+    _search.clear();
     setState(() {
+      _query = '';
+      _unwatchedOnly = false;
+      _favoritesOnly = false;
+      _genre = null;
+    });
+    _reload();
+  }
+
+  /// Searches once the typing pauses, not on every letter.
+  void _onSearch(String text) {
+    _searchWait?.cancel();
+    _searchWait = Timer(const Duration(milliseconds: 350), () {
+      final q = text.trim();
+      if (!mounted || q == _query) return;
+      setState(() => _query = q);
+      _reload();
+    });
+  }
+
+  void _reload() {
+    _load++;
+    if (_selection.active) _selection.stop();
+    setState(() {
+      _loading = false;
       _items.clear();
       _total = 0;
       _loadedOnce = false;
@@ -91,6 +130,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void dispose() {
     _selection.removeListener(_onSelectionChanged);
     _selection.dispose();
+    _searchWait?.cancel();
+    _search.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -107,6 +148,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final session = ref.read(sessionControllerProvider).asData?.value;
     if (session == null) return;
 
+    final load = _load;
     setState(() {
       _loading = true;
       _error = null;
@@ -124,21 +166,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             filters: _unwatchedOnly ? 'IsUnplayed' : null,
             isFavorite: _favoritesOnly ? true : null,
             genres: _genre,
+            searchTerm: _query.isEmpty ? null : _query,
             startIndex: _items.length,
             limit: _pageSize,
           );
-      if (!mounted) return;
+      if (!mounted || load != _load) return;
       setState(() {
         _items.addAll(res.items);
         _total = res.totalRecordCount;
         _loadedOnce = true;
       });
     } on JellyfinException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted && load == _load) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted && load == _load) setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && load == _load) setState(() => _loading = false);
     }
   }
 
@@ -282,73 +325,76 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sortOptions = _browseSortOptions(l);
+    final theme = Theme.of(context);
+    final listView =
+        ref.watch(preferencesProvider).asData?.value.libraryViewMode == 'list';
+    final user = ref.watch(currentUserProvider).asData?.value;
+    final session = ref.watch(sessionControllerProvider).asData?.value;
+    final toolbar = ListToolbar(
+      search: SearchField(
+        controller: _search,
+        hint: l.browseSearchLibrary,
+        onChanged: _onSearch,
+        onClear: () => _onSearch(''),
+      ),
+      menus: [
+        IconButton(
+          tooltip: l.arrFilter,
+          isSelected: _filtersOpen,
+          icon: ListFilterIcon(active: _activeFilters),
+          onPressed: _toggleFilters,
+        ),
+        SortMenu<String>(
+          value: _sortBy,
+          options: _browseSortOptions(l),
+          descending: _sortOrder == 'Descending',
+          startsDescending: (v) => v != 'SortName',
+          onChanged: (v, desc) {
+            setState(() {
+              _sortBy = v;
+              _sortOrder = desc ? 'Descending' : 'Ascending';
+            });
+            _reload();
+          },
+        ),
+      ],
+      tools: [
+        ListTool(
+          listView ? Icons.grid_view_rounded : Icons.view_list_rounded,
+          listView ? l.browseGridView : l.browseListView,
+          () => ref.read(preferencesProvider.notifier).edit(
+            (x) => x.copyWith(libraryViewMode: listView ? 'grid' : 'list'),
+          ),
+        ),
+        // Picking several is a touch and mouse job, not a remote's.
+        if (!isTvDevice && _items.isNotEmpty && !_selection.active)
+          ListTool(Icons.checklist_rounded, l.arrSelect, _selection.start),
+      ],
+    );
+    final scroll = RefreshIndicator(
+      onRefresh: () async => _reload(),
+      child: CustomScrollView(
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: toolbar),
+          SliverToBoxAdapter(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: _filtersOpen
+                  ? _filterPanel()
+                  : const SizedBox(width: double.infinity),
+            ),
+          ),
+          _body(listView),
+        ],
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.library.name),
-        actions: [
-          IconButton(
-            tooltip: l.browseFilters,
-            isSelected: _activeFilters > 0,
-            icon: Badge(
-              isLabelVisible: _activeFilters > 0,
-              label: Text('$_activeFilters'),
-              child: Icon(_activeFilters > 0
-                  ? Icons.filter_alt_rounded
-                  : Icons.filter_alt_outlined),
-            ),
-            onPressed: _toggleFilters,
-          ),
-          IconButton(
-            tooltip:
-                _sortOrder == 'Ascending' ? l.browseAscending : l.browseDescending,
-            icon: Icon(_sortOrder == 'Ascending'
-                ? Icons.arrow_upward_rounded
-                : Icons.arrow_downward_rounded),
-            onPressed: () {
-              setState(() => _sortOrder =
-                  _sortOrder == 'Ascending' ? 'Descending' : 'Ascending');
-              _reload();
-            },
-          ),
-          Builder(builder: (context) {
-            final grid = ref
-                    .watch(preferencesProvider)
-                    .asData
-                    ?.value
-                    .libraryViewMode !=
-                'list';
-            return IconButton(
-              tooltip: grid ? l.browseListView : l.browseGridView,
-              icon: Icon(grid
-                  ? Icons.view_list_rounded
-                  : Icons.grid_view_rounded),
-              onPressed: () => ref.read(preferencesProvider.notifier).edit(
-                  (x) => x.copyWith(
-                      libraryViewMode: grid ? 'list' : 'grid')),
-            );
-          }),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: l.browseSortBy,
-            initialValue: _sortBy,
-            onSelected: (v) {
-              setState(() {
-                _sortBy = v;
-                _sortOrder = v == 'SortName' ? 'Ascending' : 'Descending';
-              });
-              _reload();
-            },
-            itemBuilder: (_) => [
-              for (final e in sortOptions.entries)
-                CheckedPopupMenuItem(
-                  value: e.key,
-                  checked: _sortBy == e.key,
-                  child: Text(e.value),
-                ),
-            ],
-          ),
-        ],
         bottom: _total > 0
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(20),
@@ -356,107 +402,125 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   alignment: Alignment.centerLeft,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Text(l.browseItemsCount(_total),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant)),
+                    child: Text(
+                      l.browseItemsCount(_total),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                 ),
               )
             : null,
       ),
-      body: Column(
-        children: [
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: _filtersOpen
-                ? _filterPanel()
-                : const SizedBox(width: double.infinity),
+      // Back ends picking first, as it does in Manage.
+      body: PopScope(
+        canPop: !_selection.active,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _selection.stop();
+        },
+        child: ArrRefreshKeys(
+          onRefresh: _reload,
+          child: Column(
+            children: [
+              if (_selection.active)
+                SelectionBar(
+                  selection: _selection,
+                  all: _items,
+                  onChanged: _reload,
+                  canDelete: (user?.enableContentDeletion ?? false) ||
+                      (user?.isAdministrator ?? false) ||
+                      (session?.canDelete ?? false),
+                ),
+              Expanded(child: scroll),
+            ],
           ),
-          Expanded(child: _body()),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _body() {
+  /// The grid or list under the toolbar, as a sliver.
+  Widget _body(bool listView) {
+    final l = AppLocalizations.of(context);
     if (!_loadedOnce && _loading) {
-      return const PosterGridSkeleton();
+      return const SliverFillRemaining(child: PosterGridSkeleton());
     }
     if (_error != null && _items.isEmpty) {
-      return ErrorView(message: _error!, onRetry: _reload);
+      return SliverFillRemaining(
+        child: ErrorView(message: _error!, onRetry: _reload),
+      );
     }
     if (_items.isEmpty) {
-      return EmptyState(
-          icon: Icons.inbox_rounded,
-          title: AppLocalizations.of(context).browseLibraryEmpty);
+      // A library with nothing in it and one with nothing that matches are
+      // different news: only the first is "empty".
+      return SliverFillRemaining(
+        child: _narrowed
+            ? EmptyState(
+                icon: Icons.search_off_rounded,
+                title: l.arrNoMatches,
+                action: FilledButton.tonal(
+                  onPressed: _clearNarrowing,
+                  child: Text(l.browseClearFilters),
+                ),
+              )
+            : EmptyState(
+                icon: Icons.inbox_rounded,
+                title: l.browseLibraryEmpty,
+              ),
+      );
     }
-    final listView =
-        ref.watch(preferencesProvider).asData?.value.libraryViewMode == 'list';
+    bool? picked(BaseItemDto item) =>
+        _selection.active ? _selection.contains(item.id) : null;
+    void open(BaseItemDto item) => _selection.active
+        ? _selection.toggle(item)
+        : context.push('/item', extra: item);
+    VoidCallback? pick(BaseItemDto item) =>
+        isTvDevice ? null : () => _selection.start(item);
     if (listView) {
-      return ListView.separated(
-        controller: _scroll,
+      return SliverPadding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-        itemCount: _items.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, i) => EntranceFade(
-          index: i,
-          onceKey: _items[i].id,
-          child: _LibraryListRow(
-            item: _items[i],
-            autofocus: isTvDevice && i == 0,
-            onTap: () => context.push('/item', extra: _items[i]),
+        sliver: SliverList.separated(
+          itemCount: _items.length,
+          separatorBuilder: (_, _) => const Divider(height: 1),
+          itemBuilder: (context, i) => EntranceFade(
+            index: i,
+            onceKey: _items[i].id,
+            child: _LibraryListRow(
+              item: _items[i],
+              autofocus: isTvDevice && i == 0,
+              selected: picked(_items[i]),
+              onSelect: pick(_items[i]),
+              onTap: () => open(_items[i]),
+            ),
           ),
         ),
       );
     }
-    final grid = GridView.builder(
-      controller: _scroll,
+    return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 184,
-        mainAxisSpacing: 18,
-        crossAxisSpacing: 14,
-        childAspectRatio: 0.54,
-      ),
-      itemCount: _items.length,
-      itemBuilder: (context, i) => EntranceFade(
-        index: i,
-        onceKey: _items[i].id,
-        child: PosterTile(
-          item: _items[i],
-          // On TV the first tile grabs focus so the remote lands on content, not
-          // the app bar back button.
-          autofocus: isTvDevice && i == 0,
-          selected:
-              _selection.active ? _selection.contains(_items[i].id) : null,
-          onSelect: isTvDevice ? null : () => _selection.start(_items[i]),
-          onTap: () => _selection.active
-              ? _selection.toggle(_items[i])
-              : context.push('/item', extra: _items[i]),
+      sliver: SliverGrid.builder(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 184,
+          mainAxisSpacing: 18,
+          crossAxisSpacing: 14,
+          childAspectRatio: 0.54,
+        ),
+        itemCount: _items.length,
+        itemBuilder: (context, i) => EntranceFade(
+          index: i,
+          onceKey: _items[i].id,
+          child: PosterTile(
+            item: _items[i],
+            // On TV the first tile grabs focus so the remote lands on
+            // content, not the toolbar above it.
+            autofocus: isTvDevice && i == 0,
+            selected: picked(_items[i]),
+            onSelect: pick(_items[i]),
+            onTap: () => open(_items[i]),
+          ),
         ),
       ),
-    );
-    if (!_selection.active) return grid;
-    // The bar sits above the grid rather than replacing the app bar: this
-    // screen's own bar carries the library's filters and sort, which stay
-    // relevant while picking things out of it.
-    final user = ref.watch(currentUserProvider).asData?.value;
-    final session = ref.watch(sessionControllerProvider).asData?.value;
-    return Column(
-      children: [
-        SelectionBar(
-          selection: _selection,
-          all: _items,
-          onChanged: _reload,
-          canDelete: (user?.enableContentDeletion ?? false) ||
-              (user?.isAdministrator ?? false) ||
-              (session?.canDelete ?? false),
-        ),
-        Expanded(child: grid),
-      ],
     );
   }
 }
@@ -467,8 +531,19 @@ class _LibraryListRow extends StatelessWidget {
   final BaseItemDto item;
   final VoidCallback onTap;
   final bool autofocus;
-  const _LibraryListRow(
-      {required this.item, required this.onTap, this.autofocus = false});
+
+  /// Whether it's picked, while picking; null otherwise.
+  final bool? selected;
+
+  /// Starts picking with this row (a long press).
+  final VoidCallback? onSelect;
+  const _LibraryListRow({
+    required this.item,
+    required this.onTap,
+    this.autofocus = false,
+    this.selected,
+    this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -501,11 +576,22 @@ class _LibraryListRow extends StatelessWidget {
             : Text(meta,
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        trailing: watched
+        trailing: selected != null
+            ? Icon(
+                selected!
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: selected!
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              )
+            : watched
             ? Icon(Icons.check_circle,
                 size: 18, color: theme.colorScheme.primary)
             : null,
+        selected: selected ?? false,
         onTap: onTap,
+        onLongPress: selected == null ? onSelect : null,
       ),
     ),
     );
