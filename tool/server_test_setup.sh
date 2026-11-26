@@ -26,11 +26,15 @@ MOVIE="$WORK/media/Fathom Test Movie (2020)"
 mkdir -p "$MOVIE"
 # Ten minutes: Jellyfin keeps no resume point for anything under five.
 # Tiny all the same: a still color.
-ffmpeg -loglevel error -y \
+# Made with the ffmpeg inside the Jellyfin image itself, so nothing has to
+# be installed to run this.
+chmod -R a+rwX "$WORK"
+docker run --rm --user "$(id -u):$(id -g)" --entrypoint /usr/lib/jellyfin-ffmpeg/ffmpeg \
+  -v "$MOVIE:/out" "$IMAGE" -loglevel error -y \
   -f lavfi -i "color=c=navy:s=320x180:r=5:d=600" \
   -f lavfi -i "anullsrc=r=22050:cl=mono" -shortest \
   -c:v libx264 -preset ultrafast -crf 40 -c:a aac -b:a 16k \
-  "$MOVIE/Fathom Test Movie (2020).mkv"
+  "/out/Fathom Test Movie (2020).mkv"
 cat > "$MOVIE/Fathom Test Movie (2020).en.srt" <<'SRT'
 1
 00:00:01,000 --> 00:00:04,000

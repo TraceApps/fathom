@@ -64,10 +64,6 @@ jobs:
           flutter-version: 3.47.2
           cache: true
 
-      - name: Install ffmpeg
-        # Makes the short test movie.
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
       - name: Install dependencies
         run: flutter pub get
 
