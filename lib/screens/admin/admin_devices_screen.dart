@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/app_snack.dart';
 import '../../widgets/error_view.dart';
@@ -41,7 +42,8 @@ class AdminDevicesScreen extends ConsumerWidget {
             ? EmptyState(icon: Icons.devices_rounded, title: l.adminNoDevices)
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(adminDevicesProvider),
-                child: ListView.separated(
+                child: PageWidth(builder: (c, inset) => ListView.separated(
+                  padding: pageInsetsSafe(c, inset),
                   itemCount: list.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {
@@ -80,7 +82,7 @@ class AdminDevicesScreen extends ConsumerWidget {
                       ),
                     );
                   },
-                ),
+                )),
               ),
       ),
     );

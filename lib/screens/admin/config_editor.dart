@@ -8,6 +8,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/session.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/app_snack.dart';
 import '../../widgets/app_spinner.dart';
@@ -83,8 +84,8 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
             })
           : draft == null
               ? const Center(child: AppSpinner())
-              : ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+              : PageWidth(builder: (_, inset) => ListView(
+                  padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 8)),
                   children: [
                     ...fields(context),
                     const SizedBox(height: 24),
@@ -102,7 +103,7 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
                     ),
                     const SizedBox(height: 24),
                   ],
-                ),
+                )),
     );
   }
 

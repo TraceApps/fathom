@@ -29,6 +29,9 @@ class SettingResult {
   /// Subtitles, "dvr" finds recording, and so on. Titles alone aren't enough.
   final List<String> keywords;
 
+  /// The [extra] of the result that opens the Server Addresses dialog.
+  static const serverAddresses = 'server-addresses';
+
   const SettingResult({
     required this.title,
     required this.section,
@@ -84,6 +87,8 @@ List<SettingResult> userSettingsIndex(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.arrNewTitleDefaults, section: l.settingsArr, icon: Icons.tune_rounded, route: '/arr-settings', keywords: ['sonarr', 'radarr', 'default', 'defaults', 'quality', 'quality profile', 'profile', 'root folder', 'folder', 'monitor', 'add', 'new', 'minimum availability', 'series type', 'season folders', '1080p', '4k']),
   // System — updates, backup, diagnostics
   SettingResult(title: l.settingsAccounts, section: l.settingsSectionAccount, icon: Icons.switch_account_rounded, route: '/accounts', keywords: ['account', 'accounts', 'user', 'users', 'switch', 'server', 'servers', 'add account', 'another server', 'sign in', 'login', 'remove']),
+  // A dialog on the Settings page itself, not a page: Settings opens it.
+  SettingResult(title: l.serverAddressesTitle, section: l.settingsSectionAccount, icon: Icons.dns_rounded, route: '/settings', extra: SettingResult.serverAddresses, keywords: ['server', 'address', 'addresses', 'url', 'home', 'remote', 'internal', 'external', 'local', 'lan', 'network', 'tailscale', 'vpn', 'reverse proxy', 'domain', 'ip']),
   // Desktop only, as the Settings row is: nothing to bind on a phone or a TV.
   if (!Platform.isAndroid && !Platform.isIOS)
     SettingResult(title: l.settingsShortcuts, section: l.settingsSectionPreferences, icon: Icons.keyboard_rounded, route: '/shortcuts', keywords: ['shortcut', 'shortcuts', 'keyboard', 'keys', 'hotkey', 'hotkeys', 'key binding', 'bindings', 'rebind']),

@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/format.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
@@ -362,11 +363,12 @@ class AdminLiveTvScreen extends ConsumerWidget {
         Expanded(
           child: items.isEmpty
               ? EmptyState(icon: Icons.live_tv_rounded, title: empty)
-              : ListView.separated(
+              : PageWidth(builder: (c, inset) => ListView.separated(
+                  padding: pageInsetsSafe(c, inset),
                   itemCount: items.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, i) => items[i],
-                ),
+                )),
         ),
       ],
     );
@@ -449,8 +451,8 @@ class _RecordingOptionsState extends ConsumerState<_RecordingOptions> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+    return PageWidth(builder: (_, inset) => ListView(
+      padding: pageInsets(inset, const EdgeInsets.fromLTRB(0, 8, 0, 24)),
       children: [
         SettingsSectionHeader(l.adminSectionGuide, first: true),
         _num(l.adminGuideDays, 'GuideDays',
@@ -481,7 +483,7 @@ class _RecordingOptionsState extends ConsumerState<_RecordingOptions> {
           ),
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -716,11 +718,12 @@ class AdminDvrScreen extends ConsumerWidget {
           ? EmptyState(icon: Icons.live_tv_rounded, title: empty)
           : RefreshIndicator(
               onRefresh: () async => onInvalidate(),
-              child: ListView.separated(
+              child: PageWidth(builder: (c, inset) => ListView.separated(
+                padding: pageInsetsSafe(c, inset),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (_, i) => tile(list[i]),
-              ),
+              )),
             ),
     );
   }
@@ -745,7 +748,8 @@ class _RecordedTab extends ConsumerWidget {
           ? EmptyState(icon: Icons.videocam_rounded, title: l.adminNoRecordings)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(adminRecordingsProvider),
-              child: ListView.separated(
+              child: PageWidth(builder: (c, inset) => ListView.separated(
+                padding: pageInsetsSafe(c, inset),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (_, i) {
@@ -765,7 +769,7 @@ class _RecordedTab extends ConsumerWidget {
                     ),
                   );
                 },
-              ),
+              )),
             ),
     );
   }

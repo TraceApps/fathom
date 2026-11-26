@@ -58,8 +58,8 @@ class KeyboardShortcutsScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: PageWidth(builder: (_, inset) => ListView(
-        padding: pageInsets(inset),
+      body: PageWidth(builder: (c, inset) => ListView(
+        padding: pageInsetsSafe(c, inset),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),

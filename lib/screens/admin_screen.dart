@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../state/admin_providers.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
+import '../widgets/page_width.dart';
 import '../widgets/format.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
@@ -46,12 +47,14 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
       appBar: AppBar(title: Text(l.adminTitle)),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: SearchField(
-              controller: _searchCtrl,
-              hint: l.adminSearchHint,
-              onChanged: (v) => setState(() => _query = v),
+          PageHeader(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SearchField(
+                controller: _searchCtrl,
+                hint: l.adminSearchHint,
+                onChanged: (v) => setState(() => _query = v),
+              ),
             ),
           ),
           Expanded(
@@ -73,7 +76,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
         ),
       );
     }
-    return ListView.builder(
+    return PageWidth(builder: (c, inset) => ListView.builder(
+      padding: pageInsetsSafe(c, inset),
       itemCount: results.length,
       itemBuilder: (context, i) {
         final r = results[i];
@@ -91,12 +95,13 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
           },
         );
       },
-    );
+    ));
   }
 
   Widget _hub(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return ListView(
+    return PageWidth(builder: (c, inset) => ListView(
+        padding: pageInsetsSafe(c, inset),
         children: [
           // Grouped by concern: server config, then who/what has access, then
           // Live TV, then maintenance. Previously scattered — Scheduled Tasks
@@ -143,7 +148,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
               l.adminPluginsSubtitle, '/admin/plugins'),
           const SizedBox(height: 24),
         ],
-      );
+      ));
   }
 
   Widget _tile(BuildContext context, IconData icon, String title,
@@ -220,7 +225,8 @@ class _SystemTab extends ConsumerWidget {
         message: '$e',
         onRetry: () => ref.invalidate(adminSystemProvider),
       ),
-      data: (m) => ListView(
+      data: (m) => PageWidth(builder: (c, inset) => ListView(
+        padding: pageInsetsSafe(c, inset),
         children: [
           ListTile(
               leading: const Icon(Icons.dns_rounded),
@@ -265,7 +271,7 @@ class _SystemTab extends ConsumerWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -348,7 +354,8 @@ class _UsersTab extends ConsumerWidget {
     return _async(context, users, (list) {
       return RefreshIndicator(
         onRefresh: () async => ref.invalidate(adminUsersProvider),
-        child: ListView.separated(
+        child: PageWidth(builder: (c, inset) => ListView.separated(
+          padding: pageInsetsSafe(c, inset),
           itemCount: list.length + 1,
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, i) {
@@ -382,7 +389,7 @@ class _UsersTab extends ConsumerWidget {
               onTap: () => context.push('/admin/user', extra: u['Id'] as String),
             );
           },
-        ),
+        )),
       );
     }, onRetry: () => ref.invalidate(adminUsersProvider),
     );
@@ -419,7 +426,8 @@ class _LibrariesTab extends ConsumerWidget {
         ),
         Expanded(
           child: _async(context, libs, (list) {
-            return ListView.separated(
+            return PageWidth(builder: (c, inset) => ListView.separated(
+              padding: pageInsetsSafe(c, inset),
               itemCount: list.length,
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, i) {
@@ -461,7 +469,7 @@ class _LibrariesTab extends ConsumerWidget {
                         ),
                 );
               },
-            );
+            ));
           }, onRetry: () => ref.invalidate(adminLibrariesProvider),
     ),
         ),
@@ -479,7 +487,8 @@ class _TasksTab extends ConsumerWidget {
     return _async(context, tasks, (list) {
       return RefreshIndicator(
         onRefresh: () async => ref.invalidate(adminTasksProvider),
-        child: ListView.separated(
+        child: PageWidth(builder: (c, inset) => ListView.separated(
+          padding: pageInsetsSafe(c, inset),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, i) {
@@ -519,7 +528,7 @@ class _TasksTab extends ConsumerWidget {
               ),
             );
           },
-        ),
+        )),
       );
     }, onRetry: () => ref.invalidate(adminTasksProvider),
     );
@@ -578,7 +587,8 @@ class _SessionsTab extends ConsumerWidget {
     return _async(context, sessions, (list) {
       return RefreshIndicator(
         onRefresh: () async => ref.invalidate(adminSessionsProvider),
-        child: ListView.separated(
+        child: PageWidth(builder: (c, inset) => ListView.separated(
+          padding: pageInsetsSafe(c, inset),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, i) {
@@ -597,7 +607,7 @@ class _SessionsTab extends ConsumerWidget {
               ),
             );
           },
-        ),
+        )),
       );
     }, onRetry: () => ref.invalidate(adminSessionsProvider),
     );
@@ -612,7 +622,8 @@ class _ActivityTab extends ConsumerWidget {
     return _async(context, activity, (list) {
       return RefreshIndicator(
         onRefresh: () async => ref.invalidate(adminActivityProvider),
-        child: ListView.separated(
+        child: PageWidth(builder: (c, inset) => ListView.separated(
+          padding: pageInsetsSafe(c, inset),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, i) {
@@ -635,7 +646,7 @@ class _ActivityTab extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall),
             );
           },
-        ),
+        )),
       );
     }, onRetry: () => ref.invalidate(adminActivityProvider),
     );

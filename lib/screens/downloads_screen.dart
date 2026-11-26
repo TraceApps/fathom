@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../models/base_item.dart';
 import '../state/audio_player.dart';
 import '../state/downloads.dart';
+import '../widgets/page_width.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
@@ -144,11 +145,12 @@ class _DownloadQueue extends StatelessWidget {
         _SeriesGroupTile(seriesId: g.key, episodes: g.value),
       for (final e in singles) _DownloadTile(entry: e),
     ];
-    return ListView.separated(
+    return PageWidth(maxWidth: cardListMaxWidth, builder: (c, inset) => ListView.separated(
+      padding: pageInsetsSafe(c, inset),
       itemCount: rows.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) => rows[i],
-    );
+    ));
   }
 }
 

@@ -8,6 +8,7 @@ import '../../state/admin_providers.dart';
 import '../../state/library_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/app_snack.dart';
 import '../../widgets/app_spinner.dart';
@@ -197,8 +198,8 @@ class _AdminBrandingState extends ConsumerState<AdminBrandingScreen> {
             })
           : _config == null || s == null
               ? const Center(child: AppSpinner())
-              : ListView(
-                  padding: const EdgeInsets.all(20),
+              : PageWidth(builder: (_, inset) => ListView(
+                  padding: pageInsets(inset, const EdgeInsets.all(20)),
                   children: [
                     Text(l.adminSplashScreen,
                         style: Theme.of(context)
@@ -293,7 +294,7 @@ class _AdminBrandingState extends ConsumerState<AdminBrandingScreen> {
                           minimumSize: const Size.fromHeight(48)),
                     ),
                   ],
-                ),
+                )),
     );
   }
 }

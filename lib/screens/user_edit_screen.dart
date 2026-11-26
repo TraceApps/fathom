@@ -10,6 +10,7 @@ import '../models/session.dart';
 import '../state/admin_providers.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
+import '../widgets/page_width.dart';
 import '../widgets/tv_keyboard.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
@@ -306,7 +307,8 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
 
   Widget _profileTab() {
     final l = AppLocalizations.of(context);
-    return ListView(
+    return PageWidth(builder: (c, inset) => ListView(
+      padding: pageInsetsSafe(c, inset),
       children: [
         _section(l.adminSectionManagement),
         for (final t in _managementToggles(l)) _toggle(t),
@@ -345,12 +347,13 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
         _bitrateField(),
         const SizedBox(height: 24),
       ],
-    );
+    ));
   }
 
   Widget _accessTab() {
     final l = AppLocalizations.of(context);
-    return ListView(
+    return PageWidth(builder: (c, inset) => ListView(
+      padding: pageInsetsSafe(c, inset),
       children: [
         _section(l.adminLibrariesTitle),
         SwitchListTile(
@@ -422,12 +425,13 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
         ],
         const SizedBox(height: 24),
       ],
-    );
+    ));
   }
 
   Widget _parentalTab() {
     final l = AppLocalizations.of(context);
-    return ListView(
+    return PageWidth(builder: (c, inset) => ListView(
+      padding: pageInsetsSafe(c, inset),
       children: [
         _section(l.adminSectionMaxRating),
         _ratingDropdown(l),
@@ -458,7 +462,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
         if (_policy['IsAdministrator'] != true) ..._scheduleSection(l),
         const SizedBox(height: 24),
       ],
-    );
+    ));
   }
 
   /// The kinds of unrated item the dashboard lets you block. Anything else
@@ -783,7 +787,8 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
 
   Widget _passwordTab() {
     final l = AppLocalizations.of(context);
-    return ListView(
+    return PageWidth(builder: (c, inset) => ListView(
+      padding: pageInsetsSafe(c, inset),
       children: [
         ListTile(
           leading: const Icon(Icons.password_rounded),
@@ -799,7 +804,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
           onTap: _delete,
         ),
       ],
-    );
+    ));
   }
 
   // ---- shared field builders ----

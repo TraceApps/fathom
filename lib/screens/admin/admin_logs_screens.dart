@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/app_spinner.dart';
@@ -30,7 +31,8 @@ class AdminLogsScreen extends ConsumerWidget {
             onRetry: () => ref.invalidate(adminLogFilesProvider)),
         data: (list) => list.isEmpty
             ? EmptyState(icon: Icons.article_outlined, title: l.adminNoLogFiles)
-            : ListView.separated(
+            : PageWidth(builder: (c, inset) => ListView.separated(
+                padding: pageInsetsSafe(c, inset),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, i) {
@@ -46,7 +48,7 @@ class AdminLogsScreen extends ConsumerWidget {
                         context.push('/admin/logs/view', extra: name),
                   );
                 },
-              ),
+              )),
       ),
     );
   }

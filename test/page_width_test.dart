@@ -64,4 +64,46 @@ void main() {
     ];
     expect(missing, isEmpty);
   });
+
+  test('Administration, Requests and Downloads use it too', () {
+    final files = [
+      'lib/screens/admin_screen.dart',
+      'lib/screens/user_edit_screen.dart',
+      'lib/screens/downloads_screen.dart',
+      'lib/screens/discover_screen.dart',
+      for (final f in Directory('lib/screens/admin').listSync().whereType<File>())
+        f.path,
+    ];
+    expect(
+      [
+        for (final f in files)
+          if (!File(f).readAsStringSync().contains('PageWidth(')) f,
+      ],
+      isEmpty,
+    );
+  });
+
+  testWidgets('a list with no padding of its own stays clear of the bars', (
+    t,
+  ) async {
+    late EdgeInsets got;
+    await t.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: Size(1640, 600),
+          padding: EdgeInsets.only(bottom: 24),
+        ),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: PageWidth(
+            builder: (c, inset) {
+              got = pageInsetsSafe(c, inset);
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(got.bottom, 24);
+  });
 }

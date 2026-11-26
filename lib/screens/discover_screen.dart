@@ -18,6 +18,7 @@ import '../state/arr_providers.dart';
 import '../state/preferences.dart';
 import '../state/seerr_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/page_width.dart';
 import '../widgets/reorder.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/app_snack.dart';
@@ -1284,9 +1285,9 @@ class SeerrDiscoverLayoutScreen extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                child: ReorderableListView(
+                child: PageWidth(builder: (_, inset) => ReorderableListView(
                   buildDefaultDragHandles: false,
-                  padding: const EdgeInsets.only(top: 4, bottom: 96),
+                  padding: pageInsets(inset, const EdgeInsets.only(top: 4, bottom: 96)),
                   // ignore: deprecated_member_use
                   onReorder: (oldIndex, newIndex) {
                     final list = [...rows];
@@ -1387,7 +1388,7 @@ class SeerrDiscoverLayoutScreen extends ConsumerWidget {
                         ),
                       ),
                   ],
-                ),
+                )),
               ),
             ],
           ),
@@ -1564,7 +1565,7 @@ class _RequestsTab extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        Padding(
+        PageHeader(maxWidth: cardListMaxWidth, child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
           child: Wrap(
             spacing: 8,
@@ -1626,7 +1627,7 @@ class _RequestsTab extends ConsumerWidget {
               ),
             ],
           ),
-        ),
+        )),
         Expanded(
           child: async.when(
             loading: () => const Center(child: AppSpinner()),
@@ -1642,12 +1643,12 @@ class _RequestsTab extends ConsumerWidget {
                 : RefreshIndicator(
                     onRefresh: () async =>
                         ref.invalidate(seerrRequestsProvider),
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: PageWidth(maxWidth: cardListMaxWidth, builder: (_, inset) => ListView.builder(
+                      padding: pageInsets(inset, const EdgeInsets.symmetric(vertical: 6)),
                       itemCount: list.length,
                       itemBuilder: (context, i) =>
                           SeerrRequestTile(request: list[i]),
-                    ),
+                    )),
                   ),
           ),
         ),

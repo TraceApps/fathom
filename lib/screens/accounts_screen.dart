@@ -22,8 +22,8 @@ class AccountsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.accountTitle)),
-      body: PageWidth(builder: (_, inset) => ListView(
-        padding: pageInsets(inset),
+      body: PageWidth(builder: (c, inset) => ListView(
+        padding: pageInsetsSafe(c, inset),
         children: [
           for (final s in accounts)
             Builder(builder: (context) {

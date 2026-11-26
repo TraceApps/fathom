@@ -57,4 +57,19 @@ void main() {
       );
     }
   });
+
+  test('Server Addresses, a dialog, is found and opened by Settings', () {
+    final hit = index.where((r) => r.title == 'Server Addresses').single;
+    expect(hit.extra, SettingResult.serverAddresses);
+    expect(hit.matches('remote address'), isTrue);
+    final source = File('lib/screens/settings_screen.dart').readAsStringSync();
+    expect(
+      source,
+      matches(
+        RegExp(
+          r'r\.extra == SettingResult\.serverAddresses[\s\S]{0,200}_editServerAddresses',
+        ),
+      ),
+    );
+  });
 }

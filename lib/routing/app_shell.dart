@@ -132,6 +132,41 @@ class DrawerMenuButton extends ConsumerWidget {
   }
 }
 
+/// Settings and the pages opened from it: the side menu's Settings tile is
+/// lit on all of them.
+const _settingsPages = [
+  '/settings',
+  '/preferences',
+  '/accounts',
+  '/arr-settings',
+  '/connections',
+  '/seerr-settings',
+  '/backup',
+  '/home-layout',
+  '/navigation-layout',
+  '/shortcuts',
+  '/support',
+  '/diagnostics',
+];
+
+/// Where the side menu says you are. A page with a tile of its own lights
+/// that tile, however it was opened; any other page opened over a section (a
+/// title's page, say) leaves that section lit.
+///
+/// The router's matched location stays on the section underneath a pushed
+/// page, which lit Home while Settings was open.
+@visibleForTesting
+String navLocation(GoRouterState state, Iterable<String> routes) {
+  final shown = state.uri.path;
+  if (_settingsPages.any(shown.startsWith)) return '/settings';
+  if (shown.startsWith('/updates') ||
+      shown.startsWith('/notifications') ||
+      routes.any(shown.startsWith)) {
+    return shown;
+  }
+  return state.matchedLocation;
+}
+
 /// Wraps the signed-in content routes with a desktop navigation rail and docks
 /// the mini now-playing bar at the bottom. Full-screen routes (video player,
 /// now-playing, auth) sit outside this.
@@ -325,7 +360,10 @@ class NavSidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final location = GoRouterState.of(context).matchedLocation;
+    final location = navLocation(
+      GoRouterState.of(context),
+      [for (final d in destinations) d.route],
+    );
     // Prefer the live policy; fall back to the stored session flag while it loads.
     final liveAdmin =
         ref.watch(currentUserProvider).asData?.value?.isAdministrator;
@@ -390,8 +428,7 @@ class NavSidebar extends ConsumerWidget {
     final settingsTile = _NavTile(
         icon: Icons.settings_rounded,
         label: AppLocalizations.of(context).miscSettings,
-        selected: location.startsWith('/settings') ||
-            location.startsWith('/preferences'),
+        selected: location.startsWith('/settings'),
         extended: extended,
         onTap: () => context.push('/settings'),
       );

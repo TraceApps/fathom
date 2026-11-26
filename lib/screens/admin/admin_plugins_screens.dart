@@ -9,6 +9,7 @@ import '../../state/admin_providers.dart';
 import '../../state/library_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/tv_keyboard.dart';
@@ -93,7 +94,8 @@ class _InstalledPlugins extends ConsumerWidget {
           ? EmptyState(icon: Icons.extension_rounded, title: l.adminNoPlugins)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(adminPluginsProvider),
-              child: ListView.separated(
+              child: PageWidth(builder: (c, inset) => ListView.separated(
+                padding: pageInsetsSafe(c, inset),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, i) {
@@ -130,7 +132,7 @@ class _InstalledPlugins extends ConsumerWidget {
                         context.push('/admin/plugins/installed', extra: p),
                   );
                 },
-              ),
+              )),
             ),
     );
   }
@@ -173,7 +175,8 @@ class _PluginCatalog extends ConsumerWidget {
             ))
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(adminPackagesProvider),
-              child: ListView.separated(
+              child: PageWidth(builder: (c, inset) => ListView.separated(
+                padding: pageInsetsSafe(c, inset),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, i) {
@@ -211,7 +214,7 @@ class _PluginCatalog extends ConsumerWidget {
                         context.push('/admin/plugins/package', extra: p),
                   );
                 },
-              ),
+              )),
             ),
     );
   }
@@ -299,7 +302,8 @@ class _PluginRepositories extends ConsumerWidget {
         ),
         body: list.isEmpty
             ? EmptyState(icon: Icons.source_rounded, title: l.adminNoRepositories)
-            : ListView.separated(
+            : PageWidth(builder: (c, inset) => ListView.separated(
+                padding: pageInsetsSafe(c, inset),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, i) {
@@ -319,7 +323,7 @@ class _PluginRepositories extends ConsumerWidget {
                     ),
                   );
                 },
-              ),
+              )),
       ),
     );
   }
@@ -635,8 +639,8 @@ class _AdminInstalledPluginState
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(_name)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset, const EdgeInsets.all(20)),
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,7 +758,7 @@ class _AdminInstalledPluginState
                 side: BorderSide(color: theme.colorScheme.error)),
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -881,8 +885,8 @@ class AdminPackageScreen extends ConsumerWidget {
     final versions = (package['versions'] as List?) ?? const [];
     return Scaffold(
       appBar: AppBar(title: Text(name)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: PageWidth(builder: (_, inset) => ListView(
+        padding: pageInsets(inset, const EdgeInsets.all(20)),
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -954,7 +958,7 @@ class AdminPackageScreen extends ConsumerWidget {
               ),
           ],
         ],
-      ),
+      )),
     );
   }
 }

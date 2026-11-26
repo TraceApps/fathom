@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../state/admin_providers.dart';
 import '../../state/providers.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/page_width.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/app_snack.dart';
 import '../../widgets/app_spinner.dart';
@@ -53,8 +54,8 @@ class AdminBackupsScreen extends ConsumerWidget {
               ),
             );
           }
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 96),
+          return PageWidth(builder: (_, inset) => ListView(
+            padding: pageInsets(inset, const EdgeInsets.only(bottom: 96)),
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -79,7 +80,7 @@ class AdminBackupsScreen extends ConsumerWidget {
                   const Divider(height: 1),
                 ],
             ],
-          );
+          ));
         },
       ),
     );

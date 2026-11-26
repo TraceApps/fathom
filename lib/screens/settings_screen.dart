@@ -58,6 +58,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _query = '';
       _searchCtrl.clear();
     });
+    if (r.extra == SettingResult.serverAddresses) {
+      final session = ref.read(sessionControllerProvider).asData?.value;
+      if (session != null) _editServerAddresses(context, session);
+      return;
+    }
     context.push(r.route, extra: r.extra);
   }
 
