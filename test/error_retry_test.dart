@@ -72,4 +72,22 @@ void main() {
     await t.tap(find.text('Retry'));
     expect(asked, 1);
   });
+
+  testWidgets('on a wide window Retry is a button, not a banner', (t) async {
+    t.view.physicalSize = const Size(1600, 800);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: ErrorView(message: 'Could not reach Radarr.', onRetry: () {})),
+      ),
+    );
+    final button = t.getSize(find.ancestor(
+      of: find.text('Retry'),
+      matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+    ));
+    expect(button.width, lessThanOrEqualTo(320));
+  });
 }

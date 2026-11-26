@@ -38,6 +38,9 @@ class SectionError extends StatelessWidget {
   }
 }
 
+/// How wide the button under an error or an empty page gets.
+const kStateActionWidth = 320.0;
+
 /// A consistent error state: icon, message, and an optional Retry action.
 /// Use in async `error:` builders so failures look the same everywhere.
 class ErrorView extends StatelessWidget {
@@ -76,18 +79,26 @@ class ErrorView extends StatelessWidget {
                         size: 42, color: scheme.error),
                   ),
                   const SizedBox(height: 18),
-                  Text(message,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Text(message,
                       textAlign: TextAlign.center,
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium
                           ?.copyWith(color: scheme.onSurfaceVariant)),
+                  ),
                   if (onRetry != null) ...[
                     const SizedBox(height: 16),
-                    FilledButton.tonalIcon(
-                      onPressed: onRetry,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: Text(l.commonRetry),
+                    // A button the width of a button: on a wide window it
+                    // ran from one edge of the page to the other.
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: kStateActionWidth),
+                      child: FilledButton.tonalIcon(
+                        onPressed: onRetry,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(l.commonRetry),
+                      ),
                     ),
                   ],
                 ],

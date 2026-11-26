@@ -74,7 +74,13 @@ class EmptyState extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (action != null) ...[const SizedBox(height: 20), action!],
+                  if (action != null) ...[
+                    const SizedBox(height: 20),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: action!,
+                    ),
+                  ],
                 ],
               ),
             ),
