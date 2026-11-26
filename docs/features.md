@@ -78,7 +78,7 @@ Because Fathom is sideloaded rather than installed from the Play Store, the firs
 
 ## Requests, ratings, and watch together
 
-- **Seerr (optional)**: browse and request titles in the **Discover** section, then approve, decline, or manage requests without leaving the page, with download progress shown right on the detail view. With [Sonarr or Radarr](#sonarr-radarr-and-lidarr) connected too, the requests waiting for you are also listed in **Manage > Activity**, and a requested title opens straight in the app that's downloading it. Set it up in [First-run setup](setup.md#seerr-requests).
+- **Seerr (optional)**: browse and request titles in the **Discover** section (long-press or right-click a poster for **Details** or **Request**), then approve, decline, or manage requests without leaving the page, with download progress shown right on the detail view. With [Sonarr or Radarr](#sonarr-radarr-and-lidarr) connected too, the requests waiting for you are also listed in **Manage > Activity**, and a requested title opens straight in the app that's downloading it. Set it up in [First-run setup](setup.md#seerr-requests).
 - **Ratings that matter to you**: Rotten Tomatoes, IMDb, and community scores, plus Letterboxd, Metacritic, Trakt, and others through MDBList.
 - **Watch together**: SyncPlay-based shared playback that interoperates with the official Jellyfin apps and other clients, not only with other Fathom users.
 

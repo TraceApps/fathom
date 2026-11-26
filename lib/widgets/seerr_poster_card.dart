@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/seerr_result.dart';
 import '../theme/app_theme.dart';
 import 'cached_image.dart';
+import 'context_menu.dart';
 import 'media_cards.dart';
 import 'seerr_request_dialog.dart';
 import 'app_spinner.dart';
@@ -45,6 +47,7 @@ class SeerrPosterCard extends StatelessWidget {
               hoverOverlay: result.canRequest
                   ? SeerrHoverRequestButton(result: result)
                   : null,
+              onMenu: (at) => showSeerrPosterMenu(context, at, result),
             ),
           ),
           const SizedBox(height: 6),
@@ -64,6 +67,35 @@ class SeerrPosterCard extends StatelessWidget {
         child: Icon(Icons.movie_rounded,
             color: theme.colorScheme.onSurfaceVariant),
       );
+}
+
+/// A Discover poster's long-press / right-click menu, as every other poster
+/// in the app has one: open it, or request it without opening it. A finger
+/// has no hover, so this is its way to the Request button.
+Future<void> showSeerrPosterMenu(
+  BuildContext context,
+  Offset at,
+  SeerrResult result,
+) {
+  final l = AppLocalizations.of(context);
+  return showContextMenu(
+    context,
+    at: at,
+    title: result.title,
+    actions: [
+      ContextMenuAction(
+        icon: Icons.info_outline_rounded,
+        label: l.browseDetails,
+        onTap: () => context.push('/seerr-detail', extra: result),
+      ),
+      if (result.canRequest)
+        ContextMenuAction(
+          icon: Icons.download_rounded,
+          label: l.detailRequest,
+          onTap: () => showSeerrRequestDialog(context, result),
+        ),
+    ],
+  );
 }
 
 /// Flexible-height Seerr poster, for grids.
@@ -90,6 +122,7 @@ class SeerrGridCard extends StatelessWidget {
             hoverOverlay: result.canRequest
                 ? SeerrHoverRequestButton(result: result)
                 : null,
+            onMenu: (at) => showSeerrPosterMenu(context, at, result),
           ),
         ),
         const SizedBox(height: 6),
@@ -281,6 +314,7 @@ class _SeerrHoverRequestButtonState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(6),
       child: FilledButton.icon(
@@ -297,7 +331,7 @@ class _SeerrHoverRequestButtonState
             ? AppSpinner.inline()
             : Icon(_done ? Icons.check_rounded : Icons.download_rounded,
                 size: 16),
-        label: Text(_done ? 'Requested' : 'Request'),
+        label: Text(_done ? l.browseRequested : l.detailRequest),
       ),
     );
   }

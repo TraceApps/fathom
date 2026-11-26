@@ -243,8 +243,10 @@ class _HoverPosterArtState extends ConsumerState<HoverPosterArt> {
                     ),
                   // Hover hamburger (desktop), bottom-right of the poster. On
                   // touch the same menu is a long-press; on TV it lives on the
-                  // detail overflow.
-                  if (_canMenu)
+                  // detail overflow. A card with a button of its own along
+                  // the bottom (Discover's Request) keeps that edge for it;
+                  // its menu is still a right-click away.
+                  if (_canMenu && widget.hoverOverlay == null)
                     Positioned(
                       bottom: 8,
                       right: 8,
