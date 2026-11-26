@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +9,7 @@ import '../routing/app_shell.dart';
 import '../services/tv_mode.dart';
 import '../state/audio_player.dart';
 import '../state/radio.dart';
+import '../widgets/cached_image.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/motion.dart';
@@ -587,14 +587,12 @@ class _StationTile extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: station.favicon != null
-            ? CachedNetworkImage(
-                imageUrl: station.favicon!,
-                fit: BoxFit.cover,
-                fadeInDuration: const Duration(milliseconds: 150),
+            ? CachedImage(
+                url: station.favicon!,
                 // Disk-cached, so a station's logo loads instantly on the second
                 // visit to the radio screen instead of re-downloading every time.
-                placeholder: (_, _) => _fallback(scheme),
-                errorWidget: (_, _, _) => _fallback(scheme),
+                placeholder: _fallback(scheme),
+                errorBuilder: (_) => _fallback(scheme),
               )
             : _fallback(scheme),
       ),

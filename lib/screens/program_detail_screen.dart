@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../widgets/cached_image.dart';
 import '../widgets/hover_pill_button.dart';
 import '../models/base_item.dart';
 import '../services/image_cache.dart';
@@ -234,6 +235,9 @@ class _ProgramBanner extends ConsumerWidget {
       httpHeaders: headers,
       fadeInDuration: const Duration(milliseconds: 180),
       placeholder: (_, _) => const SizedBox.shrink(),
+      // A saved copy that can't be read is thrown out, so the next visit
+      // fetches it again.
+      errorListener: (_) => forgetBrokenImage(url),
       errorWidget: (_, _, _) => const SizedBox.shrink(),
       imageBuilder: (context, imageProvider) => Padding(
         padding: const EdgeInsets.only(bottom: 16),

@@ -300,8 +300,15 @@ Prefs arrReconcileRestore(Prefs local, Prefs restored) {
   var p = restored;
   for (final k in ArrKind.values) {
     final mine = arrServersOf(local, k);
-    String? keyAt(String url) =>
-        mine.where((s) => s.url == url && s.apiKey.isNotEmpty).firstOrNull?.apiKey;
+    // The same address written another way (a trailing slash, the host in
+    // capitals) is the same server: its key stays, as the other
+    // connections' do.
+    String at(String u) =>
+        u.trim().replaceAll(RegExp(r'/+$'), '').toLowerCase();
+    String? keyAt(String url) => mine
+        .where((s) => at(s.url) == at(url) && s.apiKey.isNotEmpty)
+        .firstOrNull
+        ?.apiKey;
     final (url, _, defaults) = _activeFields(p, k);
     var (activeId, activeName) = _activeIdName(p, k);
     final others = <Map<String, dynamic>>[];

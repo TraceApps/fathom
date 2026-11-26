@@ -11,6 +11,9 @@ import 'providers.dart';
 class RailExtended extends Notifier<bool> {
   static const _key = 'fathom_rail_extended';
 
+  /// Where the choice is kept, for Backup & Restore.
+  static const storageKey = _key;
+
   @override
   bool build() {
     _load();

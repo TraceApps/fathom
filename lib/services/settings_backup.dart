@@ -11,6 +11,8 @@ import '../state/preferences.dart';
 import '../state/providers.dart';
 import '../state/radio.dart';
 import '../state/session_controller.dart';
+import '../state/ui_providers.dart';
+import 'tv_mode.dart';
 import '../state/youtube_providers.dart';
 
 /// Cross-platform export/import of Fathom's own settings, selectable by group.
@@ -153,6 +155,14 @@ Future<Map<String, dynamic>> buildSettingsExport(
     'preferences': exportedPrefs,
   };
 
+  if (groups.contains('appearance')) {
+    // Whether the side menu is open or folded: a look of the app like any
+    // other, kept outside the settings themselves.
+    final rail = await ref
+        .read(secureStorageProvider)
+        .read(key: RailExtended.storageKey);
+    if (rail != null) result['sideMenuOpen'] = rail == '1';
+  }
   if (groups.contains('youtube')) {
     final storage = ref.read(secureStorageProvider);
     final library = <String, dynamic>{};
@@ -230,6 +240,7 @@ Set<String> groupsInBackup(Map<String, dynamic> data) {
   if (radio is List && radio.isNotEmpty) found.add('radio');
   final library = data['youtubeLibrary'];
   if (library is Map && library.isNotEmpty) found.add('youtube');
+  if (data['sideMenuOpen'] is bool) found.add('appearance');
   final servers = data['servers'];
   if (servers is List && servers.isNotEmpty) found.add('servers');
   return found;
@@ -417,7 +428,19 @@ Future<ImportSummary> applySettingsImport(
       ? serverAddressChanges(data, session.accounts)
       : const <ServerAddressChange>[];
 
+  // A TV keeps its side menu open, so its names can be read from the couch.
+  final sideMenuOpen =
+      selectedGroups.contains('appearance') && !isTvDevice
+      ? data['sideMenuOpen']
+      : null;
+
   // Write.
+  if (sideMenuOpen is bool) {
+    await ref
+        .read(secureStorageProvider)
+        .write(key: RailExtended.storageKey, value: sideMenuOpen ? '1' : '0');
+    ref.invalidate(railExtendedProvider);
+  }
   if (merged != null) {
     final restored = merged;
     await ref.read(preferencesProvider.notifier).edit((_) => restored);

@@ -228,6 +228,27 @@ void main() {
       expect(arrServersOf(back, ArrKind.radarr)[1].apiKey, '4kkey');
     });
 
+    test('the same address written another way keeps its key', () {
+      // A trailing slash or capitals in the host is still that server: the
+      // key used to be dropped and asked for again.
+      const local = Prefs(
+        sonarrUrl: 'http://sonarr:8989',
+        sonarrApiKey: 'sonarrkey',
+      );
+      final merged = Prefs.fromJson({
+        ...local.toJson(),
+        'sonarrUrl': 'http://Sonarr:8989/',
+      });
+      final p = arrReconcileRestore(local, merged);
+      expect(p.sonarrApiKey, 'sonarrkey');
+      // A different address still loses it.
+      final moved = arrReconcileRestore(
+        local,
+        Prefs.fromJson({...local.toJson(), 'sonarrUrl': 'http://other:8989'}),
+      );
+      expect(moved.sonarrApiKey, isEmpty);
+    });
+
     test('an old backup (one server) after a switch: no server twice', () {
       final two = _withFourK();
       final fourK = arrServersOf(two, ArrKind.radarr)[1];

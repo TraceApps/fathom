@@ -61,7 +61,6 @@ class CachedImage extends StatefulWidget {
 /// file that is empty or half there. The cache still lists it, so the same
 /// poster failed to draw at every launch until its entry aged out, three
 /// weeks later. A picture that can't be read is not worth keeping.
-@visibleForTesting
 Future<void> forgetBrokenImage(String url, {BaseCacheManager? cache}) async {
   try {
     await (cache ?? fathomImageCache).removeFile(url);

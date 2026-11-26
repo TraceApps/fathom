@@ -96,6 +96,15 @@ void main() {
       expect(found({'seerrApiKey': 'k'}), isEmpty);
     });
 
+    test('whether the side menu is open travels with Appearance', () {
+      expect(groupsInBackup({'sideMenuOpen': false}), {'appearance'});
+      expect(groupsInBackup({'sideMenuOpen': 'yes'}), isEmpty);
+      final src = File('lib/services/settings_backup.dart').readAsStringSync();
+      // Written on export, applied on restore, and never on a TV.
+      expect(src, contains("result['sideMenuOpen'] = rail == '1';"));
+      expect(src, contains("selectedGroups.contains('appearance') && !isTvDevice"));
+    });
+
     test("YouTube's library on its own counts as the YouTube group", () {
       expect(
         groupsInBackup({
