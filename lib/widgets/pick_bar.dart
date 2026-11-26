@@ -86,7 +86,7 @@ class PickBar extends StatelessWidget {
                   ),
                 if (narrow)
                   PopupMenuButton<VoidCallback?>(
-                    tooltip: l.commonMoreOptions,
+                    tooltip: l.commonMore,
                     enabled: enabled,
                     onSelected: (run) => run?.call(),
                     itemBuilder: (context) => [

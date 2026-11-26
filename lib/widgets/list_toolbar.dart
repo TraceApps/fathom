@@ -154,7 +154,7 @@ class ListToolbar extends StatelessWidget {
     final more = tools.isEmpty
         ? null
         : PopupMenuButton<ListTool>(
-            tooltip: l.arrMore,
+            tooltip: l.commonMore,
             icon: const Icon(Icons.more_vert_rounded),
             onSelected: (t) => t.onTap(),
             itemBuilder: (_) => [

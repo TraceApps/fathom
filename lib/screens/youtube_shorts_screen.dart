@@ -525,7 +525,7 @@ class _Overlay extends ConsumerWidget {
                 // uses, so the rail matches the watch page.
                 _RailButton(
                   icon: Icons.more_horiz_rounded,
-                  label: l.playerMore,
+                  label: l.commonMore,
                   onTap: () => YoutubeActions.showTvActionSheet(
                       context, ref, short,
                       includePlaylist: false),

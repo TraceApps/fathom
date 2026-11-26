@@ -2054,7 +2054,7 @@ class SeerrRequestTile extends ConsumerWidget {
                   ] else
                     Builder(builder: (btnContext) {
                       return IconButton(
-                        tooltip: AppLocalizations.of(context).commonMoreOptions,
+                        tooltip: AppLocalizations.of(context).commonMore,
                         icon: const Icon(Icons.more_vert_rounded),
                         onPressed: () {
                           final box =
@@ -2316,7 +2316,7 @@ class _RequestTileCard extends StatelessWidget {
                 if (menu.isNotEmpty)
                   Builder(builder: (button) {
                     return IconButton(
-                      tooltip: AppLocalizations.of(context).commonMoreOptions,
+                      tooltip: AppLocalizations.of(context).commonMore,
                       icon: const Icon(Icons.more_vert_rounded),
                       onPressed: () {
                         final box = button.findRenderObject() as RenderBox?;

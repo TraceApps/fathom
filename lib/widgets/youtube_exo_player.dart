@@ -1096,7 +1096,7 @@ class _YoutubeExoPlayerState extends ConsumerState<YoutubeExoPlayer> {
                 _ctlButton(
                   focusNode: _fActions,
                   icon: Icons.more_vert_rounded,
-                  tooltip: l.playerMore,
+                  tooltip: l.commonMore,
                   onTap: () {
                     _menuReturn = _fActions;
                     widget.onShowActions!();

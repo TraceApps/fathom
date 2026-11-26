@@ -888,7 +888,7 @@ class _EpisodeMenuButton extends StatelessWidget {
     }
     return IconButton(
       icon: const Icon(Icons.more_vert_rounded),
-      tooltip: AppLocalizations.of(context).arrMore,
+      tooltip: AppLocalizations.of(context).commonMore,
       onPressed: () {
         final box = context.findRenderObject() as RenderBox?;
         onTap(box == null
@@ -1288,7 +1288,7 @@ class _ItemMenu extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     if (downloadScoped) {
       return PopupMenuButton<String>(
-        tooltip: l.arrMore,
+        tooltip: l.commonMore,
         icon: const Icon(Icons.more_vert_rounded),
         onSelected: (_) => _removeDownload(context, ref),
         itemBuilder: (_) => [
@@ -1321,7 +1321,7 @@ class _ItemMenu extends ConsumerWidget {
     final app = match?.kind.appName;
 
     return PopupMenuButton<String>(
-      tooltip: l.arrMore,
+      tooltip: l.commonMore,
       icon: const Icon(Icons.more_vert_rounded),
       onSelected: (v) => _onSelected(context, ref, session, v),
       itemBuilder: (_) => [

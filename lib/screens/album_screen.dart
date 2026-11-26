@@ -251,7 +251,7 @@ class AlbumView extends ConsumerWidget {
                           color: theme.colorScheme.onSurfaceVariant)),
                 Builder(builder: (btnContext) {
                   return IconButton(
-                    tooltip: l.browseMore,
+                    tooltip: l.commonMore,
                     icon: const Icon(Icons.more_vert_rounded, size: 20),
                     onPressed: () {
                       final box = btnContext.findRenderObject() as RenderBox?;

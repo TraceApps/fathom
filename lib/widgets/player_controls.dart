@@ -1018,7 +1018,7 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                                 }),
                           if (optional.isNotEmpty)
                             PopupMenuButton<VoidCallback>(
-                              tooltip: l.playerMore,
+                              tooltip: l.commonMore,
                               icon: const Icon(Icons.more_vert_rounded,
                                   color: Colors.white, size: 22),
                               onSelected: (fn) {

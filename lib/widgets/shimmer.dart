@@ -118,6 +118,36 @@ class PosterGridSkeleton extends StatelessWidget {
   }
 }
 
+/// Loading skeleton for a page that is a header over a poster grid (a
+/// person's appearances, a film series): Back stays where it will be, a
+/// block stands in for the header, and the posters below it.
+///
+/// The rule for loading: a page that will show posters loads as their
+/// shapes; a list or a form loads behind the spinner.
+class HeaderGridSkeleton extends StatelessWidget {
+  /// The header's height, near enough that the grid doesn't jump.
+  final double headerHeight;
+  const HeaderGridSkeleton({super.key, this.headerHeight = 200});
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const BackButton(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: ShimmerBox(
+            height: headerHeight,
+            borderRadius: const BorderRadius.all(Radius.circular(16)),
+          ),
+        ),
+        const Expanded(child: PosterGridSkeleton()),
+      ],
+    ),
+  );
+}
+
 /// Loading placeholder for a Wrap of chips (Genres, Studios).
 class ChipWrapSkeleton extends StatelessWidget {
   const ChipWrapSkeleton({super.key});

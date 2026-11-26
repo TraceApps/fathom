@@ -261,7 +261,7 @@ class _SubscriptionCard extends ConsumerWidget {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  tooltip: l.ytOptions,
+                  tooltip: l.commonMore,
                   onSelected: (v) {
                     if (v == 'unsub') {
                       ref
@@ -720,7 +720,7 @@ class _LocalPlaylistRow extends ConsumerWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                tooltip: l.ytOptions,
+                tooltip: l.commonMore,
                 onSelected: (v) async {
                   final n = ref.read(youtubeLocalPlaylistsProvider.notifier);
                   if (v == 'delete') {
@@ -1116,7 +1116,7 @@ class _DownloadRow extends ConsumerWidget {
               else
                 Builder(builder: (btnContext) {
                   return IconButton(
-                    tooltip: l.ytOptions,
+                    tooltip: l.commonMore,
                     icon: const Icon(Icons.more_vert_rounded),
                     onPressed: () {
                       final box =

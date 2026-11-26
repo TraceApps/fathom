@@ -141,12 +141,12 @@ class ArrActionBar extends StatelessWidget {
           builder: (anchor) => header
               ? HeaderActionButton(
                   icon: Icons.more_vert_rounded,
-                  tooltip: l.arrMore,
+                  tooltip: l.commonMore,
                   onTap: () => _openMore(context, anchor, more),
                 )
               : HoverPillButton(
                   icon: Icons.more_vert_rounded,
-                  label: l.arrMore,
+                  label: l.commonMore,
                   onTap: () => _openMore(context, anchor, more),
                 ),
         ),

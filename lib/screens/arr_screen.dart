@@ -242,7 +242,7 @@ class _ArrScreenState extends ConsumerState<ArrScreen> {
       return [
         Builder(
           builder: (button) => IconButton(
-            tooltip: l.arrMore,
+            tooltip: l.commonMore,
             icon: const Icon(Icons.more_vert_rounded),
             onPressed: () => showContextMenu(
               button,

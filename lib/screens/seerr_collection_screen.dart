@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/seerr_providers.dart';
+import '../widgets/shimmer.dart';
 import '../widgets/cached_image.dart';
 import '../widgets/error_view.dart';
 import '../widgets/motion.dart';
 import '../widgets/seerr_poster_card.dart';
-import '../widgets/app_spinner.dart';
 
 /// A movie collection (franchise): backdrop + overview, then its titles.
 class SeerrCollectionScreen extends ConsumerWidget {
@@ -19,7 +19,7 @@ class SeerrCollectionScreen extends ConsumerWidget {
     final async = ref.watch(seerrCollectionProvider(collectionId));
     return Scaffold(
       body: async.when(
-        loading: () => const Center(child: AppSpinner()),
+        loading: () => const HeaderGridSkeleton(headerHeight: 240),
         error: (e, _) => SafeArea(
           child: Column(
             children: [

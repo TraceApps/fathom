@@ -685,7 +685,7 @@ class _HistoryEventRow extends ConsumerWidget {
       trailing: item.canMarkFailed
           ? Builder(
               builder: (anchor) => IconButton(
-                tooltip: l.arrMore,
+                tooltip: l.commonMore,
                 icon: const Icon(Icons.more_vert_rounded),
                 onPressed: () {
                   final box = anchor.findRenderObject() as RenderBox?;

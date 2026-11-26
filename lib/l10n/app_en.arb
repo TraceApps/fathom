@@ -4,6 +4,8 @@
   "@appName": {
     "description": "The application name. Usually left untranslated."
   },
+  "commonMore": "More",
+  "@commonMore": {"description": "Tooltip and label of every More menu (the three upright dots)."},
   "commonClear": "Clear",
   "@commonClear": {
     "description": "Generic label/tooltip for clearing an input."
@@ -152,8 +154,6 @@
   "settingsRatingsSubtitle": "Rotten Tomatoes, IMDb, community",
   "settingsShortcuts": "Keyboard Shortcuts",
   "settingsShortcutsSubtitle": "View & customize player keys",
-  "settingsSeerr": "Seerr",
-  "settingsSeerrSubtitle": "Discover & request media",
   "settingsYouTube": "YouTube",
   "settingsYouTubeSubtitle": "Search & watch, ad-free",
   "settingsWatchTogether": "Watch Together",
@@ -775,14 +775,6 @@
   "prefsMdbListIntro": "Adds Letterboxd, Metacritic, Trakt and more, and fills in any missing Rotten Tomatoes / IMDb scores above. Needs MDBList connected, with its free API key. Ratings barely change, so results are cached.",
   "@prefsMdbListIntro": {
     "description": "Explanatory paragraph for the MDBList extra-ratings section."
-  },
-  "prefsMdbListApiKey": "MDBList API Key",
-  "@prefsMdbListApiKey": {
-    "description": "Text field label for the MDBList API key."
-  },
-  "prefsMdbListApiKeyHint": "Paste your key from mdblist.com",
-  "@prefsMdbListApiKeyHint": {
-    "description": "Text field hint for the MDBList API key."
   },
   "prefsMetacriticUser": "Metacritic User",
   "@prefsMetacriticUser": {
@@ -1494,10 +1486,6 @@
   "@seerrIntro": {
     "description": "Intro line on the Seerr settings screen."
   },
-  "seerrServerUrl": "Server URL",
-  "@seerrServerUrl": {
-    "description": "Field label for the Seerr server URL."
-  },
   "seerrApiKeySegment": "API Key",
   "@seerrApiKeySegment": {
     "description": "Segmented button label for API-key authentication mode."
@@ -1509,10 +1497,6 @@
   "seerrApiKeyHelper": "Requests are made as the admin (auto-approved).",
   "@seerrApiKeyHelper": {
     "description": "Helper text under the API key field."
-  },
-  "seerrSaveTest": "Save & Test",
-  "@seerrSaveTest": {
-    "description": "Button to save the Seerr API key and test the connection."
   },
   "seerrSignedIn": "Signed in",
   "@seerrSignedIn": {
@@ -1533,18 +1517,6 @@
   "seerrPasswordLabel": "Password",
   "@seerrPasswordLabel": {
     "description": "Field label for the password used to sign in to Seerr."
-  },
-  "seerrDisconnected": "Seerr disconnected",
-  "@seerrDisconnected": {
-    "description": "Snackbar when the Seerr URL is cleared."
-  },
-  "seerrConnected": "Connected to Seerr",
-  "@seerrConnected": {
-    "description": "Snackbar when the Seerr connection test succeeds."
-  },
-  "seerrSavedTestFailed": "Saved, but the connection test failed",
-  "@seerrSavedTestFailed": {
-    "description": "Snackbar when Seerr settings are saved but the connection test failed."
   },
   "seerrEnterCredentials": "Enter the server URL, username and password.",
   "@seerrEnterCredentials": {
@@ -1699,10 +1671,6 @@
   "playerPlaybackSpeed": "Playback Speed",
   "@playerPlaybackSpeed": {
     "description": "Player control tooltip and sheet title for the playback speed picker."
-  },
-  "playerMore": "More",
-  "@playerMore": {
-    "description": "Tooltip for the overflow (more options) menu button in the narrow player control bar."
   },
   "playerSettings": "Settings",
   "@playerSettings": {
@@ -3190,10 +3158,6 @@
   "@browseFilter": {
     "description": "Header of the library filter panel."
   },
-  "browseFilters": "Filters",
-  "@browseFilters": {
-    "description": "Tooltip for the filters button."
-  },
   "browseUnwatched": "Unwatched",
   "@browseUnwatched": {
     "description": "Library filter chip: unwatched only."
@@ -3217,10 +3181,6 @@
   "browseGridView": "Grid View",
   "@browseGridView": {
     "description": "Tooltip to switch to grid view."
-  },
-  "browseSortBy": "Sort by",
-  "@browseSortBy": {
-    "description": "Tooltip for the sort menu button."
   },
   "browseItemsCount": "{count, plural, one{{count} item} other{{count} items}}",
   "@browseItemsCount": {
@@ -3281,10 +3241,6 @@
   "browseShuffle": "Shuffle",
   "@browseShuffle": {
     "description": "Album action: shuffle play."
-  },
-  "browseMore": "More",
-  "@browseMore": {
-    "description": "Tooltip for a track's more-actions menu."
   },
   "browsePlayNext": "Play Next",
   "@browsePlayNext": {
@@ -3911,10 +3867,6 @@
       }
     }
   },
-  "ytOptions": "More",
-  "@ytOptions": {
-    "description": "Tooltip on an overflow / options menu button."
-  },
   "ytChannelFallback": "Channel",
   "@ytChannelFallback": {
     "description": "Fallback label used when a channel's name is unknown."
@@ -4124,19 +4076,6 @@
   "ytSelectDownloads": "Select",
   "@ytSelectDownloads": {
     "description": "Button to enter multi-select mode on the Downloads tab."
-  },
-  "ytSelectAll": "Select All",
-  "@ytSelectAll": {
-    "description": "Button to select every finished download at once."
-  },
-  "ytNSelected": "{count, plural, =1{1 selected} other{{count} selected}}",
-  "@ytNSelected": {
-    "description": "App-bar-style label while some downloads are selected.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
   },
   "ytDeleteSelectedTitle": "{count, plural, =1{Delete download?} other{Delete {count} downloads?}}",
   "@ytDeleteSelectedTitle": {
@@ -6629,10 +6568,6 @@
   "@extraSeeAll": {
     "description": "Button in a media row header that opens the full list of that section's items."
   },
-  "extraMore": "More",
-  "@extraMore": {
-    "description": "Tooltip for a YouTube video row overflow (three-dot) menu button."
-  },
   "miscVideoShort": "Short",
   "@miscVideoShort": {
     "description": "Duration badge on a YouTube Shorts thumbnail."
@@ -7396,8 +7331,6 @@
   "@sleepTimerTurnOff": { "description": "Button that cancels a running sleep timer." },
   "commonRepeat": "Repeat",
   "@commonRepeat": { "description": "Tooltip / screen-reader label for the repeat (off / all / one) button." },
-  "commonMoreOptions": "More",
-  "@commonMoreOptions": { "description": "Tooltip / screen-reader label for a three-dot overflow menu button." },
   "loginShowPassword": "Show Password",
   "@loginShowPassword": { "description": "Tooltip / screen-reader label for the button that reveals the typed password." },
   "loginHidePassword": "Hide Password",
@@ -7600,8 +7533,6 @@
   "@arrReleases": {"description": "Section heading: a movie's release dates."},
   "arrLoadFailed": "{app} couldn't be loaded: {error}",
   "@arrLoadFailed": {"description": "Banner when one app failed to answer.", "placeholders": {"app": {"type": "String"}, "error": {"type": "String"}}},
-  "arrMore": "More",
-  "@arrMore": {"description": "Button that opens the rest of a title's actions, or of a list's on a narrow screen."},
   "arrSearchMovie": "Search Movie",
   "@arrSearchMovie": {"description": "Button: Radarr searches the indexers for this movie and grabs the best release."},
   "arrSearchMonitored": "Search Monitored",

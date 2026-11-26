@@ -653,7 +653,7 @@ class ArrToolbar extends StatelessWidget {
                     ...actions,
                     if (fold && tools.isNotEmpty)
                       PopupMenuButton<ArrTool>(
-                        tooltip: l.arrMore,
+                        tooltip: l.commonMore,
                         icon: const Icon(Icons.more_vert_rounded),
                         onSelected: (t) => t.onTap?.call(),
                         itemBuilder: (_) => [

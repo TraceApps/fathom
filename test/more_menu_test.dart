@@ -11,16 +11,15 @@ void main() {
     final arb =
         jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
             as Map<String, dynamic>;
-    for (final key in [
-      'arrMore',
-      'browseMore',
-      'commonMoreOptions',
-      'extraMore',
-      'playerMore',
-      'ytOptions',
-    ]) {
-      expect(arb[key], 'More', reason: key);
-    }
+    expect(arb['commonMore'], 'More');
+    // One key: there were six, saying More, More Options and Options.
+    expect(
+      arb.entries
+          .where((e) => !e.key.startsWith('@') && e.value == 'More')
+          .map((e) => e.key),
+      // appNavMore is the side menu's own word, not a menu button.
+      unorderedEquals(['commonMore', 'appNavMore']),
+    );
   });
 
   test('the dots are upright, but for Shorts and a connection being checked', () {

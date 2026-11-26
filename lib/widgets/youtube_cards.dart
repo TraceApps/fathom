@@ -303,7 +303,7 @@ class _YoutubeVideoRowState extends ConsumerState<YoutubeVideoRow> {
                   !isTvDevice)
                 Builder(builder: (btnContext) {
                   return IconButton(
-                    tooltip: l.extraMore,
+                    tooltip: l.commonMore,
                     icon: Icon(Icons.more_vert_rounded,
                         size: 18, color: scheme.onSurfaceVariant),
                     onPressed: () {
