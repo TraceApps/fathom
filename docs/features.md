@@ -81,7 +81,7 @@ Because Fathom is sideloaded rather than installed from the Play Store, the firs
 Fathom on Android TV is driven with the remote alone.
 
 - **Getting around**: Left goes to the side menu from anywhere and lands on the section you're in; Right comes back. A page opens with the remote on its first item, and what sits above it (a search box, **Filter**, **Sort**) is one press of Up away.
-- **The remote's media buttons** work in every player: **Play**, **Pause**, **Rewind**, **Fast Forward**, and **Next** and **Previous** for episodes.
+- **The remote's media buttons** work in every player: **Play**, **Pause**, **Rewind**, **Fast Forward** (not on live channels, which have nowhere to seek to), and **Next** and **Previous** for episodes. Holding Rewind or Fast Forward keeps stepping; the others act once per press.
 - **Typing**: every text field, including the ones in **Administration** and **Profile**, opens the on-screen TV keyboard on Select.
 - **Reordering**: in **Home Layout** and **Navigation**, each row has **Move Up** and **Move Down**, since a remote can't drag.
 - **Left to a phone or a computer**: picking several titles at once (**Select**), and the long-press menus on posters.
