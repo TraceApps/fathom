@@ -3170,6 +3170,10 @@
   "@browseNoAlbums": {
     "description": "Empty state: an artist has no albums."
   },
+  "browseNotOnServer": "\"{term}\" isn't on your server. Discover can find it so you can request it.",
+  "@browseNotOnServer": {"description": "Search found nothing on the Jellyfin server and Seerr is connected.", "placeholders": {"term": {"type": "String"}}},
+  "browseSearchInDiscover": "Search in Discover",
+  "@browseSearchInDiscover": {"description": "Button under an empty search: searches Seerr's Discover for the same words."},
   "browseNoFavorites": "No favorites yet",
   "@browseNoFavorites": {
     "description": "Empty state: the user has no favorites."

@@ -549,9 +549,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/notifications',
               pageBuilder: (_, _) => _landingPage(const NotificationsScreen())),
+          // ?tab=search opens on Search, for a title Search didn't find on the
+          // server.
           GoRoute(
               path: '/discover',
-              pageBuilder: (_, _) => _fadePage(const DiscoverScreen())),
+              pageBuilder: (_, state) => _fadePage(DiscoverScreen(
+                  initialTab:
+                      state.uri.queryParameters['tab'] == 'search' ? 1 : 0))),
           GoRoute(
               path: '/seerr-settings',
               pageBuilder: (_, _) => _landingPage(const SeerrSettingsScreen())),

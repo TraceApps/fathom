@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../state/seerr_providers.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
 import '../state/library_providers.dart';
@@ -259,10 +260,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return _idleLanding();
     }
     if (_results.isEmpty) {
+      // Not on the server: with Seerr connected, Discover can find it to ask
+      // for (movies and shows; Seerr has no music or single episodes).
+      final term = _controller.text.trim();
+      final discover = ref.watch(seerrConfiguredProvider) &&
+          term.isNotEmpty &&
+          const {'all', 'movies', 'shows'}.contains(_filter);
       return EmptyState(
         icon: Icons.search_off_rounded,
         title: l.browseNoResults,
-        message: l.browseTryDifferentSearch,
+        message: discover
+            ? l.browseNotOnServer(term)
+            : l.browseTryDifferentSearch,
+        action: discover
+            ? FilledButton.icon(
+                onPressed: () {
+                  ref.read(seerrQueryProvider.notifier).set(term);
+                  context.push('/discover?tab=search');
+                },
+                icon: const Icon(Icons.travel_explore_rounded),
+                label: Text(l.browseSearchInDiscover),
+              )
+            : null,
       );
     }
     return GridView.builder(

@@ -25,7 +25,9 @@ import 'package:fathom/screens/favorites_screen.dart';
 import 'package:fathom/screens/movie_wheel_screen.dart';
 import 'package:fathom/screens/person_screen.dart';
 import 'package:fathom/screens/playlist_detail_screen.dart';
+import 'package:fathom/screens/search_screen.dart';
 import 'package:fathom/screens/watchlist_screen.dart';
+import 'package:fathom/state/seerr_providers.dart';
 import 'package:fathom/state/library_providers.dart';
 import 'package:fathom/state/preferences.dart';
 import 'package:fathom/state/providers.dart';
@@ -428,6 +430,65 @@ void main() {
       expect(q.current.id, 'vb');
       expect(q.at(2).current.id, 'vc');
       expect(identical(q.at(2).items, q.items), isTrue);
+    });
+  });
+
+
+  group('Search, when the server has nothing', () {
+    Future<(List<Uri>, ProviderContainer)> searchFor(WidgetTester tester,
+        {required bool seerr}) async {
+      final opened = <Uri>[];
+      final router = GoRouter(routes: [
+        GoRoute(path: '/', builder: (_, _) => const SearchScreen()),
+        GoRoute(
+            path: '/discover',
+            builder: (_, state) {
+              opened.add(state.uri);
+              return const SizedBox();
+            }),
+      ]);
+      late ProviderContainer container;
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          deviceIdProvider.overrideWithValue('test-device'),
+          sessionControllerProvider.overrideWith(_Signed.new),
+          jellyfinClientProvider.overrideWithValue(JellyfinClient(
+            deviceId: 'd',
+            httpClient: Dio()..httpClientAdapter = _PlaylistServer(),
+          )),
+          seerrConfiguredProvider.overrideWithValue(seerr),
+        ],
+        child: Consumer(builder: (context, ref, _) {
+          container = ProviderScope.containerOf(context);
+          return MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            routerConfig: router,
+          );
+        }),
+      ));
+      await tester.pump();
+      await tester.enterText(find.byType(TextField).first, 'Dune');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      await tester.pump();
+      return (opened, container);
+    }
+
+    testWidgets('with Seerr, it offers to look in Discover', (tester) async {
+      final (opened, container) = await searchFor(tester, seerr: true);
+      expect(find.text(_l.browseNotOnServer('Dune')), findsOneWidget);
+      await tester.tap(find.text('Search in Discover'));
+      await tester.pumpAndSettle();
+      expect(opened.single.queryParameters['tab'], 'search');
+      expect(container.read(seerrQueryProvider), 'Dune');
+    });
+
+    testWidgets('without Seerr, it only says try another search',
+        (tester) async {
+      await searchFor(tester, seerr: false);
+      expect(find.text('Search in Discover'), findsNothing);
+      expect(find.text(_l.browseTryDifferentSearch), findsOneWidget);
     });
   });
 

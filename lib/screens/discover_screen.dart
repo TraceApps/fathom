@@ -45,7 +45,10 @@ import '../widgets/ui_common.dart';
 
 /// Seerr Discover: browse trending / popular and request titles.
 class DiscoverScreen extends ConsumerWidget {
-  const DiscoverScreen({super.key});
+  const DiscoverScreen({super.key, this.initialTab = 0});
+
+  /// The tab to open on: 0 Discover, 1 Search, 2 Requests.
+  final int initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -69,9 +72,10 @@ class DiscoverScreen extends ConsumerWidget {
     }
     return DefaultTabController(
       length: 3,
+      initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
-          leading: mobileDrawerLeading(context),
+          leading: mobileLeading(context),
           title: Text(l.browseDiscover),
           actions: [
             // Only meaningful on the Discover tab, so it appears there alone.
