@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -423,6 +424,21 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
     _show();
   }
 
+  /// A tap or click on the picture. A mouse click plays or pauses (see
+  /// [_toggle]): the pointer's own movement already brought the chrome up.
+  /// A finger has no pointer to move, so with the chrome hidden its tap
+  /// only brings it up, and there's a way to see the time or reach a button
+  /// without pausing; with the chrome up it plays or pauses like a click.
+  void _tapPicture(PointerDeviceKind kind) {
+    final finger = kind == PointerDeviceKind.touch ||
+        kind == PointerDeviceKind.stylus;
+    if (finger && !_visible) {
+      _show();
+      return;
+    }
+    _toggle();
+  }
+
   /// D-pad control on a TV remote. The remote has no mouse to reveal the chrome
   /// and no way to press the on-screen buttons directly, so handle the transport
   /// here: any key reveals the controls; SELECT plays/pauses; LEFT/RIGHT seek;
@@ -578,7 +594,7 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: _toggle,
+                    onTapUp: (d) => _tapPicture(d.kind),
                     onDoubleTap: widget.isLive
                         ? (widget.showFullscreen
                             ? () => toggleFullscreen(context)
@@ -592,7 +608,7 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: _toggle,
+                    onTapUp: (d) => _tapPicture(d.kind),
                     onDoubleTap: widget.showFullscreen
                         ? () => toggleFullscreen(context)
                         : null,
@@ -601,7 +617,7 @@ class _FathomPlayerControlsState extends State<FathomPlayerControls>
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: _toggle,
+                    onTapUp: (d) => _tapPicture(d.kind),
                     onDoubleTap: widget.isLive
                         ? (widget.showFullscreen
                             ? () => toggleFullscreen(context)

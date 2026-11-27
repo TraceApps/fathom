@@ -591,7 +591,7 @@
   "@prefsHeaderAudio": {
     "description": "Settings section header: audio options."
   },
-  "prefsReplayGain": "Volume Levelling",
+  "prefsReplayGain": "Volume Leveling",
   "@prefsReplayGain": { "description": "Setting: ReplayGain mode for music (off / per track / per album)." },
   "prefsReplayGainSub": "Play every song at a similar loudness, using the levels stored in your files",
   "@prefsReplayGainSub": { "description": "Subtitle for the volume levelling setting." },

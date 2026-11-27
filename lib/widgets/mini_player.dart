@@ -149,6 +149,15 @@ class MiniPlayer extends ConsumerWidget {
                 icon: const Icon(Icons.skip_next_rounded),
                 onPressed: controller.next,
               ),
+              // Stops the music and closes the bar, as radio's does.
+              ControlButton(
+                size: 26,
+                grow: false,
+                icon: Icons.stop_rounded,
+                tooltip: MaterialLocalizations.of(context).closeButtonLabel,
+                color: scheme.onSurfaceVariant,
+                onTap: controller.stopMusic,
+              ),
               const SizedBox(width: 8),
             ],
           ),

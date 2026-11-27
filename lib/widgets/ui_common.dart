@@ -100,3 +100,19 @@ Future<bool> confirm(
   );
   return ok == true;
 }
+
+/// Disposes what a dialog's fields were using (text controllers, focus
+/// nodes) once the dialog has finished leaving.
+///
+/// The future from showDialog completes as the dialog STARTS to close; it
+/// is still on screen, fading out, for a moment after. Disposing right then
+/// broke the screen whenever the dialog redrew during that moment (the
+/// keyboard coming back for a field behind it does that): "A
+/// TextEditingController was used after being disposed", then a red page.
+void disposeAfterDialog(List<ChangeNotifier> used) {
+  Future<void>.delayed(const Duration(seconds: 1), () {
+    for (final u in used) {
+      u.dispose();
+    }
+  });
+}

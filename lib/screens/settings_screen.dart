@@ -13,6 +13,7 @@ import '../state/arr_providers.dart';
 import '../state/app_info.dart';
 import '../state/preferences.dart';
 import '../state/session_controller.dart';
+import '../widgets/ui_common.dart';
 import '../widgets/page_width.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/search_field.dart';
@@ -61,6 +62,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _query = '';
       _searchCtrl.clear();
     });
+    // The search box lets go: it would otherwise take focus back, and bring
+    // the keyboard up, when a dialog opened from here closes.
+    FocusManager.instance.primaryFocus?.unfocus();
     if (r.extra == SettingResult.serverAddresses) {
       final session = ref.read(sessionControllerProvider).asData?.value;
       if (session != null) _editServerAddresses(context, session);
@@ -492,8 +496,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             external: external.isEmpty ? session.baseUrl : external,
           );
     }
-    internalCtrl.dispose();
-    externalCtrl.dispose();
+    disposeAfterDialog([internalCtrl, externalCtrl]);
   }
 
   /// A tinted rounded-square icon for settings rows (a more finished, app-like

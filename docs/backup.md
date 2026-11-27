@@ -10,7 +10,7 @@ Fathom can export its own settings to a portable file and import them on another
 Everything is organized into groups, and every group is selected by default. You choose which groups to export or import:
 
 - **Appearance:** theme, accent color, AMOLED, Interface Size, the Home layout, the Discover layout and its custom sliders, the side menu's order, its hidden items and whether it's open or folded, rating badges, and grid or list view.
-- **Player:** playback, subtitles, Volume Levelling, Up Next, and keyboard shortcuts.
+- **Player:** playback, subtitles, Volume Leveling, Up Next, and keyboard shortcuts.
 - **YouTube:** its settings, and your YouTube library on this device: subscriptions, feed groups, the playlists you made, and the playlists you saved.
 - **General:** notifications, update channel, the start screen, the Movie Night Wheel's lists, recent searches, the addresses of your Seerr and Manage connections (Sonarr, Radarr, Lidarr, Prowlarr, Bazarr, qBittorrent, SABnzbd), and anything else.
 - **Internet radio:** your saved stations, groups, and favorites, and whether Radio is shown.

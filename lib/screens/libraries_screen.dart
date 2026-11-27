@@ -45,9 +45,7 @@ class LibrariesScreen extends ConsumerWidget {
               ),
               data: (all) {
                 // Live TV has its own sidebar section; don't list it here.
-                final list = all
-                    .where((v) => v.collectionType != 'livetv')
-                    .toList();
+                final list = all.where(isLibraryView).toList();
                 if (list.isEmpty) {
                   return EmptyState(
                       icon: Icons.video_library_rounded,

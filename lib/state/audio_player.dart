@@ -526,6 +526,8 @@ class AudioController extends Notifier<AudioState> {
     if (h != null) {
       subPlaying = _player.stream.playing.listen((playing) {
         _pushPlaybackState();
+        // Tell the server right away, not at the next ten-second report.
+        _reportProgress();
         // Claim audio focus whenever playback starts, not only when a source
         // is opened. Another app taking focus for good makes audio_session
         // drop both the focus and its headphone-disconnect listener, and
@@ -565,7 +567,10 @@ class AudioController extends Notifier<AudioState> {
       }
     });
     _progressTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _reportProgress();
+      // Only while playing. The pause itself is reported as it happens; a
+      // paused song reporting every ten seconds told the server it was
+      // what's on, over a video playing in the same app.
+      if (_player.state.playing) _reportProgress();
       _pushPlaybackState();
     });
     // Sleep timer: a timed stop fades out whatever is playing (or pauses the
@@ -1240,6 +1245,26 @@ class AudioController extends Notifier<AudioState> {
     ));
   }
 
+  /// Stop the music and put its queue away, so the mini player closes: the
+  /// server is told playback ended, and the notification goes with it.
+  /// Shuffle and repeat stay as they were set.
+  Future<void> stopMusic() async {
+    _reportStopped();
+    await _player.stop();
+    state = AudioState(
+      shuffle: state.shuffle,
+      repeat: state.repeat,
+      radioStation: state.radioStation,
+      radioTitle: state.radioTitle,
+      radioArtwork: state.radioArtwork,
+      radioSeekable: state.radioSeekable,
+      radioBehindLive: state.radioBehindLive,
+      radioWindow: state.radioWindow,
+      ytCurrent: state.ytCurrent,
+    );
+    _pushPlaybackState();
+  }
+
   /// Stop background YouTube audio and leave the mode. Leaves the shared queue
   /// intact (you might switch back to watching it).
   Future<void> stopYoutubeAudio() async {
@@ -1827,6 +1852,7 @@ class AudioController extends Notifier<AudioState> {
       token: c.session.accessToken,
       itemId: id,
       positionTicks: _lastPositionTicks,
+      isPaused: !_player.state.playing,
     ));
   }
 

@@ -246,7 +246,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 style: theme.textTheme.bodyMedium
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ),
-          _header(theme, _mobile ? l.backupExportSubShare : l.backupExportSub),
+          _header(theme, l.backupExportTitle),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(_mobile ? l.backupExportSubShare : l.backupExportSub,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          ),
           for (final g in orderedExport)
             CheckboxListTile(
               value: exportGroups.contains(g),

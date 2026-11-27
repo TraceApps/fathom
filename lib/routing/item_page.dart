@@ -32,6 +32,15 @@ Widget itemPage(BaseItemDto item) {
         primaryImageTag: item.primaryImageTag,
       ),
     ),
+    // A song opens its album (the title page is for something watched: it
+    // called a song a movie and sent Play to the video player).
+    'Audio' when item.albumId != null => DetailScreen(
+        item: BaseItemDto(
+          id: item.albumId!,
+          name: item.album ?? item.name,
+          type: 'MusicAlbum',
+        ),
+      ),
     _ => DetailScreen(item: item),
   };
 }
@@ -50,3 +59,10 @@ void openLibraryView(BuildContext context, BaseItemDto view) {
   final route = libraryViewRoute(view);
   context.push(route, extra: route == '/library' ? view : null);
 }
+
+/// Whether a view from the server's list is shown as one of the libraries.
+/// Live TV and Playlists are listed there by Jellyfin, but each has a place
+/// of its own in the side menu, so listing them again would be a second way
+/// into the same page.
+bool isLibraryView(BaseItemDto view) =>
+    view.collectionType != 'livetv' && view.collectionType != 'playlists';

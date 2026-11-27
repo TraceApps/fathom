@@ -9,6 +9,7 @@ import '../state/library_providers.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
+import '../state/audio_player.dart' show audioControllerProvider;
 import '../state/watchlist.dart';
 import 'watchlist_toggle.dart';
 import 'add_to_playlist.dart';
@@ -104,7 +105,12 @@ Future<void> showItemActionsMenu(
           ? Icons.play_circle_outline_rounded
           : Icons.play_arrow_rounded,
       label: item.canResume ? l.detailResume : l.commonPlay,
-      onTap: () => context.push('/player', extra: item),
+      // A song goes to the music player, not the video one.
+      onTap: item.isAudio
+          ? () => container
+              .read(audioControllerProvider.notifier)
+              .playQueue([item], 0)
+          : () => context.push('/player', extra: item),
     ));
   }
   if (fromGrid && onOpenDetails != null) {
@@ -122,10 +128,12 @@ Future<void> showItemActionsMenu(
     ));
   }
   // People, artists and playlists aren't watched or added to a playlist:
-  // only favorited.
+  // only favorited. Music isn't "watched" either.
   final isMedia =
       !const {'Person', 'MusicArtist', 'Playlist'}.contains(item.type);
-  if (isMedia) {
+  final isWatched =
+      isMedia && !item.isAudio && !const {'MusicAlbum'}.contains(item.type);
+  if (isWatched) {
     actions.add(ContextMenuAction(
       icon: item.userData.played
           ? Icons.check_circle_rounded

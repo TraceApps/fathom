@@ -56,6 +56,18 @@ class MainActivity : AudioServiceActivity() {
         )
     }
 
+    // Back from the app's first page sends it to the background instead of
+    // closing it. Closing destroyed the Flutter engine while the process (and
+    // the video engine's players in it) lived on, and the next launch then
+    // crashed half the time: cleaning those players up called back into the
+    // engine that was gone ("Callback invoked after it has been deleted").
+    // It's also what a media app is expected to do: reopening is instant and
+    // lands where you were.
+    override fun popSystemNavigator(): Boolean {
+        moveTaskToBack(true)
+        return true
+    }
+
     override fun onDestroy() {
         try {
             unregisterReceiver(pipReceiver)

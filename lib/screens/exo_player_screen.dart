@@ -12,11 +12,13 @@ import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../models/play_queue.dart';
+import '../widgets/video_system_ui.dart';
 import '../models/media_segment.dart';
 import '../models/session.dart';
 import '../services/live_streams.dart';
 import '../services/tv_mode.dart';
 import '../state/cast.dart';
+import '../state/audio_player.dart';
 import '../state/library_providers.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
@@ -286,8 +288,13 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
   // already fixed-landscape fullscreen, so this stays off there (zero TV change).
   bool get _managesOrientation => isAndroidPlatform && !isTvDevice;
 
+  // The app's theme, noted while building: it's needed on the way out, when
+  // looking it up is no longer allowed.
+  bool _lightTheme = false;
+
   void _enterImmersiveLandscape() {
     if (!_managesOrientation) return;
+    VideoSystemUi.take(this);
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
@@ -297,8 +304,10 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
 
   void _restoreSystemUi() {
     if (!_managesOrientation) return;
-    SystemChrome.setPreferredOrientations(const []);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // A newer player (Next, Previous, a playlist going on) has video mode
+    // now: leave the screen as that one set it.
+    if (!VideoSystemUi.giveBack(this)) return;
+    VideoSystemUi.restoreBars(lightTheme: _lightTheme);
   }
 
   void _focusPlay() {
@@ -390,6 +399,10 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
       var startAt = Duration(milliseconds: resumeMs);
       if (syncing && syncSession.groupStartPosition > Duration.zero) {
         startAt = syncSession.groupStartPosition;
+      }
+      // Don't let background music play under the video.
+      if (ref.read(audioControllerProvider).hasTrack) {
+        await ref.read(audioPlayerProvider).pause();
       }
       // Wait for the platform view to bind its channel, then load.
       await _waitForAttach();
@@ -811,6 +824,8 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
     // and !_groupSuppress; the initial-load flips and applied commands are out).
     if (s.playing != _wasPlaying) {
       _wasPlaying = s.playing;
+      // Tell the server right away, not at the next ten-second report.
+      if (_started) _reportProgress();
       if (s.playing && _syncCue == 'sync') _clearSyncCue();
       if (_started && !_groupSuppress && _inGroup) {
         final session = ref.read(syncPlaySessionProvider);
@@ -1200,6 +1215,7 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
           token: s.accessToken,
           itemId: widget.item.id,
           positionTicks: _controller.state.value.position.inMilliseconds * 10000,
+          isPaused: !_controller.state.value.playing,
         );
   }
 
@@ -1530,6 +1546,7 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _lightTheme = Theme.of(context).brightness == Brightness.light;
     // Follow SyncPlay commands from the group (play/pause/seek).
     ref.listen(syncCommandProvider, (_, next) => _applySyncCommand(next));
     // Hand off to a Chromecast: while a session is connected, local playback

@@ -201,9 +201,9 @@ class HomeScreen extends ConsumerWidget {
                         // Live TV has its own nav destination and opens nothing
                         // as a /library tile, so exclude it here like the
                         // Libraries hub and the sidebar do.
-                        async: views.whenData((list) => list
-                            .where((v) => v.collectionType != 'livetv')
-                            .toList()),
+                        async: views.whenData(
+                            (list) => list.where(isLibraryView).toList()),
+                        onRetry: () => ref.invalidate(userViewsProvider),
                         hideWhenEmpty: false,
                         cardBuilder: (item) => LibraryCard(
                           item: item,
@@ -266,10 +266,20 @@ class HomeScreen extends ConsumerWidget {
             Positioned(
               top: MediaQuery.of(context).padding.top + 4,
               left: 8,
+              // White on a dark disc, like the buttons over a title's art:
+              // it sits over the banner, where the theme's own icon color
+              // (dark in the light theme) disappeared.
               child: const DecoratedBox(
                 decoration: BoxDecoration(
-                    color: Colors.black26, shape: BoxShape.circle),
-                child: DrawerMenuButton(),
+                    color: Color(0x80000000), shape: BoxShape.circle),
+                child: IconButtonTheme(
+                  data: IconButtonThemeData(
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStatePropertyAll(Colors.white),
+                    ),
+                  ),
+                  child: DrawerMenuButton(),
+                ),
               ),
             ),
           // Desktop has no pull-to-refresh gesture, so give it a visible refresh
@@ -286,7 +296,21 @@ class HomeScreen extends ConsumerWidget {
     );
     // Desktop refresh shortcuts (F5 / Ctrl+R / Cmd+R). Autofocus so they fire
     // without a click first; touch uses pull-to-refresh, TV uses the D-pad.
-    if (!isDesktopWindowFrame) return scaffold;
+    if (!isDesktopWindowFrame) {
+      // Home has no app bar to set the status bar's icons, so they stayed as
+      // the last page left them: white over a pale page in the light theme
+      // after coming back from a title. Set them for the theme.
+      final dark = Theme.of(context).brightness == Brightness.dark;
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+            .copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: false,
+        ),
+        child: scaffold,
+      );
+    }
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.f5): () => refresh(),

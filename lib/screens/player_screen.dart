@@ -20,6 +20,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
 import '../models/play_queue.dart';
+import '../widgets/video_system_ui.dart';
 import '../state/admin_providers.dart';
 import '../models/media_segment.dart';
 import '../models/remote_subtitle.dart';
@@ -270,12 +271,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     // screen size, which isn't readable yet from initState, and asking
     // unconditionally made a tablet or unfolded foldable rotate and then
     // rotate back as the first build withdrew it. build() decides the lock.
+    VideoSystemUi.take(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   // Whether the landscape lock is currently asked for, so a fold/unfold only
   // talks to the platform when the answer actually changes.
   bool? _landscapeLocked;
+
+  // The app's theme, noted while building: it's needed on the way out, when
+  // looking it up is no longer allowed.
+  bool _lightTheme = false;
 
   /// Android 12 and later IGNORE an orientation request from a resizable app on
   /// a large screen, and offer the user a manual rotate button instead: asking
@@ -287,6 +293,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void _lockLandscape(bool want) {
     if (!_isMobile || _landscapeLocked == want) return;
     _landscapeLocked = want;
+    VideoSystemUi.take(this);
     SystemChrome.setPreferredOrientations(want
         ? const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
         : const []);
@@ -295,10 +302,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void _restoreSystemUi() {
     if (!_isMobile) return;
     _landscapeLocked = null;
-    // Empty list = no lock (restore whatever the app allowed before), and bring
-    // the status/nav bars back edge-to-edge.
-    SystemChrome.setPreferredOrientations(const []);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // A newer player (Next, Previous, a playlist going on) has video mode
+    // now: leave the screen as that one set it.
+    if (!VideoSystemUi.giveBack(this)) return;
+    // No lock (restore whatever the app allowed before), and bring the
+    // status/nav bars back edge-to-edge, with icons for the app's theme.
+    VideoSystemUi.restoreBars(lightTheme: _lightTheme);
   }
 
   /// Pause the video on audio interruptions the way any media app should: a
@@ -454,6 +463,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           AppLocalizations.of(context).playerPlaybackError(errorText(e)));
     });
     _playingSub = _player.stream.playing.listen((playing) {
+      // Tell the server right away, not at the next ten-second report.
+      unawaited(_reportProgress());
       _mediaSession?.updatePlayback(playing: playing, token: _sessionToken);
       SystemPipControls.update(owner: this, playing: playing);
       if (playing && !_isPlaying) {
@@ -1528,6 +1539,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             token: session.accessToken,
             itemId: widget.item.id,
             positionTicks: _positionTicks,
+            isPaused: !_player.state.playing,
           );
     } catch (_) {}
   }
@@ -1886,6 +1898,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     // the picture. Only on a phone-sized foldable; everywhere else (and when
     // the device reports no fold, which happens even on one that has one) this
     // is false and the layout is exactly as it was.
+    _lightTheme = Theme.of(context).brightness == Brightness.light;
     final fold = FoldInfo.of(context);
     final tabletop = _isMobile && !_inPip && (fold?.isTabletop ?? false);
     // Folding changes the screen size under the player, so the lock is decided

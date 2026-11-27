@@ -532,16 +532,20 @@ Future<void> reportPlaybackStart({
   }) =>
       _postPlayState('$baseUrl/Sessions/Playing', token, itemId, positionTicks);
 
-Future<void> reportPlaybackProgress({
+/// [isPaused] is what the server's dashboard, and other devices looking at
+  /// this session, go by: left out, a paused video shows as playing.
+  Future<void> reportPlaybackProgress({
     required String baseUrl,
     required String token,
     required String itemId,
     required int positionTicks,
+    bool isPaused = false,
   }) => _postPlayState(
     '$baseUrl/Sessions/Playing/Progress',
     token,
     itemId,
     positionTicks,
+    isPaused: isPaused,
   );
 
 /// Tells the server playback ended.
@@ -574,6 +578,7 @@ Future<void> _postPlayState(
     int positionTicks, {
     String? liveStreamId,
     String? playSessionId,
+    bool? isPaused,
   }) async {
     try {
       await _dio.post(
@@ -582,6 +587,7 @@ Future<void> _postPlayState(
           'ItemId': itemId,
           'MediaSourceId': itemId,
           'PositionTicks': positionTicks,
+          'IsPaused': ?isPaused,
           'CanSeek': true,
           'PlayMethod': 'DirectStream',
           'LiveStreamId': ?liveStreamId,

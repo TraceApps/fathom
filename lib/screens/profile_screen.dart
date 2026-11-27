@@ -190,9 +190,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       },
     );
-    currentCtrl.dispose();
-    newCtrl.dispose();
-    confirmCtrl.dispose();
+    disposeAfterDialog([currentCtrl, newCtrl, confirmCtrl]);
     if (ok == true) {
       showSnackOn(messenger, l.profilePasswordChanged);
     }

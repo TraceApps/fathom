@@ -90,14 +90,16 @@ Widget? mobileDrawerLeading(BuildContext context) {
 /// Genres, Downloads), so those screens are never a dead end. Null on
 /// tablet/desktop, which navigate from the persistent rail.
 Widget? mobileLeading(BuildContext context) {
+  // Whether THIS page was opened over another, not whether anything at all
+  // can be popped: a section's own page redrawn while a title is open over
+  // it (a refresh after playing or favoriting) would otherwise take a Back
+  // arrow and keep it, with nothing behind it to go back to.
+  final pushed = !(ModalRoute.of(context)?.isFirst ?? true);
   // TV: a secondary (pushed) screen shows a focusable Back button; a top-level
   // screen relies on the persistent rail, so no hamburger.
-  if (isTvDevice) {
-    return Navigator.of(context).canPop() ? const BackButton() : null;
-  }
+  if (isTvDevice) return pushed ? const BackButton() : null;
   if (MediaQuery.of(context).size.shortestSide >= 600) return null;
-  if (Navigator.of(context).canPop()) return const BackButton();
-  return const DrawerMenuButton();
+  return pushed ? const BackButton() : const DrawerMenuButton();
 }
 
 /// The hamburger itself: opens the drawer and carries a small badge when there
@@ -663,8 +665,11 @@ class _MobileShellState extends ConsumerState<_MobileShell> {
       backgroundColor: scheme.surface,
       drawer: Drawer(
         // Match the desktop rail's extended width (228) rather than Material's
-        // wide default, so it doesn't hog the phone screen.
-        width: 236,
+        // wide default, so it doesn't hog the phone screen. Plus whatever the
+        // screen keeps clear on that side (a camera cutout in landscape):
+        // the SafeArea below pushes the entries in by that much, and at a
+        // fixed width they ran out of room ("Notification").
+        width: 236 + MediaQuery.paddingOf(context).left,
         backgroundColor: scheme.surface,
         child: SafeArea(
           right: false,
@@ -1451,7 +1456,7 @@ class _LibrariesNav extends ConsumerWidget {
     final expanded = ref.watch(librariesNavExpandedProvider);
     final views = (ref.watch(userViewsProvider).asData?.value ??
             const <BaseItemDto>[])
-        .where((v) => v.collectionType != 'livetv')
+        .where(isLibraryView)
         .toList();
     final selected = location.startsWith('/libraries') ||
         location.startsWith('/library');

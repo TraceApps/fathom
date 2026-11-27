@@ -126,6 +126,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _search(term);
   }
 
+  /// Opens a result. The search box gives up focus first: it would take it
+  /// back on the way back, and bring the keyboard up over the results every
+  /// time.
+  void _open(BaseItemDto item) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    context.push('/item', extra: item);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -239,7 +247,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             itemCount: latest.length > 12 ? 12 : latest.length,
             itemBuilder: (context, i) => PosterTile(
               item: latest[i],
-              onTap: () => context.push('/item', extra: latest[i]),
+              onTap: () => _open(latest[i]),
             ),
           ),
         ],
@@ -298,7 +306,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         onceKey: _results[i].id,
         child: PosterTile(
           item: _results[i],
-          onTap: () => context.push('/item', extra: _results[i]),
+          onTap: () => _open(_results[i]),
         ),
       ),
     );
