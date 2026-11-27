@@ -1148,7 +1148,9 @@
   "@prefsSpeedNormal": {
     "description": "Playback speed option: normal (1x)."
   },
-  "prefsAutoplayNext": "Autoplay Next Episode",
+  "prefsAutoplayNext": "Autoplay Next",
+  "prefsAutoplayNextSub": "The next episode, or the next video in a playlist",
+  "@prefsAutoplayNextSub": {"description": "Under Autoplay Next in Player settings: what plays next on its own."},
   "@prefsAutoplayNext": {
     "description": "Player toggle title: autoplay the next episode."
   },
@@ -1180,7 +1182,7 @@
   "@prefsUpNextTiming": {
     "description": "Player setting title: when the Up Next card appears during credits."
   },
-  "prefsUpNextTimingSub": "How long the Up Next prompt shows before auto-playing the next episode",
+  "prefsUpNextTimingSub": "How long the Up Next prompt shows before playing what's next",
   "@prefsUpNextTimingSub": {
     "description": "Player setting subtitle for Up Next timing."
   },
@@ -1201,7 +1203,7 @@
   "@prefsUpNextStyle": {
     "description": "Player setting title: how the Up Next prompt is presented."
   },
-  "prefsUpNextStyleSub": "How the next-episode prompt looks during credits",
+  "prefsUpNextStyleSub": "How the Up Next prompt looks during credits",
   "@prefsUpNextStyleSub": {
     "description": "Player setting subtitle for Up Next style."
   },
@@ -6779,7 +6781,7 @@
   "@searchDefaultSpeed": {
     "description": "Settings search result title: default playback speed."
   },
-  "searchAutoplayNextEpisode": "Autoplay Next Episode",
+  "searchAutoplayNextEpisode": "Autoplay Next",
   "@searchAutoplayNextEpisode": {
     "description": "Settings search result title: automatically play the next episode."
   },

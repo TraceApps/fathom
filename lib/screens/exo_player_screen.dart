@@ -11,6 +11,7 @@ import '../api/error_text.dart';
 import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
+import '../models/play_queue.dart';
 import '../models/media_segment.dart';
 import '../models/session.dart';
 import '../services/live_streams.dart';
@@ -57,7 +58,12 @@ bool exoBackendActive(String backendPref) {
 class ExoPlayerScreen extends ConsumerStatefulWidget {
   final BaseItemDto item;
   final bool resume;
-  const ExoPlayerScreen({super.key, required this.item, this.resume = true});
+
+  /// A playlist's videos to go on through, this one among them. Null for a
+  /// title played on its own.
+  final PlayQueue? queue;
+  const ExoPlayerScreen(
+      {super.key, required this.item, this.resume = true, this.queue});
 
   @override
   ConsumerState<ExoPlayerScreen> createState() => _ExoPlayerScreenState();
@@ -425,8 +431,18 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
         if (mounted) _segments = segs;
       }));
       unawaited(_loadTrickplay(client, session));
-      // Load sibling episodes for the previous/next buttons.
-      if (widget.item.isEpisode &&
+      // From a playlist, Previous and Next (and Up Next) step through the
+      // playlist instead of the show.
+      final queue = widget.queue;
+      if (queue != null) {
+        if (mounted) {
+          setState(() {
+            _episodes = queue.items;
+            _epIndex = queue.index;
+          });
+        }
+      } else if (widget.item.isEpisode &&
+          // Sibling episodes, for the previous/next buttons.
           (widget.item.seriesId?.isNotEmpty ?? false)) {
         try {
           final eps = await client.getEpisodes(
@@ -478,8 +494,11 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
 
   void _goEpisode(int i) {
     if (i < 0 || i >= _episodes.length) return;
+    final queue = widget.queue;
     context.pushReplacement('/player',
-        extra: (item: _episodes[i], resume: false));
+        extra: queue != null
+            ? queue.at(i)
+            : (item: _episodes[i], resume: false));
   }
 
   // Chromecast (phone/tablet). Resolves what to hand the chosen target: a
@@ -752,7 +771,20 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
       _started = false;
       // Closing is also the stop the sleep timer wanted, if it was set to
       // the end of this one.
-      ref.read(sleepTimerProvider.notifier).consumeEndOfItem();
+      final stop = ref.read(sleepTimerProvider.notifier).consumeEndOfItem();
+      // A playlist goes on to its next video, with the same setting that
+      // lets a show go on to its next episode.
+      final prefs = ref.read(preferencesProvider).asData?.value;
+      if (!stop &&
+          widget.queue != null &&
+          prefs?.autoplayNext == true &&
+          !_advancingNext &&
+          _epIndex >= 0 &&
+          _epIndex + 1 < _episodes.length) {
+        _advancingNext = true;
+        _goEpisode(_epIndex + 1);
+        return;
+      }
       Navigator.of(context).maybePop();
       return;
     }
@@ -977,7 +1009,7 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
     }
     // Credits of an episode with a next episode → the Up Next prompt takes over
     // (its action goes to the NEXT episode); the Skip Credits pill is suppressed.
-    final hasNext = widget.item.isEpisode &&
+    final hasNext = (widget.item.isEpisode || widget.queue != null) &&
         _epIndex >= 0 &&
         _epIndex + 1 < _episodes.length;
     final inCredits = active != null && active.isCredits && hasNext;

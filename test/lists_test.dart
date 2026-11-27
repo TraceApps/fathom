@@ -14,6 +14,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
 import 'package:fathom/api/jellyfin_client.dart';
 import 'package:fathom/models/base_item.dart';
+import 'package:fathom/models/play_queue.dart';
+import 'package:fathom/state/playlist_providers.dart';
 import 'package:fathom/models/session.dart';
 import 'package:fathom/state/session_controller.dart';
 import 'package:fathom/routing/item_page.dart';
@@ -355,6 +357,77 @@ void main() {
       await c.read(watchlistProvider.notifier).remove('s1');
       expect(server.removed.map((b) => b.length), [100, 100, 50]);
       expect(server.entries, isEmpty);
+    });
+  });
+
+
+  group('a playlist plays through', () {
+    final movieA = _it('va', 'Movie', name: 'Movie A');
+    final episodeB = _it('vb', 'Episode', name: 'Episode B');
+    final movieC = _it('vc', 'Movie', name: 'Movie C');
+
+    Future<List<Object?>> open(WidgetTester tester, List<BaseItemDto> items,
+        Future<void> Function() act) async {
+      final pushed = <Object?>[];
+      final router = GoRouter(routes: [
+        GoRoute(
+            path: '/',
+            builder: (_, _) => PlaylistDetailScreen(playlist: _playlist)),
+        GoRoute(
+            path: '/player',
+            builder: (_, state) {
+              pushed.add(state.extra);
+              return const SizedBox();
+            }),
+      ]);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          deviceIdProvider.overrideWithValue('test-device'),
+          playlistItemsProvider.overrideWith((ref, id) async => items),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      await act();
+      await tester.pumpAndSettle();
+      return pushed;
+    }
+
+    testWidgets('Play starts at the top with the rest queued after it',
+        (tester) async {
+      final pushed = await open(tester, [movieA, episodeB, movieC],
+          () => tester.tap(find.byIcon(Icons.play_arrow_rounded).first));
+      final q = pushed.single as PlayQueue;
+      expect(q.items.map((i) => i.id), ['va', 'vb', 'vc']);
+      expect(q.index, 0);
+    });
+
+    testWidgets('tapping one goes on from there', (tester) async {
+      final pushed = await open(tester, [movieA, episodeB, movieC],
+          () => tester.tap(find.text('Episode B')));
+      final q = pushed.single as PlayQueue;
+      expect(q.current.id, 'vb');
+      expect(q.items.map((i) => i.id), ['va', 'vb', 'vc']);
+    });
+
+    testWidgets('Shuffle plays every video, in some order', (tester) async {
+      final pushed = await open(tester, [movieA, episodeB, movieC],
+          () => tester.tap(find.byIcon(Icons.shuffle_rounded)));
+      final q = pushed.single as PlayQueue;
+      expect(q.items.map((i) => i.id), unorderedEquals(['va', 'vb', 'vc']));
+      expect(q.index, 0);
+    });
+
+    test("the player's Next steps through the playlist, not the show", () {
+      final q = PlayQueue([movieA, episodeB, movieC], 1);
+      expect(q.current.id, 'vb');
+      expect(q.at(2).current.id, 'vc');
+      expect(identical(q.at(2).items, q.items), isTrue);
     });
   });
 

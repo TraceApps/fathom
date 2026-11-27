@@ -183,7 +183,7 @@ List<SettingResult> _everySetting(AppLocalizations l) => <SettingResult>[
   SettingResult(title: l.searchMaxQuality, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['quality', 'bitrate', 'resolution', 'transcode', 'cap', 'max']),
   SettingResult(title: l.searchTrailerQuality, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['trailer', 'quality', 'resolution']),
   SettingResult(title: l.searchDefaultSpeed, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['speed', 'playback rate', 'fast', 'slow', 'x']),
-  SettingResult(title: l.searchAutoplayNextEpisode, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['autoplay', 'next', 'episode', 'binge', 'continue']),
+  SettingResult(title: l.searchAutoplayNextEpisode, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['autoplay', 'next', 'episode', 'playlist', 'binge', 'continue']),
   SettingResult(title: l.searchRememberTrackSelections, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['track', 'audio', 'subtitle', 'remember', 'default track']),
   SettingResult(title: l.searchPreviewThumbnailsWhileSeeking, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['thumbnail', 'preview', 'trickplay', 'scrub', 'seek', 'hover']),
   SettingResult(title: l.searchAutoSkipIntros, section: l.searchPlayer, icon: _player, route: '/preferences', extra: 'player', keywords: ['skip', 'intro', 'opening', 'media segments']),

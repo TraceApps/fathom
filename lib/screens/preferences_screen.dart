@@ -927,6 +927,7 @@ class PreferencesScreen extends ConsumerWidget {
       SwitchListTile(
         secondary: const Icon(Icons.skip_next_rounded),
         title: Text(l.prefsAutoplayNext),
+        subtitle: Text(l.prefsAutoplayNextSub),
         value: p.autoplayNext,
         onChanged: (v) => c.edit((x) => x.copyWith(autoplayNext: v)),
       ),

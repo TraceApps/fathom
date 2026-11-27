@@ -19,6 +19,7 @@ import '../api/jellyfin_client.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../routing/app_shell.dart';
 import '../models/base_item.dart';
+import '../models/play_queue.dart';
 import '../state/admin_providers.dart';
 import '../models/media_segment.dart';
 import '../models/remote_subtitle.dart';
@@ -57,7 +58,12 @@ import '../services/system_pip_controls.dart';
 class PlayerScreen extends ConsumerStatefulWidget {
   final BaseItemDto item;
   final bool resume; // false = play from the beginning
-  const PlayerScreen({super.key, required this.item, this.resume = true});
+
+  /// A playlist's videos to go on through, this one among them. Null for a
+  /// title played on its own.
+  final PlayQueue? queue;
+  const PlayerScreen(
+      {super.key, required this.item, this.resume = true, this.queue});
 
   @override
   ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
@@ -1279,7 +1285,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     // you at black instead of advancing. The Up Next prompt is the sole credits
     // affordance here (the Skip Credits pill is kept only for movies and the
     // last episode, where seek-to-end is the right behaviour).
-    final hasNext = widget.item.isEpisode &&
+    final hasNext = (widget.item.isEpisode || widget.queue != null) &&
         _epIndex >= 0 &&
         _epIndex + 1 < _episodes.length;
     final inCredits = active != null && active.isCredits && hasNext;
@@ -1352,6 +1358,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   /// once on open for an episode; leaves the buttons hidden for anything else.
   Future<void> _loadSiblingEpisodes() async {
     final item = widget.item;
+    // From a playlist, Previous and Next (and Up Next, and the OS media
+    // controls) step through the playlist instead of the show.
+    final queue = widget.queue;
+    if (queue != null) {
+      setState(() {
+        _episodes = queue.items;
+        _epIndex = queue.index;
+      });
+      _beginMediaSession();
+      return;
+    }
     if (!item.isEpisode || (item.seriesId?.isEmpty ?? true)) return;
     final s = _session, c = _client;
     if (s == null || c == null) return;
@@ -1402,14 +1419,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (index < 0 || index >= _episodes.length) return;
     await _exitFullscreenIfNeeded();
     if (!mounted) return;
-    context.pushReplacement('/player', extra: _episodes[index]);
+    final queue = widget.queue;
+    context.pushReplacement('/player',
+        extra: queue != null ? queue.at(index) : _episodes[index]);
   }
 
   Future<void> _onCompleted() async {
     if (!mounted || _deactivated) return;
     // The sleep timer is set to stop at the end of this one.
     if (ref.read(sleepTimerProvider.notifier).consumeEndOfItem()) return;
-    if (widget.item.isLiveChannel || !widget.item.isEpisode) return;
+    if (widget.item.isLiveChannel) return;
+    // A playlist goes on to its next video, with the same setting that
+    // lets a show go on to its next episode.
+    if (widget.queue != null) {
+      final prefs = ref.read(preferencesProvider).asData?.value;
+      if (prefs?.autoplayNext != true || _advancingNext) return;
+      if (_epIndex >= 0 && _epIndex + 1 < _episodes.length) {
+        _advancingNext = true;
+        await _playEpisodeAt(_epIndex + 1);
+      }
+      return;
+    }
+    if (!widget.item.isEpisode) return;
     final seriesId = widget.item.seriesId;
     if (seriesId == null) return;
     final prefs = ref.read(preferencesProvider).asData?.value;

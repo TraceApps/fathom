@@ -6,6 +6,7 @@ import '../widgets/motion.dart';
 import 'route_observer.dart';
 
 import '../models/base_item.dart';
+import '../models/play_queue.dart';
 import '../models/server_connection.dart';
 import '../screens/accounts_screen.dart';
 import '../screens/admin_config_screens.dart';
@@ -218,12 +219,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           // the old screen (same route path) and keeping the old video playing.
           final BaseItemDto item;
           final bool resume;
+          PlayQueue? queue;
           if (e is BaseItemDto) {
             item = e;
             resume = true;
           } else if (e is ({BaseItemDto item, bool resume})) {
             item = e.item;
             resume = e.resume;
+          } else if (e is PlayQueue) {
+            item = e.current;
+            resume = true;
+            queue = e;
           } else {
             // The route's `extra` was lost (e.g. an app-level remount rebuilt
             // this page from scratch — go_router doesn't retain `extra` across
@@ -241,8 +247,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               ? isTvDevice
               : exoBackendActive(backend);
           final Widget screen = useExo
-              ? ExoPlayerScreen(item: item, resume: resume)
-              : PlayerScreen(item: item, resume: resume);
+              ? ExoPlayerScreen(item: item, resume: resume, queue: queue)
+              : PlayerScreen(item: item, resume: resume, queue: queue);
           return _fadePage(screen, key: ValueKey('player-${item.id}'));
         },
       ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
+import '../models/play_queue.dart';
 import '../state/audio_player.dart' show audioControllerProvider;
 import '../state/playlist_providers.dart';
 import '../state/providers.dart';
@@ -97,16 +98,49 @@ class PlaylistDetailScreen extends ConsumerWidget {
     }
   }
 
+  static bool _isFolder(BaseItemDto i) => i.isFolder || i.isSeries || i.isAlbum;
+
+  /// Plays [order] from [start] on: songs as a music queue, movies and
+  /// episodes one after another in the player. A list that mixes them goes
+  /// through the kind it starts on.
+  Future<void> _playFrom(BuildContext context, WidgetRef ref,
+      List<BaseItemDto> order, BaseItemDto start) async {
+    if (start.isAudio) {
+      final songs = [for (final i in order) if (i.isAudio) i];
+      await ref
+          .read(audioControllerProvider.notifier)
+          .playQueue(songs, songs.indexOf(start));
+      if (context.mounted) context.push('/nowplaying');
+      return;
+    }
+    final videos = [
+      for (final i in order)
+        if (!i.isAudio && !_isFolder(i)) i,
+    ];
+    context.push('/player',
+        extra: PlayQueue(videos, videos.indexOf(start)));
+  }
+
+  /// Play from the top, or in a shuffled order.
+  Future<void> _playAll(BuildContext context, WidgetRef ref,
+      List<BaseItemDto> items, {bool shuffle = false}) async {
+    final order = [
+      for (final i in items)
+        if (!_isFolder(i)) i,
+    ];
+    if (shuffle) order.shuffle();
+    if (order.isEmpty) return;
+    await _playFrom(context, ref, order, order.first);
+  }
+
   Future<void> _openItem(
       BuildContext context, WidgetRef ref, List<BaseItemDto> items, int i) async {
     final item = items[i];
-    if (item.isAudio) {
-      await ref.read(audioControllerProvider.notifier).playQueue(items, i);
-      if (context.mounted) context.push('/nowplaying');
-    } else if (item.isFolder || item.isSeries || item.isAlbum) {
+    if (_isFolder(item)) {
       context.push('/item', extra: item);
     } else {
-      context.push('/player', extra: item);
+      // On through the rest of the list from the one tapped.
+      await _playFrom(context, ref, items, item);
     }
   }
 
@@ -160,7 +194,15 @@ class PlaylistDetailScreen extends ConsumerWidget {
                       icon: Icons.play_arrow_rounded,
                       label: l.commonPlay,
                       primary: true,
-                      onTap: () => _openItem(context, ref, items, 0),
+                      showLabel: true,
+                      onTap: () => _playAll(context, ref, items),
+                    ),
+                    const SizedBox(width: 10),
+                    HoverPillButton(
+                      icon: Icons.shuffle_rounded,
+                      label: l.browseShuffle,
+                      onTap: () =>
+                          _playAll(context, ref, items, shuffle: true),
                     ),
                     const SizedBox(width: 16),
                     Text(
