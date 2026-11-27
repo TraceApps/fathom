@@ -231,6 +231,31 @@ void main() {
       expect(items.items.map((i) => i.id), contains(movieId));
     });
 
+    test('a playlist can be renamed, on old servers too', () async {
+      // 10.9 and later rename with POST /Playlists/{id}; 10.8 has no such
+      // route and takes the whole item back with its new name.
+      final id = await client.createPlaylist(
+        baseUrl: url!,
+        userId: userId,
+        token: token,
+        name: 'Before',
+      );
+      await client.renamePlaylist(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+        playlistId: id,
+        name: 'After',
+      );
+      final lists = await client.getPlaylists(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+      );
+      expect(lists.where((p) => p.id == id).single.name, 'After');
+      await client.deleteItem(baseUrl: url, token: token, itemId: id);
+    });
+
     test('serves the subtitle that sits beside the video', () async {
       final item = await client.getItem(
         baseUrl: url!,

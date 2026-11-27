@@ -3252,6 +3252,10 @@
   "@detailAddShowToWatchlist": {"description": "On an episode: puts the episode's show on the Watchlist (the Watchlist keeps shows, not single episodes)."},
   "detailRemoveShowFromWatchlist": "Remove Show from Watchlist",
   "@detailRemoveShowFromWatchlist": {"description": "On an episode: takes the episode's show off the Watchlist."},
+  "errInstallerOpen": "Couldn't open the installer: {reason}",
+  "@errInstallerOpen": {"description": "Android: the system installer refused to open for a downloaded update.", "placeholders": {"reason": {"type": "String"}}},
+  "errNotAppImage": "This copy of Fathom isn't running as an AppImage, so it can't update itself.",
+  "@errNotAppImage": {"description": "Linux: self-update asked for on a build that isn't an AppImage."},
   "errShowNoEpisodes": "This show has no episodes yet, so it can't go on the Watchlist.",
   "@errShowNoEpisodes": {"description": "Error when adding a show with no episodes to the Watchlist."},
   "watchlistAdded": "Added to Watchlist",
@@ -4948,6 +4952,12 @@
       }
     }
   },
+  "appRenamePlaylist": "Rename Playlist",
+  "@appRenamePlaylist": {"description": "Playlist page menu, and the title of its dialog: give the playlist another name."},
+  "appRenamedTo": "Renamed to \"{name}\"",
+  "@appRenamedTo": {"description": "Confirmation after renaming a playlist.", "placeholders": {"name": {"type": "String"}}},
+  "errPlaylistNameReserved": "Fathom keeps your Watchlist under that name. Pick another one.",
+  "@errPlaylistNameReserved": {"description": "Shown when a playlist is being named Fathom Watchlist, the name of the playlist the Watchlist is stored in."},
   "appDeletePlaylist": "Delete Playlist",
   "@appDeletePlaylist": {
     "description": "Playlist detail: title of the delete-playlist dialog and its menu action."

@@ -1,3 +1,4 @@
+import '../l10n/l10n.dart';
 import 'dart:ffi' show Abi;
 import 'dart:io';
 
@@ -133,7 +134,7 @@ Future<void> _installAndroidApk(ReleaseAsset asset, String version,
     await const MethodChannel('app.fathom.player/pip')
         .invokeMethod<void>('installApk', apk.path);
   } on PlatformException catch (e) {
-    throw Exception('Could not open the installer: ${e.message}');
+    throw Exception(tr.errInstallerOpen(e.message ?? e.code));
   }
 }
 
@@ -217,7 +218,7 @@ Future<void> _installLinuxAppImage(
     ReleaseAsset asset, void Function(double)? onProgress) async {
   final appImage = Platform.environment['APPIMAGE'];
   if (appImage == null || appImage.isEmpty) {
-    throw Exception('Not running as an AppImage.');
+    throw Exception(tr.errNotAppImage);
   }
   final staged = '$appImage.new';
   final dio = await secureDio();

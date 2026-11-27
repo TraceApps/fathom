@@ -37,3 +37,22 @@ final playlistItemsProvider = FutureProvider.autoDispose
     playlistId: playlistId,
   );
 });
+
+/// Names given to playlists in this run of the app, by id: a page opened on
+/// a playlist holds the name it was opened with, so a rename shows through
+/// here until the list is read again.
+class PlaylistNames extends Notifier<Map<String, String>> {
+  @override
+  Map<String, String> build() => const {};
+  void set(String id, String name) => state = {...state, id: name};
+}
+
+final playlistNamesProvider =
+    NotifierProvider<PlaylistNames, Map<String, String>>(PlaylistNames.new);
+
+/// Whether [name] can be a playlist's name: not empty, and not the one the
+/// Watchlist is kept under (a playlist by that name would become it).
+bool isPlaylistNameFree(String name) =>
+    name.trim().isNotEmpty &&
+    name.trim().toLowerCase() !=
+        WatchlistController.kWatchlistName.toLowerCase();

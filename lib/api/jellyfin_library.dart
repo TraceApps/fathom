@@ -376,7 +376,46 @@ Future<List<BaseItemDto>> _getItems(
     }
   }
 
-Future<void> addToPlaylist({
+/// Renames a playlist. Jellyfin 10.9 and later have a route for it; 10.8
+  /// doesn't (it answers 404), and there a playlist is renamed like any
+  /// item: its whole record sent back with the new name.
+  Future<void> renamePlaylist({
+    required String baseUrl,
+    required String userId,
+    required String token,
+    required String playlistId,
+    required String name,
+  }) async {
+    try {
+      await _dio.post(
+        '$baseUrl/Playlists/$playlistId',
+        data: {'Name': name},
+        options: _authed(token),
+      );
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code != 404 && code != 405) {
+        throw JellyfinException(_friendlyDioError(e), cause: e);
+      }
+      try {
+        final res = await _dio.get(
+          '$baseUrl/Users/$userId/Items/$playlistId',
+          options: _authed(token),
+        );
+        final item = Map<String, dynamic>.from(res.data as Map)
+          ..['Name'] = name;
+        await _dio.post(
+          '$baseUrl/Items/$playlistId',
+          data: item,
+          options: _authed(token),
+        );
+      } on DioException catch (e) {
+        throw JellyfinException(_friendlyDioError(e), cause: e);
+      }
+    }
+  }
+
+  Future<void> addToPlaylist({
     required String baseUrl,
     required String userId,
     required String token,

@@ -6,6 +6,7 @@ import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../models/play_queue.dart';
+import '../services/tv_mode.dart';
 import '../state/audio_player.dart' show audioControllerProvider;
 import '../state/playlist_providers.dart';
 import '../state/providers.dart';
@@ -18,6 +19,7 @@ import '../widgets/reorder.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
+import '../widgets/tv_keyboard.dart';
 import '../widgets/ui_common.dart';
 import '../api/jellyfin_client.dart';
 
@@ -72,6 +74,54 @@ class PlaylistDetailScreen extends ConsumerWidget {
         showSnackOn(messenger, l.appDeletedNamed(playlist.name),
             kind: SnackKind.success);
       }
+    } catch (e) {
+      showErrorOn(messenger, e);
+    }
+  }
+
+  Future<void> _rename(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final session = ref.read(sessionControllerProvider).asData?.value;
+    if (session == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final current =
+        ref.read(playlistNamesProvider)[playlist.id] ?? playlist.name;
+    final controller = TextEditingController(text: current);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.appRenamePlaylist),
+        content: TvTextField(
+          controller: controller,
+          autofocus: true,
+          label: l.appPlaylistName,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.commonCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: Text(l.commonSave)),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty || name == current) return;
+    if (!isPlaylistNameFree(name)) {
+      showSnackOn(messenger, l.errPlaylistNameReserved, kind: SnackKind.error);
+      return;
+    }
+    try {
+      await ref.read(jellyfinClientProvider).renamePlaylist(
+            baseUrl: session.baseUrl,
+            userId: session.userId,
+            token: session.accessToken,
+            playlistId: playlist.id,
+            name: name,
+          );
+      ref.read(playlistNamesProvider.notifier).set(playlist.id, name);
+      ref.invalidate(playlistsProvider);
+      showSnackOn(messenger, l.appRenamedTo(name), kind: SnackKind.success);
     } catch (e) {
       showErrorOn(messenger, e);
     }
@@ -150,13 +200,24 @@ class PlaylistDetailScreen extends ConsumerWidget {
     final async = ref.watch(playlistItemsProvider(playlist.id));
     return Scaffold(
       appBar: AppBar(
-        title: Text(playlist.name),
+        title: Text(
+            ref.watch(playlistNamesProvider)[playlist.id] ?? playlist.name),
         actions: [
           PopupMenuButton<String>(
+            tooltip: l.commonMore,
             onSelected: (v) {
+              if (v == 'rename') _rename(context, ref);
               if (v == 'delete') _deletePlaylist(context, ref);
             },
             itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'rename',
+                child: MenuTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(l.appRenamePlaylist),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               PopupMenuItem(
                 value: 'delete',
                 child: MenuTile(
@@ -195,6 +256,8 @@ class PlaylistDetailScreen extends ConsumerWidget {
                       label: l.commonPlay,
                       primary: true,
                       showLabel: true,
+                      // On a TV the remote lands on Play.
+                      autofocus: isTvDevice,
                       onTap: () => _playAll(context, ref, items),
                     ),
                     const SizedBox(width: 10),
@@ -252,10 +315,24 @@ class PlaylistDetailScreen extends ConsumerWidget {
                               ? Text(item.artistLine!,
                                   maxLines: 1, overflow: TextOverflow.ellipsis)
                               : null),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.remove_circle_outline_rounded),
-                        tooltip: l.commonRemove,
-                        onPressed: () => _removeEntry(context, ref, item),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // A remote can't drag: Move Up and Move Down on a TV.
+                          TvMoveButtons(
+                            index: i,
+                            count: items.length,
+                            // _reorder takes a drag's "drop before" index.
+                            onMove: (from, to) => _reorder(context, ref, items,
+                                from, to > from ? to + 1 : to),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                                Icons.remove_circle_outline_rounded),
+                            tooltip: l.commonRemove,
+                            onPressed: () => _removeEntry(context, ref, item),
+                          ),
+                        ],
                       ),
                       onTap: () => _openItem(context, ref, items, i),
                     ),

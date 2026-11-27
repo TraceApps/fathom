@@ -82,6 +82,10 @@ class _AddToPlaylistSheet extends ConsumerWidget {
       ),
     );
     if (name == null || name.isEmpty) return;
+    if (!isPlaylistNameFree(name)) {
+      showSnackOn(messenger, l.errPlaylistNameReserved, kind: SnackKind.error);
+      return;
+    }
     try {
       await ref.read(jellyfinClientProvider).createPlaylist(
             baseUrl: session.baseUrl,

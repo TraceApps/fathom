@@ -172,6 +172,24 @@ class _PlaylistServer implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Answers each request with what [answer] says: a status and a body.
+class _Scripted implements HttpClientAdapter {
+  _Scripted(this.answer);
+  final (int, String) Function(RequestOptions) answer;
+
+  @override
+  Future<ResponseBody> fetch(
+      RequestOptions o, Stream<Uint8List>? body, Future<void>? cancel) async {
+    final (status, text) = answer(o);
+    return ResponseBody.fromString(text, status, headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    });
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 class _Signed extends SessionController {
   @override
   Future<Session?> build() async => const Session(
@@ -489,6 +507,72 @@ void main() {
       await searchFor(tester, seerr: false);
       expect(find.text('Search in Discover'), findsNothing);
       expect(find.text(_l.browseTryDifferentSearch), findsOneWidget);
+    });
+  });
+
+
+  group('renaming a playlist', () {
+    test('a current server takes the new name alone', () async {
+      final calls = <String>[];
+      final client = JellyfinClient(
+        deviceId: 'd',
+        httpClient: Dio()
+          ..httpClientAdapter = _Scripted((o) {
+            calls.add('${o.method} ${o.uri.path}');
+            return (204, '');
+          }),
+      );
+      await client.renamePlaylist(
+          baseUrl: 'http://jf', userId: 'u', token: 't', playlistId: 'p1', name: 'New');
+      expect(calls, ['POST /Playlists/p1']);
+    });
+
+    test('10.8, which has no such route, gets the whole item back renamed',
+        () async {
+      final calls = <String>[];
+      Object? sent;
+      final client = JellyfinClient(
+        deviceId: 'd',
+        httpClient: Dio()
+          ..httpClientAdapter = _Scripted((o) {
+            calls.add('${o.method} ${o.uri.path}');
+            if (o.uri.path == '/Playlists/p1') return (404, '');
+            if (o.method == 'GET') {
+              return (200, jsonEncode({'Id': 'p1', 'Name': 'Old', 'Genres': ['Kept']}));
+            }
+            sent = o.data;
+            return (204, '');
+          }),
+      );
+      await client.renamePlaylist(
+          baseUrl: 'http://jf', userId: 'u', token: 't', playlistId: 'p1', name: 'New');
+      expect(calls,
+          ['POST /Playlists/p1', 'GET /Users/u/Items/p1', 'POST /Items/p1']);
+      expect(sent, {'Id': 'p1', 'Name': 'New', 'Genres': ['Kept']});
+    });
+
+    test('a server that refuses says so, with no second try', () async {
+      final calls = <String>[];
+      final client = JellyfinClient(
+        deviceId: 'd',
+        httpClient: Dio()
+          ..httpClientAdapter = _Scripted((o) {
+            calls.add('${o.method} ${o.uri.path}');
+            return (403, '');
+          }),
+      );
+      await expectLater(
+          client.renamePlaylist(
+              baseUrl: 'http://jf', userId: 'u', token: 't', playlistId: 'p1', name: 'New'),
+          throwsA(isA<JellyfinException>()));
+      expect(calls, ['POST /Playlists/p1']);
+    });
+
+    test("the Watchlist's name can't be given to a playlist", () {
+      expect(isPlaylistNameFree('Road Trip'), isTrue);
+      expect(isPlaylistNameFree('  '), isFalse);
+      expect(isPlaylistNameFree('Fathom Watchlist'), isFalse);
+      expect(isPlaylistNameFree(' fathom watchlist '), isFalse);
     });
   });
 
