@@ -25,7 +25,7 @@ class LiveTvScreen extends ConsumerWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          leading: mobileDrawerLeading(context),
+          leading: mobileLeading(context),
           title: Text(l.extraLiveTvTitle),
           actions: [
             IconButton(

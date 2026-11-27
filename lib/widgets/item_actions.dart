@@ -10,6 +10,7 @@ import '../state/preferences.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
 import '../state/watchlist.dart';
+import 'watchlist_toggle.dart';
 import 'add_to_playlist.dart';
 import 'context_menu.dart';
 import 'series_download_sheet.dart';
@@ -120,24 +121,31 @@ Future<void> showItemActionsMenu(
       onTap: onSelect,
     ));
   }
-  actions.add(ContextMenuAction(
-    icon: item.userData.played
-        ? Icons.check_circle_rounded
-        : Icons.check_circle_outline_rounded,
-    label: item.userData.played ? l.detailMarkUnwatched : l.detailMarkWatched,
-    onTap: () => _mutate(messenger, () async {
-      final s = container.read(sessionControllerProvider).asData?.value;
-      if (s == null) return;
-      await container.read(jellyfinClientProvider).setPlayed(
-            baseUrl: s.baseUrl,
-            userId: s.userId,
-            token: s.accessToken,
-            itemId: item.id,
-            played: !item.userData.played,
-          );
-      _invalidateLists(container, item);
-    }),
-  ));
+  // People, artists and playlists aren't watched or added to a playlist:
+  // only favorited.
+  final isMedia =
+      !const {'Person', 'MusicArtist', 'Playlist'}.contains(item.type);
+  if (isMedia) {
+    actions.add(ContextMenuAction(
+      icon: item.userData.played
+          ? Icons.check_circle_rounded
+          : Icons.check_circle_outline_rounded,
+      label:
+          item.userData.played ? l.detailMarkUnwatched : l.detailMarkWatched,
+      onTap: () => _mutate(messenger, () async {
+        final s = container.read(sessionControllerProvider).asData?.value;
+        if (s == null) return;
+        await container.read(jellyfinClientProvider).setPlayed(
+              baseUrl: s.baseUrl,
+              userId: s.userId,
+              token: s.accessToken,
+              itemId: item.id,
+              played: !item.userData.played,
+            );
+        _invalidateLists(container, item);
+      }),
+    ));
+  }
   // From the row itself, anything in it can go. Elsewhere, only something that
   // actually has a resume point (live channels carry a position too, but they
   // aren't in that row).
@@ -186,30 +194,34 @@ Future<void> showItemActionsMenu(
             favorite: !item.userData.isFavorite,
           );
       _invalidateLists(container, item);
+      showSnackOn(
+        messenger,
+        item.userData.isFavorite ? l.favoriteRemoved : l.favoriteAdded,
+        kind: SnackKind.success,
+      );
     }),
   ));
-  final inWatchlist =
-      container.read(watchlistProvider.notifier).isInWatchlist(item.id);
-  actions.add(ContextMenuAction(
-    icon: inWatchlist ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-    label:
-        inWatchlist ? l.detailRemoveFromWatchlist : l.detailAddToWatchlist,
-    color: inWatchlist ? cs.primary : null,
-    onTap: () => _mutate(messenger, () async {
-      final watchlist = container.read(watchlistProvider.notifier);
-      if (watchlist.isInWatchlist(item.id)) {
-        await watchlist.remove(item.id);
-      } else {
-        await watchlist.add(item);
-      }
-    }),
-  ));
-  actions.add(ContextMenuAction(
-    icon: Icons.playlist_add_rounded,
-    label: l.detailAddToPlaylist,
-    onTap: () => showAddToPlaylistSheet(context, ref,
-        itemIds: [item.id], label: item.name),
-  ));
+  final watchlist =
+      container.read(watchlistProvider).asData?.value ?? const <BaseItemDto>[];
+  if (hasWatchlistToggle(watchlist, item)) {
+    final inWatchlist = inWatchlistFor(watchlist, item);
+    actions.add(ContextMenuAction(
+      icon:
+          inWatchlist ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+      label: watchlistToggleLabel(l, watchlist, item),
+      color: inWatchlist ? cs.primary : null,
+      onTap: () => toggleWatchlist(messenger, l,
+          container.read(watchlistProvider.notifier), watchlist, item),
+    ));
+  }
+  if (isMedia) {
+    actions.add(ContextMenuAction(
+      icon: Icons.playlist_add_rounded,
+      label: l.detailAddToPlaylist,
+      onTap: () => showAddToPlaylistSheet(context, ref,
+          itemIds: [item.id], label: item.name),
+    ));
+  }
   if (isDownloadable) {
     final downloads =
         container.read(downloadsProvider).asData?.value ?? const {};

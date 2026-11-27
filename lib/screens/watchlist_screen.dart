@@ -23,7 +23,7 @@ class WatchlistScreen extends ConsumerWidget {
         .select((p) => p.asData?.value.movieWheelEnabled ?? true));
     return Scaffold(
       appBar: AppBar(
-        leading: mobileDrawerLeading(context),
+        leading: mobileLeading(context),
         title: Text(l.browseWatchlist),
         actions: [
           if (wheelEnabled)

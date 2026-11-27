@@ -17,7 +17,9 @@ import '../api/jellyfin_client.dart';
 class MediaImage extends ConsumerWidget {
   final BaseItemDto item;
   final bool landscape;
-  final IconData placeholderIcon;
+  /// The icon when there's no picture. Unset, it follows the item's kind (a
+  /// person, music, a show, a playlist), so a song isn't shown as a film.
+  final IconData? placeholderIcon;
 
   /// What to show when there is no picture, in place of the icon on a
   /// tinted box: for a large surface (the Home banner) where a small icon
@@ -41,7 +43,7 @@ class MediaImage extends ConsumerWidget {
     super.key,
     required this.item,
     this.landscape = false,
-    this.placeholderIcon = Icons.movie_rounded,
+    this.placeholderIcon,
     this.placeholder,
     this.maxWidth,
     this.maxHeight,
@@ -167,7 +169,20 @@ class MediaImage extends ConsumerWidget {
     return Container(
       color: scheme.surfaceContainerHighest,
       alignment: Alignment.center,
-      child: Icon(placeholderIcon, color: scheme.onSurfaceVariant, size: 32),
+      child: Icon(placeholderIcon ?? placeholderIconFor(item),
+          color: scheme.onSurfaceVariant, size: 32),
     );
   }
 }
+
+/// The placeholder icon for an item with no picture, by what it is.
+IconData placeholderIconFor(BaseItemDto item) => switch (item.type) {
+      'Person' => Icons.person_rounded,
+      'MusicArtist' => Icons.mic_rounded,
+      'MusicAlbum' => Icons.album_rounded,
+      'Audio' => Icons.music_note_rounded,
+      'Series' || 'Season' || 'Episode' => Icons.tv_rounded,
+      'Playlist' => Icons.playlist_play_rounded,
+      'BoxSet' => Icons.video_library_rounded,
+      _ => Icons.movie_rounded,
+    };

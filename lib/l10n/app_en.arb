@@ -3236,6 +3236,30 @@
   "@browseMusic": {
     "description": "Search filter: music."
   },
+  "browseCollections": "Collections",
+  "@browseCollections": {"description": "Favorites filter: collections (box sets)."},
+  "browseVideos": "Videos",
+  "@browseVideos": {"description": "Favorites filter: home videos and music videos."},
+  "browsePeople": "People",
+  "@browsePeople": {"description": "Favorites filter: actors, directors and other people."},
+  "detailAddShowToWatchlist": "Add Show to Watchlist",
+  "@detailAddShowToWatchlist": {"description": "On an episode: puts the episode's show on the Watchlist (the Watchlist keeps shows, not single episodes)."},
+  "detailRemoveShowFromWatchlist": "Remove Show from Watchlist",
+  "@detailRemoveShowFromWatchlist": {"description": "On an episode: takes the episode's show off the Watchlist."},
+  "errShowNoEpisodes": "This show has no episodes yet, so it can't go on the Watchlist.",
+  "@errShowNoEpisodes": {"description": "Error when adding a show with no episodes to the Watchlist."},
+  "watchlistAdded": "Added to Watchlist",
+  "@watchlistAdded": {"description": "Confirmation after putting a title on the Watchlist."},
+  "watchlistRemoved": "Removed from Watchlist",
+  "@watchlistRemoved": {"description": "Confirmation after taking a title off the Watchlist."},
+  "watchlistShowAdded": "Added {show} to Watchlist",
+  "@watchlistShowAdded": {"description": "Confirmation after putting an episode's show on the Watchlist.", "placeholders": {"show": {"type": "String"}}},
+  "watchlistShowRemoved": "Removed {show} from Watchlist",
+  "@watchlistShowRemoved": {"description": "Confirmation after taking an episode's show off the Watchlist.", "placeholders": {"show": {"type": "String"}}},
+  "favoriteAdded": "Added to Favorites",
+  "@favoriteAdded": {"description": "Confirmation after favoriting something."},
+  "favoriteRemoved": "Removed from Favorites",
+  "@favoriteRemoved": {"description": "Confirmation after taking something out of Favorites."},
   "browseTvShows": "TV Shows",
   "@browseTvShows": {
     "description": "Request media-type filter: TV shows."
@@ -4905,7 +4929,7 @@
   "@appNoPlaylists": {
     "description": "Playlists screen empty state title."
   },
-  "appNoPlaylistsMessage": "Create a playlist, then add movies, shows, or songs.",
+  "appNoPlaylistsMessage": "Create one here, or use Add to Playlist in any title's More menu. A playlist can mix movies, episodes and songs.",
   "@appNoPlaylistsMessage": {
     "description": "Playlists screen empty state message."
   },

@@ -469,6 +469,25 @@ Future<void> deletePlaylist({
     );
   }
 
+/// The people (actors, directors, writers) the user has favorited. Jellyfin
+  /// 10.8 and 10.10 leave people out of /Items even when asked for them, so
+  /// they come from /Persons on every server.
+  Future<List<BaseItemDto>> getFavoritePeople({
+    required String baseUrl,
+    required String userId,
+    required String token,
+  }) {
+    return _getItems(
+      '$baseUrl/Persons',
+      token,
+      query: {
+        'userId': userId,
+        'isFavorite': 'true',
+        'Fields': 'PrimaryImageAspectRatio',
+      },
+    );
+  }
+
 /// The signed-in user, including their live policy (admin / delete rights).
   Future<UserDto> getCurrentUser({
     required String baseUrl,

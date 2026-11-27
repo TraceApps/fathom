@@ -558,18 +558,65 @@ final favoriteItemsProvider =
   final session = ref.watch(sessionControllerProvider).asData?.value;
   if (session == null) return const [];
   final client = ref.watch(jellyfinClientProvider);
-  final res = await client.getItems(
+  // Everything favorited, in pages, so a long list is never cut short.
+  final items = <BaseItemDto>[];
+  const page = 200;
+  while (true) {
+    final res = await client.getItems(
+      baseUrl: session.baseUrl,
+      userId: session.userId,
+      token: session.accessToken,
+      isFavorite: true,
+      includeItemTypes: favoriteItemTypes,
+      recursive: true,
+      sortBy: 'SortName',
+      startIndex: items.length,
+      limit: page,
+    );
+    items.addAll(res.items);
+    if (res.items.length < page || items.length >= res.totalRecordCount) {
+      break;
+    }
+  }
+  final people = await client.getFavoritePeople(
     baseUrl: session.baseUrl,
     userId: session.userId,
     token: session.accessToken,
-    isFavorite: true,
-    includeItemTypes: 'Movie,Series,MusicAlbum',
-    recursive: true,
-    sortBy: 'SortName',
-    limit: 300,
   );
-  return res.items;
+  final seen = {for (final i in items) i.id};
+  return [
+    ...items,
+    for (final p in people)
+      if (seen.add(p.id)) p,
+  ];
 });
+
+/// What Favorites lists from /Items (people come from /Persons).
+const favoriteItemTypes =
+    'Movie,Series,Episode,BoxSet,Video,MusicVideo,MusicAlbum,MusicArtist,'
+    'Audio,Playlist';
+
+/// The groups Favorites can be narrowed to, each with the item types in it.
+enum FavoriteGroup {
+  movies({'Movie'}),
+  shows({'Series'}),
+  episodes({'Episode'}),
+  collections({'BoxSet'}),
+  videos({'Video', 'MusicVideo'}),
+  music({'MusicAlbum', 'MusicArtist', 'Audio'}),
+  playlists({'Playlist'}),
+  people({'Person'});
+
+  const FavoriteGroup(this.types);
+  final Set<String> types;
+
+  static FavoriteGroup? of(BaseItemDto item) {
+    for (final g in values) {
+      if (g.types.contains(item.type)) return g;
+    }
+    return null;
+  }
+}
 
 /// Children of a collection (BoxSet).
 final collectionItemsProvider = FutureProvider.autoDispose
@@ -743,6 +790,18 @@ final nextUpProvider =
     seriesId: seriesId,
   );
 });
+
+/// What Play starts for [item]: itself, or for a show its Next Up, falling
+/// back to the first episode when there's no Next Up (all watched, or a
+/// recorded series). Null while a show's episodes are still loading, or when
+/// it has none. A show itself can't be played: the server refuses it.
+BaseItemDto? playTargetFor(WidgetRef ref, BaseItemDto item) {
+  if (!item.isSeries) return item;
+  final nextUp = ref.watch(nextUpProvider(item.id)).asData?.value;
+  if (nextUp != null) return nextUp;
+  final episodes = ref.watch(episodesProvider(item.id)).asData?.value;
+  return (episodes == null || episodes.isEmpty) ? null : episodes.first;
+}
 
 /// All episodes of a series, in order.
 final episodesProvider = FutureProvider.autoDispose

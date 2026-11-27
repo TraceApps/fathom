@@ -35,6 +35,12 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint /usr/lib/jellyfin-ffmpeg
   -f lavfi -i "anullsrc=r=22050:cl=mono" -shortest \
   -c:v libx264 -preset ultrafast -crf 40 -c:a aac -b:a 16k \
   "/out/Fathom Test Movie (2020).mkv"
+# An actor, read from the NFO beside the movie (no internet needed), so
+# favoriting a person can be checked too.
+cat > "$MOVIE/Fathom Test Movie (2020).nfo" <<'NFO'
+<?xml version="1.0" encoding="UTF-8"?>
+<movie><title>Fathom Test Movie</title><year>2020</year><actor><name>Fathom Test Actor</name><role>Lead</role></actor></movie>
+NFO
 cat > "$MOVIE/Fathom Test Movie (2020).en.srt" <<'SRT'
 1
 00:00:01,000 --> 00:00:04,000

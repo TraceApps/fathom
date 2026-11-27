@@ -10,7 +10,7 @@ import '../models/server_connection.dart';
 import '../screens/accounts_screen.dart';
 import '../screens/admin_config_screens.dart';
 import '../screens/admin_screen.dart';
-import '../screens/detail_screen.dart';
+import 'item_page.dart';
 import '../screens/backup_screen.dart';
 import '../screens/diagnostics_screen.dart';
 import '../screens/discover_screen.dart';
@@ -41,7 +41,6 @@ import '../screens/youtube_screen.dart';
 import '../screens/youtube_watch_screen.dart';
 import '../screens/youtube_shorts_screen.dart';
 import '../models/youtube_video.dart';
-import '../screens/playlist_detail_screen.dart';
 import '../screens/playlists_screen.dart';
 import '../screens/preferences_screen.dart';
 import '../screens/profile_screen.dart';
@@ -355,7 +354,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/item',
             pageBuilder: (context, state) =>
-                _landingPage(DetailScreen(item: state.extra as BaseItemDto)),
+                _landingPage(itemPage(state.extra as BaseItemDto)),
           ),
           GoRoute(
             path: '/library',
@@ -446,8 +445,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               pageBuilder: (_, _) => _fadePage(const PlaylistsScreen())),
           GoRoute(
             path: '/playlist',
-            pageBuilder: (context, state) => _landingPage(
-                PlaylistDetailScreen(playlist: state.extra as BaseItemDto)),
+            pageBuilder: (context, state) =>
+                _landingPage(itemPage(state.extra as BaseItemDto)),
           ),
           GoRoute(
             path: '/person',

@@ -1018,7 +1018,6 @@ class _WedgePoster extends StatelessWidget {
         angle: mid + math.pi / 2,
         child: MediaImage(
           item: item,
-          placeholderIcon: Icons.movie_rounded,
           maxHeight: requestHeight,
           // Medium (bilinear + mipmaps), not high (bicubic): the posters are
           // drawn at roughly their own size, so the two are hard to tell apart

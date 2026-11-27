@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:fathom/state/library_providers.dart' show favoriteItemTypes;
 import 'package:fathom/api/jellyfin_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -192,6 +193,42 @@ void main() {
         isFavorite: true,
       );
       expect(favorites.items.map((i) => i.id), contains(movieId));
+    });
+
+    test('Favorites lists a favorite person, on old servers too', () async {
+      // Jellyfin 10.8 and 10.10 leave people out of /Items even when asked
+      // for them; Favorites asks /Persons, which every version answers.
+      final movie = await client.getItem(
+        baseUrl: url!,
+        userId: userId,
+        token: token,
+        itemId: movieId,
+      );
+      final actor = movie.people.firstWhere((p) => p.name == 'Fathom Test Actor');
+      await client.setFavorite(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+        itemId: actor.id,
+        favorite: true,
+      );
+      final people = await client.getFavoritePeople(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+      );
+      expect(people.map((p) => p.id), contains(actor.id));
+      expect(people.single.type, 'Person');
+      // And the media list Favorites asks for still has the movie.
+      final items = await client.getItems(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+        includeItemTypes: favoriteItemTypes,
+        recursive: true,
+        isFavorite: true,
+      );
+      expect(items.items.map((i) => i.id), contains(movieId));
     });
 
     test('serves the subtitle that sits beside the video', () async {

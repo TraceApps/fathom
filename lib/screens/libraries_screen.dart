@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../routing/item_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,11 +21,7 @@ class LibrariesScreen extends ConsumerWidget {
   const LibrariesScreen({super.key});
 
   void _open(BuildContext context, BaseItemDto view) {
-    if (view.collectionType == 'livetv') {
-      context.push('/livetv');
-    } else {
-      context.push('/library', extra: view);
-    }
+    openLibraryView(context, view);
   }
 
   @override

@@ -19,6 +19,11 @@ import '../state/providers.dart';
 import '../state/session_controller.dart';
 import '../state/syncplay.dart';
 import '../state/watchlist.dart';
+import '../api/error_text.dart';
+import '../widgets/error_view.dart';
+import '../widgets/checked_menu_item.dart';
+import '../widgets/watchlist_toggle.dart';
+import '../state/library_providers.dart';
 import '../widgets/clapper_icon.dart';
 import '../widgets/hover_pill_button.dart';
 import '../widgets/media_image.dart';
@@ -434,8 +439,8 @@ class _MovieWheelScreenState extends ConsumerState<MovieWheelScreen> {
     if (prefs != null) _loadPrefs(prefs);
     final sound = prefs?.movieWheelSound ?? true;
     _audio.muted = !sound;
-    final watchlist =
-        ref.watch(watchlistProvider).asData?.value ?? const <BaseItemDto>[];
+    final watchlistAsync = ref.watch(watchlistProvider);
+    final watchlist = watchlistAsync.value ?? const <BaseItemDto>[];
     final candidates = _candidates(watchlist);
     _ensureDetails(candidates);
 
@@ -454,6 +459,14 @@ class _MovieWheelScreenState extends ConsumerState<MovieWheelScreen> {
         ],
       ),
       body: switch (_phase) {
+        // Until the Watchlist has loaded, an empty list would wrongly say
+        // there's nothing on it; when it can't load, say why and offer Retry.
+        _Phase.setup when !watchlistAsync.hasValue => watchlistAsync.hasError
+            ? ErrorView(
+                message: errorText(watchlistAsync.error!),
+                onRetry: () => ref.invalidate(watchlistProvider),
+              )
+            : const Center(child: AppSpinner()),
         _Phase.setup => _buildSetup(context, candidates, watchlist),
         _Phase.spinning => _buildSpin(context, sound),
         _Phase.winner => _WinnerView(
@@ -562,8 +575,13 @@ class _MovieWheelScreenState extends ConsumerState<MovieWheelScreen> {
             tooltip: l.wheelFilterGenre,
             onSelected: (g) => setState(() => _genre = g.isEmpty ? null : g),
             itemBuilder: (_) => [
-              PopupMenuItem(value: '', child: Text(l.wheelFilterAllGenres)),
-              for (final g in genres) PopupMenuItem(value: g, child: Text(g)),
+              CheckedMenuItem(
+                value: '',
+                checked: _genre == null,
+                child: Text(l.wheelFilterAllGenres),
+              ),
+              for (final g in genres)
+                CheckedMenuItem(value: g, checked: _genre == g, child: Text(g)),
             ],
             child: Chip(
               avatar: const Icon(Icons.theater_comedy_rounded, size: 18),
@@ -948,7 +966,7 @@ class _Thumb extends StatelessWidget {
       child: SizedBox(
         width: 40,
         height: 56,
-        child: MediaImage(item: item, placeholderIcon: Icons.movie_rounded),
+        child: MediaImage(item: item),
       ),
     );
   }
@@ -1030,7 +1048,7 @@ class _OutThumb extends StatelessWidget {
                   0, 0, 0, 0.55, 0,
                 ]),
                 child:
-                    MediaImage(item: item, placeholderIcon: Icons.movie_rounded),
+                    MediaImage(item: item),
               ),
               const Center(
                 child: Icon(Icons.close_rounded,
@@ -1058,7 +1076,7 @@ class _ScoreChip extends StatelessWidget {
           child: SizedBox(
             width: 22,
             height: 32,
-            child: MediaImage(item: item, placeholderIcon: Icons.movie_rounded),
+            child: MediaImage(item: item),
           ),
         ),
         label: Text('${'★' * count}  ${item.name}',
@@ -1116,7 +1134,7 @@ class _ResultOverlayState extends State<_ResultOverlay> {
                     child: Opacity(
                       opacity: out ? 0.5 : 1,
                       child: MediaImage(
-                          item: item, placeholderIcon: Icons.movie_rounded),
+                          item: item),
                     ),
                   ),
                 ),
@@ -1180,13 +1198,15 @@ class _WinnerViewState extends ConsumerState<_WinnerView>
   }
 
   // The same add/remove toggle as the detail screen's Watchlist button.
-  Future<void> _toggleWatchlist(bool inWatchlist) async {
+  Future<void> _toggleWatchlist(List<BaseItemDto> watchlist) async {
     setState(() => _watchlistBusy = true);
-    final c = ref.read(watchlistProvider.notifier);
     try {
-      inWatchlist
-          ? await c.remove(widget.winner.id)
-          : await c.add(widget.winner);
+      await toggleWatchlist(
+          ScaffoldMessenger.of(context),
+          AppLocalizations.of(context),
+          ref.read(watchlistProvider.notifier),
+          watchlist,
+          widget.winner);
     } finally {
       if (mounted) setState(() => _watchlistBusy = false);
     }
@@ -1201,8 +1221,10 @@ class _WinnerViewState extends ConsumerState<_WinnerView>
     final inGroup = ref.watch(syncPlayControllerProvider);
     // .value keeps the last list while it reloads after a toggle, so the
     // pill doesn't flicker back to "not on the Watchlist" mid-refresh.
-    final inWatchlist = (ref.watch(watchlistProvider).value ?? const [])
-        .any((e) => e.id == w.id);
+    final watchlist =
+        ref.watch(watchlistProvider).value ?? const <BaseItemDto>[];
+    final inWatchlist = inWatchlistFor(watchlist, w);
+    final playTarget = playTargetFor(ref, w);
 
     return Stack(
       children: [
@@ -1215,7 +1237,6 @@ class _WinnerViewState extends ConsumerState<_WinnerView>
               height: wide ? 360 : 255,
               child: MediaImage(
                 item: w,
-                placeholderIcon: Icons.movie_rounded,
                 maxHeight: 720,
                 filterQuality: FilterQuality.high,
               ),
@@ -1296,7 +1317,10 @@ class _WinnerViewState extends ConsumerState<_WinnerView>
                         ? Icons.groups_rounded
                         : Icons.play_arrow_rounded,
                     label: inGroup ? l.wheelPlayForGroup : l.commonPlay,
-                    onTap: () => context.push('/player', extra: w),
+                    // A show plays its Next Up, like its title page.
+                    onTap: playTarget == null
+                        ? null
+                        : () => context.push('/player', extra: playTarget),
                   ),
                   if (w.trailerUrl != null)
                     HoverPillButton(
@@ -1310,12 +1334,10 @@ class _WinnerViewState extends ConsumerState<_WinnerView>
                     icon: inWatchlist
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
-                    label: inWatchlist
-                        ? l.detailRemoveFromWatchlist
-                        : l.detailAddToWatchlist,
+                    label: watchlistToggleLabel(l, watchlist, w),
                     onTap: _watchlistBusy
                         ? null
-                        : () => _toggleWatchlist(inWatchlist),
+                        : () => _toggleWatchlist(watchlist),
                   ),
                   ClapOnHover(
                     child: HoverPillButton(

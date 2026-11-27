@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../routing/item_page.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -100,6 +101,17 @@ class HomeScreen extends ConsumerWidget {
               // on screen without needing to scroll.
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
+            // With no banner up top (turned off, nothing to feature, or the
+            // server out of reach), the first row would sit under the
+            // floating menu button on a phone: leave it room.
+            if (_floatingMenu(context) &&
+                !(prefs.homeBanner != 'hide' &&
+                    hero.isLoading &&
+                    !hero.hasValue) &&
+                !(prefs.homeBanner == 'carousel' &&
+                    (hero.value ?? const []).isNotEmpty) &&
+                !(prefs.homeBanner == 'detailed' && heroItem != null))
+              const SliverToBoxAdapter(child: SizedBox(height: 56)),
             if (prefs.homeBanner != 'hide' &&
                 hero.isLoading &&
                 !hero.hasValue)
@@ -195,7 +207,7 @@ class HomeScreen extends ConsumerWidget {
                         hideWhenEmpty: false,
                         cardBuilder: (item) => LibraryCard(
                           item: item,
-                          onTap: () => context.push('/library', extra: item),
+                          onTap: () => openLibraryView(context, item),
                         ),
                       )
                     : null,
@@ -250,7 +262,7 @@ class HomeScreen extends ConsumerWidget {
           // Home has no app bar (the hero fills the top), so on a phone a small
           // floating button opens the navigation drawer, with a scrim behind it
           // for legibility over bright hero art.
-          if (MediaQuery.of(context).size.shortestSide < 600 && !isTvDevice)
+          if (_floatingMenu(context))
             Positioned(
               top: MediaQuery.of(context).padding.top + 4,
               left: 8,
@@ -407,3 +419,8 @@ class _HomeRefreshButtonState extends State<_HomeRefreshButton>
     );
   }
 }
+
+/// Whether Home floats a menu button over its top-left corner: on a phone,
+/// which has no rail and Home no app bar.
+bool _floatingMenu(BuildContext context) =>
+    MediaQuery.of(context).size.shortestSide < 600 && !isTvDevice;

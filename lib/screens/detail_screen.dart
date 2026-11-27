@@ -21,6 +21,7 @@ import '../state/arr_providers.dart';
 import '../models/arr.dart';
 import '../state/session_controller.dart';
 import '../state/watchlist.dart';
+import '../widgets/watchlist_toggle.dart';
 import '../widgets/add_to_playlist.dart';
 import '../widgets/context_menu.dart';
 import '../widgets/item_actions.dart';
@@ -271,27 +272,28 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     }
   }
 
-  Future<void> _toggleFavorite(WidgetRef ref) async {
+  Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
     final session = ref.read(sessionControllerProvider).asData?.value;
     if (session == null) return;
-    await ref
-        .read(jellyfinClientProvider)
-        .setFavorite(
-          baseUrl: session.baseUrl,
-          userId: session.userId,
-          token: session.accessToken,
-          itemId: item.id,
-          favorite: !item.userData.isFavorite,
-        );
-    ref.invalidate(itemDetailProvider(item.id));
-  }
-
-  Future<void> _toggleWatchlist(WidgetRef ref, bool inWatchlist) async {
-    final watchlist = ref.read(watchlistProvider.notifier);
-    if (inWatchlist) {
-      await watchlist.remove(item.id);
-    } else {
-      await watchlist.add(item);
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final wasFavorite = item.userData.isFavorite;
+    try {
+      await ref
+          .read(jellyfinClientProvider)
+          .setFavorite(
+            baseUrl: session.baseUrl,
+            userId: session.userId,
+            token: session.accessToken,
+            itemId: item.id,
+            favorite: !wasFavorite,
+          );
+      ref.invalidate(itemDetailProvider(item.id));
+      ref.invalidate(favoriteItemsProvider);
+      showSnackOn(messenger, wasFavorite ? l.favoriteRemoved : l.favoriteAdded,
+          kind: SnackKind.success);
+    } catch (e) {
+      showErrorOn(messenger, e);
     }
   }
 
@@ -306,8 +308,10 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final watched = downloadScoped ? _localWatched(ref) : item.userData.played;
     // Not meaningful in download-scoped mode (guarded below), but computing it
     // unconditionally keeps this a plain top-of-build value like the others.
-    final inWatchlist = (ref.watch(watchlistProvider).asData?.value ?? const [])
-        .any((e) => e.id == item.id);
+    final watchlist =
+        ref.watch(watchlistProvider).asData?.value ?? const <BaseItemDto>[];
+    final showWatchlist = hasWatchlistToggle(watchlist, item);
+    final inWatchlist = inWatchlistFor(watchlist, item);
     // Cast / Play-on stream from the server, so in download mode they only make
     // sense online. Normal mode is always "online" here (no behaviour change).
     final online = !downloadScoped ||
@@ -491,20 +495,24 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                     iconOff: Icons.favorite_border_rounded,
                     selectedColor: Colors.redAccent,
                   ),
-                  onPressed: () => _toggleFavorite(ref),
+                  onPressed: () => _toggleFavorite(context, ref),
                 ),
-                IconButton(
-                  tooltip: inWatchlist
-                      ? l.detailRemoveFromWatchlist
-                      : l.detailAddToWatchlist,
-                  icon: _PopIcon(
-                    selected: inWatchlist,
-                    icon: Icons.bookmark_rounded,
-                    iconOff: Icons.bookmark_border_rounded,
-                    selectedColor: scheme.primary,
+                if (showWatchlist)
+                  IconButton(
+                    tooltip: watchlistToggleLabel(l, watchlist, item),
+                    icon: _PopIcon(
+                      selected: inWatchlist,
+                      icon: Icons.bookmark_rounded,
+                      iconOff: Icons.bookmark_border_rounded,
+                      selectedColor: scheme.primary,
+                    ),
+                    onPressed: () => toggleWatchlist(
+                        ScaffoldMessenger.of(context),
+                        l,
+                        ref.read(watchlistProvider.notifier),
+                        watchlist,
+                        item),
                   ),
-                  onPressed: () => _toggleWatchlist(ref, inWatchlist),
-                ),
               ],
               _ItemMenu(item: item, downloadScoped: downloadScoped),
             ],
