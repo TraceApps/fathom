@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:fathom/state/library_providers.dart' show favoriteItemTypes;
 import 'package:fathom/api/jellyfin_client.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_test/flutter_test.dart';
 
 // The core flows against a real Jellyfin server: sign in, browse, play,
@@ -299,16 +300,27 @@ void main() {
             ))
               i.id,
           ];
+      // Jellyfin answers before the list is written: wait for it, as the
+      // app does, before the next change.
+      Future<List<String>> settled(List<String> want) async {
+        var got = await entries();
+        for (var i = 0; i < 20 && !listEquals(got, want); i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+          got = await entries();
+        }
+        return got;
+      }
+
       await client.setPlaylistItems(
           baseUrl: url, token: token, playlistId: id, itemIds: [movieId, movieId]);
-      final held = await entries();
+      final held = await settled([movieId, movieId]);
       // 10.10 keeps one of each title in a playlist, so there's nothing to
       // tell apart there; the current server holds both.
       expect(held.toSet(), {movieId});
       expect(held.length, inInclusiveRange(1, 2));
       await client.setPlaylistItems(
           baseUrl: url, token: token, playlistId: id, itemIds: [movieId]);
-      expect(await entries(), [movieId]);
+      expect(await settled([movieId]), [movieId]);
       await client.deleteItem(baseUrl: url, token: token, itemId: id);
     });
 

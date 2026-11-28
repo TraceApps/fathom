@@ -502,7 +502,7 @@ void main() {
             httpClient: Dio()
               ..httpClientAdapter = _Scripted((o) {
                 calls.add('${o.method} ${o.uri.path}');
-                sent = o.data;
+                if (o.method == 'POST') sent = o.data;
                 return (204, '');
               }),
           )),
@@ -525,7 +525,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded).last);
       await tester.pump();
       await tester.pump(const Duration(seconds: 5));
-      expect(calls, ['POST /Playlists/pl1']);
+      expect(calls.first, 'POST /Playlists/pl1');
+      expect(calls.where((c) => c.startsWith('POST')), hasLength(1));
       expect(sent, {
         'Ids': ['va', 'vb']
       });
