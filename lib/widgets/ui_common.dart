@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
 
@@ -116,3 +117,17 @@ void disposeAfterDialog(List<ChangeNotifier> used) {
     }
   });
 }
+
+/// The status bar's icons for a bar with nothing behind it but the page:
+/// dark icons on the light theme's pale page, light ones on the dark theme.
+/// A transparent AppBar works it out from its own color, which reads as
+/// black, and left white icons on a pale page.
+SystemUiOverlayStyle pageOverlayStyle(BuildContext context) =>
+    (Theme.of(context).brightness == Brightness.dark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark)
+        .copyWith(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+    );

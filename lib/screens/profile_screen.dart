@@ -228,6 +228,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           Center(
+        // The app's buttons stretch to their row: with no room either side
+        // they ran edge to edge of the screen.
+        child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -297,6 +303,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               label: Text(l.profileChangePassword),
             ),
           ],
+        ),
+        ),
         ),
           ),
         ],

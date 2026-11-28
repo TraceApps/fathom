@@ -1277,7 +1277,8 @@ class AudioController extends Notifier<AudioState> {
       radioSeekable: state.radioSeekable,
       radioBehindLive: state.radioBehindLive,
       radioWindow: state.radioWindow,
-      ytCurrent: state.ytCurrent,
+      // YouTube audio too: the bar's Stop is the same button for it, and
+      // keeping it left the bar up, paused, with nothing to resume.
     );
     _pushPlaybackState();
   }

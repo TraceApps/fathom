@@ -836,6 +836,12 @@ class _DownloadsTabState extends ConsumerState<_DownloadsTab> {
         .watch(youtubeDownloadFolderLabelProvider(YtDownloadKind.video))
         .asData
         ?.value;
+    // Audio goes to a folder of its own (Music/Fathom on Android): the empty
+    // page named only the video one.
+    final audioFolder = ref
+        .watch(youtubeDownloadFolderLabelProvider(YtDownloadKind.audio))
+        .asData
+        ?.value;
     final hasFfmpeg = ref.watch(ffmpegAvailableProvider).asData?.value ?? true;
     final doneIds = [
       for (final d in downloads)
@@ -847,7 +853,10 @@ class _DownloadsTabState extends ConsumerState<_DownloadsTab> {
         icon: Icons.download_rounded,
         title: l.ytNoDownloadsTitle,
         message: hasFfmpeg
-            ? l.ytDownloadsEmptyFfmpeg(folder ?? l.ytDownloadsFolder)
+            ? (audioFolder != null && audioFolder != folder
+                ? l.ytDownloadsEmptyTwoFolders(
+                    folder ?? l.ytDownloadsFolder, audioFolder)
+                : l.ytDownloadsEmptyFfmpeg(folder ?? l.ytDownloadsFolder))
             : l.ytDownloadsEmptyNoFfmpeg,
       );
     }
@@ -978,7 +987,15 @@ class _DownloadRow extends ConsumerWidget {
       ContextMenuAction(
         icon: Icons.remove_circle_outline_rounded,
         label: l.ytRemoveFromList,
-        onTap: () => n.remove(d.id),
+        onTap: () {
+          final messenger = ScaffoldMessenger.of(context);
+          n.remove(d.id);
+          // The row goes, the file doesn't: say so, so it isn't mistaken
+          // for deleting.
+          if (d.filePath != null) {
+            showSnackOn(messenger, l.ytRemovedKeptFile);
+          }
+        },
       ),
       if (d.filePath != null)
         ContextMenuAction(

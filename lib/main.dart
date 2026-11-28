@@ -1,3 +1,5 @@
+import 'api/jellyfin_client.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -60,6 +62,21 @@ Future<void> main() async {
   // transcode the rest (keeps AV1 off low-power TV sticks that would software
   // decode it and stutter).
   await detectHardwareCodecs();
+  // How Fathom names itself to Jellyfin (its Devices and Activity pages).
+  try {
+    JellyfinClient.appVersion = (await PackageInfo.fromPlatform()).version;
+  } catch (_) {}
+  JellyfinClient.deviceName = isTvDevice
+      ? 'Android TV'
+      : Platform.isAndroid
+          ? 'Android'
+          : Platform.isWindows
+              ? 'Windows'
+              : Platform.isMacOS
+                  ? 'macOS'
+                  : Platform.isLinux
+                      ? 'Linux'
+                      : 'Fathom';
 
   // App-wide diagnostics capture. These hooks are always installed but only
   // record while the user has Diagnostic Logging on (Diagnostics.add no-ops

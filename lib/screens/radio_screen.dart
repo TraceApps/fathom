@@ -216,6 +216,9 @@ class _RadioScreenState extends ConsumerState<RadioScreen> {
     final groups = <String, List<RadioStation>>{};
     final ungrouped = <RadioStation>[];
     for (final s in stations) {
+      // A favorite is listed once, under Favorites: listed again under its
+      // group (or Other) it read as the station saved twice.
+      if (s.favorite) continue;
       if (s.group != null && s.group!.isNotEmpty) {
         groups.putIfAbsent(s.group!, () => []).add(s);
       } else {

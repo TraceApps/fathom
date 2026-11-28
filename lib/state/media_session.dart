@@ -86,11 +86,18 @@ class VideoMediaSessionController extends Notifier<VideoMediaSession?> {
   }
 
   /// Hand control back to the music player, but only if [token] still owns it.
+  ///
+  /// Players call this as they're disposed, which happens while the tree is
+  /// being rebuilt, and a provider can't change then ("Tried to modify a
+  /// provider while the widget tree was building"). So the session is let
+  /// go of now and cleared a moment later, unless a new player has taken it
+  /// in between.
   void end(Object token) {
-    if (identical(_owner, token)) {
-      _owner = null;
-      state = null;
-    }
+    if (!identical(_owner, token)) return;
+    _owner = null;
+    Future.microtask(() {
+      if (_owner == null) state = null;
+    });
   }
 }
 

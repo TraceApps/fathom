@@ -710,7 +710,21 @@ class _AddDialogState extends ConsumerState<_AddDialog> {
         child: Center(child: AppSpinner()),
       );
     } else if (setup.roots.isEmpty) {
-      body = Text(l.arrNoRootFolder(_kind.appName));
+      // Someone adds one in the app's web page and comes back: Check Again
+      // reads the folders afresh (they were kept from the first look).
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(l.arrNoRootFolder(_kind.appName)),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => ref.invalidate(arrRootFoldersProvider(_kind)),
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(l.arrCheckAgain),
+          ),
+        ],
+      );
     } else {
       final existing = _existing;
       body = Column(

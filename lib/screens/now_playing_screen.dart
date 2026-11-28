@@ -17,6 +17,7 @@ import '../state/preferences.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
 import '../state/youtube_providers.dart';
+import '../widgets/ui_common.dart';
 import '../widgets/cast_button.dart';
 import '../widgets/control_button.dart';
 import '../widgets/glass.dart';
@@ -57,7 +58,8 @@ class NowPlayingScreen extends ConsumerWidget {
 
     if (track == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(
+        systemOverlayStyle: pageOverlayStyle(context),),
         body: Center(child: Text(l.playerNothingPlaying)),
       );
     }
@@ -71,6 +73,7 @@ class NowPlayingScreen extends ConsumerWidget {
       // leaves the transport row and Up Next rendered off the visible screen.
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        systemOverlayStyle: pageOverlayStyle(context),
         title: Text(l.playerNowPlaying),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -386,6 +389,7 @@ class _RadioNowPlaying extends ConsumerWidget {
       // this matters (#40).
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        systemOverlayStyle: pageOverlayStyle(context),
         title: Text(l.radioNowPlaying),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -1553,7 +1557,8 @@ class _YoutubeNowPlaying extends ConsumerWidget {
     final item = audio.ytCurrent;
     if (item == null) {
       return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+        systemOverlayStyle: pageOverlayStyle(context),),
           body: Center(child: Text(l.playerNothingPlaying)));
     }
     return Scaffold(
@@ -1563,6 +1568,7 @@ class _YoutubeNowPlaying extends ConsumerWidget {
       // this matters (#40).
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        systemOverlayStyle: pageOverlayStyle(context),
         title: Text(l.playerNowPlaying),
         centerTitle: true,
         backgroundColor: Colors.transparent,

@@ -64,6 +64,31 @@ const _accentColors = [
   0xFF90A4AE, // slate
 ];
 
+/// An accent color's name, for a screen reader (it read out a hex code).
+String _accentName(AppLocalizations l, int argb) => switch (argb) {
+      0xFF6C8CFF => l.accentIndigo,
+      0xFF7C4DFF => l.accentDeepPurple,
+      0xFFB388FF => l.accentLilac,
+      0xFF448AFF => l.accentBlue,
+      0xFF00B0FF => l.accentSky,
+      0xFF26C6DA => l.accentCyan,
+      0xFF00BFA5 => l.accentTeal,
+      0xFF1DE9B6 => l.accentAqua,
+      0xFF00C853 => l.accentGreen,
+      0xFF66BB6A => l.accentLightGreen,
+      0xFFC6FF00 => l.accentLime,
+      0xFFFFD600 => l.accentYellow,
+      0xFFFFB300 => l.accentAmber,
+      0xFFFF7043 => l.accentDeepOrange,
+      0xFFFF5252 => l.accentRed,
+      0xFFEC407A => l.accentPink,
+      0xFFF06292 => l.accentRose,
+      0xFFD500F9 => l.accentMagenta,
+      0xFF8D6E63 => l.accentBrown,
+      0xFF90A4AE => l.accentSlate,
+      _ => l.prefsAccentColor,
+    };
+
 Map<int, String> _bitrates(AppLocalizations l) => {
       0: l.prefsBitrateAutoMax,
       20: '20 Mbps (1080p)',
@@ -1267,7 +1292,7 @@ class _Swatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(button: true, selected: selected, label: '${AppLocalizations.of(context).prefsAccentColor} #${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}', child: TvFocusable(
+    return Semantics(button: true, selected: selected, label: _accentName(AppLocalizations.of(context), color.toARGB32()), child: TvFocusable(
       onTap: onTap,
       scale: 1.15,
       borderRadius: const BorderRadius.all(Radius.circular(20)),

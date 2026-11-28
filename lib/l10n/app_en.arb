@@ -988,6 +988,46 @@
   "tvSystemKeyboard": "TV Keyboard",
   "@tvSystemKeyboard": {"description": "Button on Fathom's on-screen TV keyboard: types with the TV's own keyboard instead, which a phone's remote app can type into."},
   "@tvVoiceInput": {"description": "Screen reader name of the microphone key on the TV keyboard."},
+  "accentIndigo": "Indigo",
+  "@accentIndigo": {"description": "Name of an accent color, read out by screen readers."},
+  "accentDeepPurple": "Deep Purple",
+  "@accentDeepPurple": {"description": "Name of an accent color, read out by screen readers."},
+  "accentLilac": "Lilac",
+  "@accentLilac": {"description": "Name of an accent color, read out by screen readers."},
+  "accentBlue": "Blue",
+  "@accentBlue": {"description": "Name of an accent color, read out by screen readers."},
+  "accentSky": "Sky",
+  "@accentSky": {"description": "Name of an accent color, read out by screen readers."},
+  "accentCyan": "Cyan",
+  "@accentCyan": {"description": "Name of an accent color, read out by screen readers."},
+  "accentTeal": "Teal",
+  "@accentTeal": {"description": "Name of an accent color, read out by screen readers."},
+  "accentAqua": "Aqua",
+  "@accentAqua": {"description": "Name of an accent color, read out by screen readers."},
+  "accentGreen": "Green",
+  "@accentGreen": {"description": "Name of an accent color, read out by screen readers."},
+  "accentLightGreen": "Light Green",
+  "@accentLightGreen": {"description": "Name of an accent color, read out by screen readers."},
+  "accentLime": "Lime",
+  "@accentLime": {"description": "Name of an accent color, read out by screen readers."},
+  "accentYellow": "Yellow",
+  "@accentYellow": {"description": "Name of an accent color, read out by screen readers."},
+  "accentAmber": "Amber",
+  "@accentAmber": {"description": "Name of an accent color, read out by screen readers."},
+  "accentDeepOrange": "Deep Orange",
+  "@accentDeepOrange": {"description": "Name of an accent color, read out by screen readers."},
+  "accentRed": "Red",
+  "@accentRed": {"description": "Name of an accent color, read out by screen readers."},
+  "accentPink": "Pink",
+  "@accentPink": {"description": "Name of an accent color, read out by screen readers."},
+  "accentRose": "Rose",
+  "@accentRose": {"description": "Name of an accent color, read out by screen readers."},
+  "accentMagenta": "Magenta",
+  "@accentMagenta": {"description": "Name of an accent color, read out by screen readers."},
+  "accentBrown": "Brown",
+  "@accentBrown": {"description": "Name of an accent color, read out by screen readers."},
+  "accentSlate": "Slate",
+  "@accentSlate": {"description": "Name of an accent color, read out by screen readers."},
   "prefsAccentColor": "Accent Color",
   "@prefsAccentColor": {
     "description": "Appearance setting title: accent color."
@@ -3766,7 +3806,7 @@
   "@ytListen": {
     "description": "Button on the YouTube watch page: drop the video and keep the audio playing in the background."
   },
-  "ytPlayAudio": "Play audio",
+  "ytPlayAudio": "Play Audio",
   "@ytPlayAudio": {
     "description": "Video row menu action: play just this video's audio in the background."
   },
@@ -4083,6 +4123,8 @@
       }
     }
   },
+  "ytDownloadsEmptyTwoFolders": "Use the menu on any video and pick Download. Videos are saved to {video}, and audio to {audio}.",
+  "@ytDownloadsEmptyTwoFolders": {"description": "YouTube Downloads empty state when video and audio go to different folders.", "placeholders": {"video": {"type": "String"}, "audio": {"type": "String"}}},
   "ytDownloadsEmptyNoFfmpeg": "Use the menu on any video and pick Download. ffmpeg is not installed, so video is limited to 360p. Audio downloads are unaffected.",
   "@ytDownloadsEmptyNoFfmpeg": {
     "description": "Empty-state message on the YouTube Downloads tab when ffmpeg is missing."
@@ -4172,6 +4214,8 @@
     "description": "Error shown when no installed app can open or receive a downloaded file."
   },
   "ytRemoveFromList": "Remove from List",
+  "ytRemovedKeptFile": "Removed from the list. The file is still on this device.",
+  "@ytRemovedKeptFile": {"description": "After Remove from List on a finished YouTube download: the row is gone, the file is kept."},
   "@ytRemoveFromList": {
     "description": "Menu item: remove a download from the list but keep the file."
   },
@@ -5565,7 +5609,11 @@
   "@adminH265Crf": {
     "description": "Field label: H.265 CRF quality value (technical tokens)."
   },
-  "adminTranscodeThreadCount": "Transcode Thread Count (0 = auto)",
+  "adminTranscodeThreadCount": "Transcode Thread Count",
+  "adminThreadsAuto": "Automatic",
+  "@adminThreadsAuto": {"description": "Transcode thread count choice: let the server decide."},
+  "adminThreadsMax": "Maximum",
+  "@adminThreadsMax": {"description": "Transcode thread count choice: use every processor thread."},
   "@adminTranscodeThreadCount": {
     "description": "Field label: transcoding thread count, 0 means auto."
   },
@@ -7857,6 +7905,8 @@
   "@arrAdd": {"description": "Button that adds the title."},
   "arrAddedTo": "Added {title} to {app}",
   "@arrAddedTo": {"description": "Confirmation after adding a title.", "placeholders": {"title": {"type": "String"}, "app": {"type": "String"}}},
+  "arrCheckAgain": "Check Again",
+  "@arrCheckAgain": {"description": "Button under the no-root-folder message in Add: reads the root folders again."},
   "arrNoRootFolder": "Add a root folder in {app} first, under Settings, Media Management.",
   "@arrNoRootFolder": {"description": "Add dialog when the app has no root folder.", "placeholders": {"app": {"type": "String"}}},
   "arrWanted": "Wanted",

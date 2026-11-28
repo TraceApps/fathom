@@ -1597,6 +1597,7 @@ class YoutubeDownloads extends AsyncNotifier<List<YoutubeDownload>> {
             status: YtDownloadStatus.downloading, stage: 'video'));
     final cancel = CancelToken();
     _cancels[video.id] = cancel;
+    var finished = false;
     try {
       final prefs = ref.read(preferencesProvider).asData?.value;
       final dir =
@@ -1636,16 +1637,7 @@ class YoutubeDownloads extends AsyncNotifier<List<YoutubeDownload>> {
                 stage: '',
                 bytes: saved.existsSync() ? saved.lengthSync() : d.bytes,
               ));
-      await pushAppNotification(ref,
-          kind: AppNotifKind.downloadComplete,
-          title: tr.notifDownloadComplete,
-          body: video.title,
-          enabled:
-              ref.read(preferencesProvider).asData?.value.notifDownloads ?? true,
-          // '/downloads' is the Jellyfin library — this download is a YouTube
-          // one, so the tap belongs on its own Downloads tab instead.
-          route: '/youtube',
-          routeExtra: kYoutubeDownloadsTabIndex);
+      finished = true;
     } on DioException catch (e) {
       _update(
           video.id,
@@ -1660,6 +1652,29 @@ class YoutubeDownloads extends AsyncNotifier<List<YoutubeDownload>> {
           (d) => d.copyWith(status: YtDownloadStatus.failed, error: errorText(e)));
     } finally {
       _cancels.remove(video.id);
+      // Saying so comes after, and apart: the file is saved whatever happens
+      // to the message about it. Inside the download's own error handling, a
+      // failure here turned a finished download into a failed one.
+      if (finished) {
+        try {
+          await pushAppNotification(ref,
+              kind: AppNotifKind.downloadComplete,
+              title: tr.notifDownloadComplete,
+              body: video.title,
+              enabled: ref
+                      .read(preferencesProvider)
+                      .asData
+                      ?.value
+                      .notifDownloads ??
+                  true,
+              // '/downloads' is the Jellyfin library: this download is a
+              // YouTube one, so the tap belongs on its own Downloads tab.
+              route: '/youtube',
+              routeExtra: kYoutubeDownloadsTabIndex);
+        } catch (e) {
+          Diagnostics.instance.add('downloads', 'could not notify: $e');
+        }
+      }
       // Hand the slot to whoever's next.
       if (_pending.isNotEmpty) {
         final next = _pending.removeAt(0);

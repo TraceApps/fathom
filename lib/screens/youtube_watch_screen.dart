@@ -66,6 +66,9 @@ class _YoutubeWatchScreenState extends ConsumerState<YoutubeWatchScreen> {
   /// "Listen" hand-off to background audio resumes exactly where the video is —
   /// fresher than watch history, which is whole-second and persisted async.
   Duration _livePos = Duration.zero;
+  // How long the video is, once the player knows: what's saved to a
+  // playlist from here needs it, or it reads as a live stream ("LIVE").
+  Duration? _length;
 
   /// Lets description timestamps seek the player.
   final _playerHandle = YoutubePlayerHandle();
@@ -185,6 +188,10 @@ class _YoutubeWatchScreenState extends ConsumerState<YoutubeWatchScreen> {
       // aborts teardown and leaves the player running.
       onProgress: (position, duration) {
         _livePos = position;
+        // Once, when it's first known: the page is drawn again with it.
+        if (_length == null && duration > Duration.zero && mounted) {
+          setState(() => _length = duration);
+        }
         final d = _lastDetails;
         _history.record(
             videoId: _videoId,
@@ -257,7 +264,8 @@ class _YoutubeWatchScreenState extends ConsumerState<YoutubeWatchScreen> {
             onShowActions: details.asData?.value == null
                 ? null
                 : () =>
-                    showYoutubeTvActions(context, ref, details.asData!.value),
+                    showYoutubeTvActions(context, ref, details.asData!.value,
+                        length: _length),
           ),
         ),
       );
@@ -292,6 +300,7 @@ class _YoutubeWatchScreenState extends ConsumerState<YoutubeWatchScreen> {
           onRetry: () => ref.invalidate(youtubeWatchProvider(_videoId)),
         ),
         data: (d) => _Body(
+          length: _length,
           player: player,
           pageTop: pageTop,
           details: d,
@@ -316,7 +325,8 @@ class _YoutubeWatchScreenState extends ConsumerState<YoutubeWatchScreen> {
 /// playlist, and Go to channel — the couch-worthy actions (comments and
 /// download are deliberately left to phone/desktop). D-pad friendly (ListTiles).
 Future<void> showYoutubeTvActions(
-    BuildContext context, WidgetRef ref, YoutubeWatchDetails d) {
+    BuildContext context, WidgetRef ref, YoutubeWatchDetails d,
+    {Duration? length}) {
   final l = AppLocalizations.of(context);
   final scheme = Theme.of(context).colorScheme;
   final channelId = d.channelId;
@@ -330,6 +340,7 @@ Future<void> showYoutubeTvActions(
         );
   final video = YoutubeVideo(
     id: d.id,
+    duration: length,
     title: d.title,
     author: d.channelName,
     channelId: channelId,
@@ -421,6 +432,9 @@ class _Body extends StatelessWidget {
   /// The player's current position, for the "Listen" background hand-off.
   final Duration Function()? currentPosition;
 
+  /// The video's length once the player knows it.
+  final Duration? length;
+
   /// The current play queue (a playlist you started). When non-empty it drives
   /// the Up Next rail instead of related videos, and [onPlayQueueItem] jumps to
   /// one of them.
@@ -442,6 +456,7 @@ class _Body extends StatelessWidget {
     required this.onOpen,
     this.onSeek,
     this.currentPosition,
+    this.length,
     this.queue = const [],
     this.onPlayQueueItem,
     this.showComments = true,
@@ -524,9 +539,9 @@ class _Body extends StatelessWidget {
                   const SizedBox(height: 16),
                   LayoutBuilder(builder: (context, c) {
                     final actions = YoutubeVideoActionBar(
-                      video: _asVideo(d),
+                      video: _asVideo(d, length),
                       currentPosition: currentPosition,
-                      leading: AddToPlaylistButton(video: _asVideo(d)),
+                      leading: AddToPlaylistButton(video: _asVideo(d, length)),
                       onShowQueue: () => showModalBottomSheet<void>(
                         context: context,
                         isScrollControlled: true,
@@ -754,8 +769,9 @@ class _Meta extends ConsumerWidget {
 }
 
 /// The watch details as a YoutubeVideo, for the actions that take one.
-YoutubeVideo _asVideo(YoutubeWatchDetails d) => YoutubeVideo(
+YoutubeVideo _asVideo(YoutubeWatchDetails d, Duration? length) => YoutubeVideo(
       id: d.id,
+      duration: length,
       title: d.title,
       author: d.channelName,
       url: 'https://www.youtube.com/watch?v=${d.id}',

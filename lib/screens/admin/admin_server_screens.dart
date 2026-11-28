@@ -312,17 +312,47 @@ class _AdminPlaybackState extends ConfigEditorState<AdminPlaybackScreen> {
   @override
   String title(AppLocalizations l) => l.adminPlaybackTitle;
 
+  // Trickplay's settings aren't in the transcoding settings this page edits:
+  // the server keeps them in its main configuration. They were read from the
+  // wrong one (so the page showed defaults, not the server's values) and
+  // written back there too (so a change never took). They're read from where
+  // they live, edited beside the rest, and saved back to it. Jellyfin 10.8
+  // has no trickplay: then the section isn't shown.
+  bool _hasTrickplay = false;
+
   @override
-  Future<Map<String, dynamic>> load(client, session) => client.getNamedConfiguration(
-      baseUrl: session.baseUrl, token: session.accessToken, key: 'encoding');
+  Future<Map<String, dynamic>> load(client, session) async {
+    final cfg = await client.getNamedConfiguration(
+        baseUrl: session.baseUrl, token: session.accessToken, key: 'encoding');
+    final main = await client.getServerConfiguration(
+        baseUrl: session.baseUrl, token: session.accessToken);
+    final tp = main['TrickplayOptions'];
+    _hasTrickplay = tp is Map;
+    if (tp is Map) {
+      cfg['TrickplayOptions'] = Map<String, dynamic>.from(tp);
+    } else {
+      cfg.remove('TrickplayOptions');
+    }
+    return cfg;
+  }
 
   @override
   Future<void> save(client, session, cfg) async {
+    final encoding = Map<String, dynamic>.from(cfg)..remove('TrickplayOptions');
     await client.updateNamedConfiguration(
         baseUrl: session.baseUrl,
         token: session.accessToken,
         key: 'encoding',
-        config: cfg);
+        config: encoding);
+    final tp = cfg['TrickplayOptions'];
+    if (_hasTrickplay && tp is Map) {
+      // Fresh, so nothing else in it is written back stale.
+      final main = await client.getServerConfiguration(
+          baseUrl: session.baseUrl, token: session.accessToken);
+      main['TrickplayOptions'] = tp;
+      await client.updateServerConfiguration(
+          baseUrl: session.baseUrl, token: session.accessToken, config: main);
+    }
     ref.invalidate(adminEncodingConfigProvider);
   }
 
@@ -419,52 +449,59 @@ class _AdminPlaybackState extends ConfigEditorState<AdminPlaybackScreen> {
       }),
       intField('H264Crf', l.adminH264Crf),
       intField('H265Crf', l.adminH265Crf),
-      intField('EncodingThreadCount', l.adminTranscodeThreadCount),
+      // Jellyfin's own spelling: -1 is automatic, 0 is as many as there are.
+      intDropdownField('EncodingThreadCount', l.adminTranscodeThreadCount, {
+        -1: l.adminThreadsAuto,
+        0: l.adminThreadsMax,
+        for (var i = 1; i <= 16; i++) i: '$i',
+      }),
       switchField('EnableSubtitleExtraction', l.adminEnableSubtitleExtraction),
       sectionLabel(l.adminSectionThrottling),
       switchField('EnableThrottling', l.adminThrottleTranscodes,
           subtitle: l.adminThrottleTranscodesSubtitle),
       intField('ThrottleDelaySeconds', l.adminThrottleDelay),
-      sectionLabel(l.adminSectionTrickplay),
-      switchFieldIn(tp, 'EnableHwAcceleration', l.adminTrickplayHwGeneration),
-      switchFieldIn(tp, 'EnableHwEncoding', l.adminTrickplayHwEncoding),
-      switchFieldIn(tp, 'EnableKeyFrameOnlyExtraction',
-          l.adminKeyframeOnlyExtraction,
-          subtitle: l.adminKeyframeOnlyExtractionSubtitle),
-      dropdownFieldIn(tp, 'ScanBehavior', l.adminScanBehavior, {
-        'NonBlocking': l.adminScanBehaviorNonBlocking,
-        'Blocking': l.adminScanBehaviorBlocking,
-      }),
-      dropdownFieldIn(tp, 'ProcessPriority', l.adminProcessPriority, {
-        'High': l.adminPriorityHigh,
-        'AboveNormal': l.adminPriorityAboveNormal,
-        'Normal': l.adminPriorityNormal,
-        'BelowNormal': l.adminPriorityBelowNormal,
-        'Idle': l.adminPriorityIdle,
-      }),
-      intFieldIn(tp, 'Interval', l.adminInterval, hint: 'e.g. 10000'),
-      intListFieldIn(tp, 'WidthResolutions', l.adminWidthResolutions,
-          hint: l.adminWidthResolutionsHint),
-      intFieldIn(tp, 'TileWidth', l.adminTileWidth),
-      intFieldIn(tp, 'TileHeight', l.adminTileHeight),
-      intFieldIn(tp, 'JpegQuality', l.adminJpegQuality),
-      intFieldIn(tp, 'ProcessThreads', l.adminProcessThreads),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-        child: OutlinedButton.icon(
-          onPressed: _generateTrickplay,
-          icon: const Icon(Icons.movie_filter_outlined),
-          label: Text(l.adminGenerateTrickplayNow),
-          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+      if (_hasTrickplay) ...[
+        sectionLabel(l.adminSectionTrickplay),
+        switchFieldIn(tp, 'EnableHwAcceleration', l.adminTrickplayHwGeneration),
+        switchFieldIn(tp, 'EnableHwEncoding', l.adminTrickplayHwEncoding),
+        switchFieldIn(tp, 'EnableKeyFrameOnlyExtraction',
+            l.adminKeyframeOnlyExtraction,
+            subtitle: l.adminKeyframeOnlyExtractionSubtitle),
+        dropdownFieldIn(tp, 'ScanBehavior', l.adminScanBehavior, {
+          'NonBlocking': l.adminScanBehaviorNonBlocking,
+          'Blocking': l.adminScanBehaviorBlocking,
+        }),
+        dropdownFieldIn(tp, 'ProcessPriority', l.adminProcessPriority, {
+          'High': l.adminPriorityHigh,
+          'AboveNormal': l.adminPriorityAboveNormal,
+          'Normal': l.adminPriorityNormal,
+          'BelowNormal': l.adminPriorityBelowNormal,
+          'Idle': l.adminPriorityIdle,
+        }),
+        intFieldIn(tp, 'Interval', l.adminInterval, hint: 'e.g. 10000'),
+        intListFieldIn(tp, 'WidthResolutions', l.adminWidthResolutions,
+            hint: l.adminWidthResolutionsHint),
+        intFieldIn(tp, 'TileWidth', l.adminTileWidth),
+        intFieldIn(tp, 'TileHeight', l.adminTileHeight),
+        intFieldIn(tp, 'JpegQuality', l.adminJpegQuality),
+        intFieldIn(tp, 'ProcessThreads', l.adminProcessThreads),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          child: OutlinedButton.icon(
+            onPressed: _generateTrickplay,
+            icon: const Icon(Icons.movie_filter_outlined),
+            label: Text(l.adminGenerateTrickplayNow),
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+          ),
         ),
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-        child: Text(
-          l.adminTrickplayGenerateHint,
-          style: const TextStyle(fontSize: 12.5, color: Colors.grey),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+          child: Text(
+            l.adminTrickplayGenerateHint,
+            style: const TextStyle(fontSize: 12.5, color: Colors.grey),
+          ),
         ),
-      ),
+      ],
       sectionLabel(l.adminSectionPaths),
       textField('TranscodingTempPath', l.adminTranscodingTempPath,
           hint: l.adminHintLeaveBlankDefault),

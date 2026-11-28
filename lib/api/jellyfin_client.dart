@@ -60,6 +60,13 @@ final String clientName;
 
 final String clientVersion;
 
+  /// What every client tells the server it is, set once as the app starts:
+  /// the version installed and the kind of device. The server shows both in
+  /// its Devices and Activity pages; they said "Linux" and "0.1.0" on every
+  /// platform.
+  static String appVersion = '0.0.0';
+  static String deviceName = 'Fathom';
+
 final Dio _dio;
 
 /// [httpClient] is for tests, which swap in an adapter to inspect what
@@ -67,9 +74,10 @@ final Dio _dio;
   JellyfinClient({
     required this.deviceId,
     this.clientName = 'Fathom',
-    this.clientVersion = '0.1.0',
+    String? clientVersion,
     Dio? httpClient,
-  }) : _dio =
+  }) : clientVersion = clientVersion ?? appVersion,
+       _dio =
            httpClient ??
            Dio(
              BaseOptions(
@@ -142,7 +150,7 @@ final Dio _dio;
   String authHeader({String? token}) {
     final parts = <String>[
       'MediaBrowser Client="$clientName"',
-      'Device="Linux"',
+      'Device="$deviceName"',
       'DeviceId="$deviceId"',
       'Version="$clientVersion"',
     ];

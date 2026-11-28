@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/base_item.dart';
@@ -8,20 +11,58 @@ import 'providers.dart';
 import 'session_controller.dart';
 import '../api/jellyfin_client.dart';
 
-/// Whether the active server is reachable, re-probed every 30s so the app
-/// notices going offline mid-session (not just at load). Emits true when no
-/// session is active (nothing to be offline from).
-final serverReachableProvider = StreamProvider.autoDispose<bool>((ref) async* {
+/// Whether the active server is reachable. Emits true when no session is
+/// active (nothing to be offline from).
+///
+/// Asked every 30 seconds while it answers, every 5 while it doesn't, and at
+/// once when the app comes back to the screen. It used to be every 30 either
+/// way: with the network back, the banner stayed up to half a minute and
+/// Home kept its "Could not load" rows until pulled. When it's back, the
+/// lists that failed are read again. A single miss while it was answering
+/// is checked a second time before it counts, so a slow wake-up doesn't
+/// flash the banner.
+final serverReachableProvider = StreamProvider.autoDispose<bool>((ref) {
   final session = ref.watch(sessionControllerProvider).asData?.value;
-  if (session == null) {
-    yield true;
-    return;
-  }
+  if (session == null) return Stream.value(true);
   final client = ref.watch(jellyfinClientProvider);
-  while (true) {
-    yield await client.pingServer(session.baseUrl);
-    await Future<void>.delayed(const Duration(seconds: 30));
+  final out = StreamController<bool>();
+  var disposed = false;
+  var busy = false;
+  Timer? next;
+  bool? last;
+
+  Future<void> probe() async {
+    if (disposed || busy) return;
+    busy = true;
+    next?.cancel();
+    var ok = await client.pingServer(session.baseUrl);
+    if (!ok && last != false && !disposed) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!disposed) ok = await client.pingServer(session.baseUrl);
+    }
+    busy = false;
+    if (disposed) return;
+    if (ok && last == false) {
+      ref.invalidate(resumeItemsProvider);
+      ref.invalidate(nextUpItemsProvider);
+      ref.invalidate(latestItemsProvider);
+      ref.invalidate(heroItemsProvider);
+      ref.invalidate(userViewsProvider);
+    }
+    if (ok != last) out.add(ok);
+    last = ok;
+    next = Timer(Duration(seconds: ok ? 30 : 5), probe);
   }
+
+  final life = AppLifecycleListener(onResume: probe);
+  unawaited(probe());
+  ref.onDispose(() {
+    disposed = true;
+    next?.cancel();
+    life.dispose();
+    out.close();
+  });
+  return out.stream;
 });
 
 /// The signed-in user's live policy (admin / delete rights), fetched fresh so

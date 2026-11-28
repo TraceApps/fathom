@@ -175,6 +175,28 @@ abstract class ConfigEditorState<T extends ConsumerStatefulWidget>
     );
   }
 
+  /// A choice stored as a number (written back as one, not as text).
+  Widget intDropdownField(String key, String label, Map<int, String> options) {
+    final raw = draft![key];
+    final current = raw is num ? raw.toInt() : int.tryParse('$raw');
+    final value = options.containsKey(current) ? current : options.keys.first;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: DropdownButtonFormField<int>(
+        initialValue: value,
+        decoration: InputDecoration(
+            labelText: label, border: const OutlineInputBorder()),
+        items: [
+          for (final e in options.entries)
+            DropdownMenuItem(value: e.key, child: Text(e.value)),
+        ],
+        onChanged: (v) {
+          if (v != null) setState(() => draft![key] = v);
+        },
+      ),
+    );
+  }
+
   /// A comma-separated list of strings stored as a JSON array (e.g. known
   /// proxies, LAN subnets, published URIs).
   Widget strListField(String key, String label, {String? hint}) {

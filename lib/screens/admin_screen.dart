@@ -237,10 +237,13 @@ class _SystemTab extends ConsumerWidget {
               leading: const Icon(Icons.info_outline_rounded),
               title: Text(l.adminVersionLabel),
               subtitle: Text('${m['Version'] ?? '-'}')),
-          ListTile(
-              leading: const Icon(Icons.computer_rounded),
-              title: Text(l.adminOperatingSystemLabel),
-              subtitle: Text('${m['OperatingSystem'] ?? '-'}')),
+          // Newer servers leave it empty (Jellyfin 12 sends ""): no row
+          // for nothing.
+          if ('${m['OperatingSystem'] ?? ''}'.trim().isNotEmpty)
+            ListTile(
+                leading: const Icon(Icons.computer_rounded),
+                title: Text(l.adminOperatingSystemLabel),
+                subtitle: Text('${m['OperatingSystem']}')),
           ListTile(
               leading: const Icon(Icons.memory_rounded),
               title: Text(l.adminArchitectureLabel),
@@ -496,9 +499,10 @@ class _TasksTab extends ConsumerWidget {
             final t = list[i];
             final state = '${t['State'] ?? 'Idle'}';
             final running = state == 'Running';
+            final pct = (t['CurrentProgressPercentage'] as num?)?.round();
             return ListTile(
               title: Text('${t['Name'] ?? '-'}'),
-              subtitle: Text(state),
+              subtitle: Text(running && pct != null ? '$state · $pct%' : state),
               trailing: IconButton(
                 tooltip: l.adminRunNow,
                 icon: Icon(running

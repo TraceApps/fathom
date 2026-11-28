@@ -96,9 +96,18 @@ void showGlobalSnack(String message, {SnackKind kind = SnackKind.info}) {
   final messenger = globalScaffoldMessengerKey.currentState;
   final context = messenger?.context;
   if (messenger == null || context == null) return;
-  messenger
-    ..clearSnackBars()
-    ..showSnackBar(_buildSnack(context, message, kind));
+  // A page with no Scaffold under it (a full-screen video) has nowhere to
+  // show this. A release build drops it quietly; a debug build's check
+  // throws, from code with no screen of its own (a download finishing), and
+  // took that work down with it: a finished download read "failed".
+  try {
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(_buildSnack(context, message, kind));
+    // ignore: avoid_catching_errors
+  } on AssertionError {
+    // Nowhere to show it. What it reported is still in the bell.
+  }
 }
 
 /// Convenience for the common error case.

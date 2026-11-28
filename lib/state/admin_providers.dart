@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/base_item.dart';
@@ -160,9 +162,17 @@ final adminPluginsProvider = FutureProvider.autoDispose<_JsonList>((ref) async {
 final adminTasksProvider = FutureProvider.autoDispose<_JsonList>((ref) async {
   final s = ref.watch(sessionControllerProvider).asData?.value;
   if (s == null) return const [];
-  return ref
+  final tasks = await ref
       .watch(jellyfinClientProvider)
       .getScheduledTasks(baseUrl: s.baseUrl, token: s.accessToken);
+  // While one is running (one just started, or the server's own schedule),
+  // look again every few seconds: its progress moves, and when it's done the
+  // row says so. It stayed on "Running" until the page was opened again.
+  if (tasks.any((t) => '${t['State']}' == 'Running' || '${t['State']}' == 'Cancelling')) {
+    final again = Timer(const Duration(seconds: 3), ref.invalidateSelf);
+    ref.onDispose(again.cancel);
+  }
+  return tasks;
 });
 
 final adminSessionsProvider =

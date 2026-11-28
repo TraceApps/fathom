@@ -27,6 +27,15 @@ class UpdateBanner extends ConsumerWidget {
     if (prefs != null && prefs.updateBannerDismissedVersion == version) {
       return const SizedBox.shrink();
     }
+    // Not over the Updates page: it shows the update itself, and the banner
+    // sat on its Back button and title.
+    // (Depending on the router's state so this is drawn again on each move.)
+    if (GoRouter.maybeOf(context) != null) GoRouterState.of(context);
+    final shown =
+        GoRouter.maybeOf(context)?.routerDelegate.currentConfiguration.uri.path;
+    if (shown != null && shown.startsWith('/updates')) {
+      return const SizedBox.shrink();
+    }
 
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;

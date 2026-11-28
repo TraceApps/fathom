@@ -19,6 +19,8 @@ import 'package:fathom/widgets/item_actions.dart';
 import 'package:fathom/widgets/player_controls.dart';
 import 'package:fathom/widgets/tv_keyboard.dart';
 import 'package:fathom/widgets/ui_common.dart';
+import 'package:fathom/widgets/app_snack.dart';
+import 'package:fathom/state/media_session.dart';
 import 'package:fathom/widgets/video_system_ui.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:media_kit/media_kit.dart' show PlayerState;
@@ -62,6 +64,19 @@ class _Json implements HttpClientAdapter {
   @override
   void close({bool force = false}) {}
 }
+
+VideoMediaSession _session() => VideoMediaSession(
+      title: 't',
+      playing: true,
+      position: Duration.zero,
+      duration: Duration.zero,
+      canNext: false,
+      canPrev: false,
+      onPlay: () async {},
+      onPause: () async {},
+      onStop: () async {},
+      onSeek: (_) async {},
+    );
 
 class _Recorder implements HttpClientAdapter {
   final List<Object?> bodies = [];
@@ -396,6 +411,53 @@ void main() {
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(submitted, isNull);
+    });
+  });
+
+  group('second pass', () {
+    test('Fathom names its real version and platform to Jellyfin', () {
+      final was = (JellyfinClient.appVersion, JellyfinClient.deviceName);
+      addTearDown(() {
+        JellyfinClient.appVersion = was.$1;
+        JellyfinClient.deviceName = was.$2;
+      });
+      JellyfinClient.appVersion = '1.0.0';
+      JellyfinClient.deviceName = 'Android TV';
+      final h = JellyfinClient(deviceId: 'd').authHeader();
+      expect(h, contains('Device="Android TV"'));
+      expect(h, contains('Version="1.0.0"'));
+      expect(h, isNot(contains('0.1.0')));
+    });
+
+    testWidgets('a message with nowhere to show does not throw', (tester) async {
+      // A download finishing while a full-screen video is up: its message
+      // threw in a debug build, and the finished download read "failed".
+      await tester.pumpWidget(MaterialApp(
+        scaffoldMessengerKey: globalScaffoldMessengerKey,
+        home: const SizedBox(),
+      ));
+      expect(() => showGlobalSnack('Download complete'), returnsNormally);
+    });
+
+    test('a player ending its media session while being disposed is safe',
+        () async {
+      final c = ProviderContainer();
+      addTearDown(c.dispose);
+      final n = c.read(videoMediaSessionProvider.notifier);
+      final owner = Object();
+      n.begin(_session(), owner);
+      n.end(owner);
+      // Not changed on the spot (that threw during a rebuild) but just after.
+      expect(c.read(videoMediaSessionProvider), isNotNull);
+      await Future<void>.delayed(Duration.zero);
+      expect(c.read(videoMediaSessionProvider), isNull);
+      // And a new player taking it in the meantime keeps it.
+      n.begin(_session(), owner);
+      n.end(owner);
+      final next = Object();
+      n.begin(_session(), next);
+      await Future<void>.delayed(Duration.zero);
+      expect(c.read(videoMediaSessionProvider), isNotNull);
     });
   });
 

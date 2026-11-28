@@ -256,19 +256,15 @@ class UpdatesScreen extends ConsumerWidget {
       if (line.startsWith('###')) {
         rows.add(Padding(
             padding: const EdgeInsets.only(top: 6, bottom: 2),
-            child: Text(_clean(line.substring(3)),
-                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700))));
+            child: _line(context, line.substring(3), text.titleSmall?.copyWith(fontWeight: FontWeight.w700))));
       } else if (line.startsWith('##')) {
         rows.add(Padding(
             padding: const EdgeInsets.only(top: 10, bottom: 2),
-            child: Text(_clean(line.substring(2)),
-                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700))));
+            child: _line(context, line.substring(2), text.titleSmall?.copyWith(fontWeight: FontWeight.w700))));
       } else if (line.startsWith('#')) {
         rows.add(Padding(
             padding: const EdgeInsets.only(top: 10, bottom: 4),
-            child: Text(_clean(line.substring(1)),
-                style:
-                    text.titleMedium?.copyWith(fontWeight: FontWeight.w800))));
+            child: _line(context, line.substring(1), text.titleMedium?.copyWith(fontWeight: FontWeight.w800))));
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
         rows.add(Padding(
             padding: const EdgeInsets.only(bottom: 3),
@@ -277,14 +273,13 @@ class UpdatesScreen extends ConsumerWidget {
               children: [
                 Text('•  ', style: text.bodyMedium),
                 Expanded(
-                    child: Text(_clean(line.substring(2)),
-                        style: text.bodyMedium)),
+                    child: _line(context, line.substring(2), text.bodyMedium)),
               ],
             )));
       } else {
         rows.add(Padding(
             padding: const EdgeInsets.only(bottom: 3),
-            child: Text(_clean(line), style: text.bodyMedium)));
+            child: _line(context, line, text.bodyMedium)));
       }
     }
     return Column(
@@ -295,4 +290,36 @@ class UpdatesScreen extends ConsumerWidget {
   }
 
   String _clean(String s) => s.trim().replaceAll('**', '').replaceAll('`', '');
+
+  static final _link = RegExp(r'\[([^\]]+)\]\(([^)\s]+)\)');
+
+  /// A line of the notes, with its links (`[words](address)`) as links: they
+  /// showed as raw Markdown, brackets and address and all.
+  Widget _line(BuildContext context, String raw, TextStyle? style) {
+    final s = _clean(raw);
+    if (!_link.hasMatch(s)) return Text(s, style: style);
+    final linkStyle = style?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
+    final spans = <InlineSpan>[];
+    var at = 0;
+    for (final m in _link.allMatches(s)) {
+      if (m.start > at) spans.add(TextSpan(text: s.substring(at, m.start)));
+      final url = Uri.tryParse(m.group(2)!);
+      spans.add(WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: GestureDetector(
+          onTap: url == null
+              ? null
+              : () => launchUrl(url, mode: LaunchMode.externalApplication),
+          child: Text(m.group(1)!, style: linkStyle),
+        ),
+      ));
+      at = m.end;
+    }
+    if (at < s.length) spans.add(TextSpan(text: s.substring(at)));
+    return Text.rich(TextSpan(children: spans), style: style);
+  }
 }

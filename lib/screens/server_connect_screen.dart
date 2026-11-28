@@ -98,7 +98,11 @@ class _ServerConnectScreenState extends ConsumerState<ServerConnectScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    // Opened from Accounts to add one (over the signed-in app), it has
+    // somewhere to go back to: a Back button. First run has none.
+    final canGoBack = Navigator.of(context).canPop();
     return Scaffold(
+      appBar: canGoBack ? AppBar(elevation: 0) : null,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
