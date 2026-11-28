@@ -415,6 +415,28 @@ Future<List<BaseItemDto>> _getItems(
     }
   }
 
+  /// Replaces a playlist's whole list with [itemIds], in that order, repeats
+  /// and all. For a playlist that holds an item twice: Jellyfin gives both
+  /// the same entry id, so removing "one" removes both and moving the second
+  /// moves the first. (10.9 and later; 10.8 keeps such entries apart and
+  /// never needs it.)
+  Future<void> setPlaylistItems({
+    required String baseUrl,
+    required String token,
+    required String playlistId,
+    required List<String> itemIds,
+  }) async {
+    try {
+      await _dio.post(
+        '$baseUrl/Playlists/$playlistId',
+        data: {'Ids': itemIds},
+        options: _authed(token),
+      );
+    } on DioException catch (e) {
+      throw JellyfinException(_friendlyDioError(e), cause: e);
+    }
+  }
+
   Future<void> addToPlaylist({
     required String baseUrl,
     required String userId,

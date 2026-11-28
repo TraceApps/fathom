@@ -340,6 +340,40 @@ void main() {
       expect(submitted, '${afterOk}tv.');
     });
 
+    testWidgets("its TV Keyboard key types with the TV's own keyboard",
+        (tester) async {
+      // What a phone's remote app types into: a real text field, which
+      // Fathom's own on-screen keyboard is not.
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final ctrl = TextEditingController();
+      String? submitted;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: TvTextField(
+            controller: ctrl,
+            label: 'Server Address',
+            onSubmitted: (v) => submitted = v,
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Server Address'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.keyboard_alt_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'tv.example');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      // Both the field and Fathom's keyboard close, and the form goes ahead.
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byType(TvKeyboard), findsNothing);
+      expect(submitted, 'tv.example');
+    });
+
     testWidgets('backing out of the keyboard submits nothing', (tester) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1;

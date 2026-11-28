@@ -486,6 +486,51 @@ void main() {
       expect(q.index, 2);
     });
 
+    testWidgets('removing one of two copies sends the list without that one',
+        (tester) async {
+      // By entry id the server would take both copies (they share the id).
+      BaseItemDto entry(String id, String name) => BaseItemDto(
+          id: id, name: name, type: 'Movie', playlistItemId: id);
+      final calls = <String>[];
+      Object? sent;
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          deviceIdProvider.overrideWithValue('test-device'),
+          sessionControllerProvider.overrideWith(_Signed.new),
+          jellyfinClientProvider.overrideWithValue(JellyfinClient(
+            deviceId: 'd',
+            httpClient: Dio()
+              ..httpClientAdapter = _Scripted((o) {
+                calls.add('${o.method} ${o.uri.path}');
+                sent = o.data;
+                return (204, '');
+              }),
+          )),
+          playlistItemsProvider.overrideWith((ref, id) async => [
+                entry('va', 'Movie A'),
+                entry('vb', 'Movie B'),
+                entry('va', 'Movie A'),
+              ]),
+          playlistsProvider.overrideWith((ref) async => const []),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: PlaylistDetailScreen(playlist: _playlist),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      // The second Movie A's Remove button.
+      await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded).last);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      expect(calls, ['POST /Playlists/pl1']);
+      expect(sent, {
+        'Ids': ['va', 'vb']
+      });
+    });
+
     test('songs play as far as the next video, which follows them', () {
       final song2 = _it('a2', 'Audio', name: 'Song Two');
       final list = [_song, song2, movieA, _song, movieC];

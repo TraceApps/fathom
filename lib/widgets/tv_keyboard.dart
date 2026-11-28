@@ -381,6 +381,19 @@ Future<bool> showTvKeyboard(
                     const SizedBox(width: 10),
                     _VoiceButton(controller: controller),
                   ],
+                  // The TV's own keyboard, for whoever types from a phone's
+                  // remote app: that reaches a field only through the
+                  // system's keyboard, which this one stands in for.
+                  const SizedBox(width: 10),
+                  _SystemKeyboardButton(
+                    onTap: () async {
+                      final done = await _showSystemKeyboard(ctx,
+                          controller: controller,
+                          label: label,
+                          obscure: obscure);
+                      if (done && ctx.mounted) Navigator.of(ctx).pop(true);
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -395,6 +408,105 @@ Future<bool> showTvKeyboard(
     },
   );
   return done ?? false;
+}
+
+/// Types into [controller] with the TV's own keyboard, in a plain field. True
+/// when it was finished (the keyboard's own Done, or the Done button), false
+/// when it was backed out of.
+Future<bool> _showSystemKeyboard(
+  BuildContext context, {
+  required TextEditingController controller,
+  String? label,
+  bool obscure = false,
+}) async {
+  final l = AppLocalizations.of(context);
+  final done = await showDialog<bool>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: label == null ? null : Text(label),
+      content: SizedBox(
+        width: 520,
+        // A text field keeps the arrows for its caret: Down has to be given
+        // back, or the remote can't leave the field for the buttons.
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                FocusScope.of(d).nextFocus(),
+          },
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            obscureText: obscure,
+            autocorrect: false,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => Navigator.of(d).pop(true),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.of(d).pop(false),
+            child: Text(l.commonCancel)),
+        FilledButton(
+            onPressed: () => Navigator.of(d).pop(true),
+            child: Text(l.commonDone)),
+      ],
+    ),
+  );
+  return done ?? false;
+}
+
+/// The key that switches to the TV's own keyboard.
+class _SystemKeyboardButton extends StatefulWidget {
+  const _SystemKeyboardButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  State<_SystemKeyboardButton> createState() => _SystemKeyboardButtonState();
+}
+
+class _SystemKeyboardButtonState extends State<_SystemKeyboardButton> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return FocusableActionDetector(
+      onFocusChange: (v) => setState(() => _focused = v),
+      mouseCursor: SystemMouseCursors.click,
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      child: Semantics(
+        button: true,
+        label: AppLocalizations.of(context).tvSystemKeyboard,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 56,
+            height: 56,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _focused ? scheme.primary : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
+            child: Icon(Icons.keyboard_alt_outlined,
+                color: scheme.onSurface, size: 26),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The text-entry preview above the sheet keyboard: shows the live value with a

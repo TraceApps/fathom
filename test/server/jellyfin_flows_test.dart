@@ -275,6 +275,43 @@ void main() {
       await client.deleteItem(baseUrl: url, token: token, itemId: id);
     });
 
+    test('a playlist can hold the same title twice, and lose one of them',
+        () async {
+      // 10.9 and later give both copies one entry id, so removing "one" by
+      // that id removes both: Fathom sends the whole list instead. 10.8
+      // has no such route, and keeps repeats apart by itself.
+      final found = await client.resolvePublicServer(url!);
+      final v = (found.info.version ?? '').split('.').map(int.tryParse).toList();
+      if (v.length < 2) return;
+      if ((v[0] ?? 0) == 10 && (v[1] ?? 0) < 9) return;
+      final id = await client.createPlaylist(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+        name: 'Twice',
+      );
+      Future<List<String>> entries() async => [
+            for (final i in await client.getPlaylistItems(
+              baseUrl: url,
+              userId: userId,
+              token: token,
+              playlistId: id,
+            ))
+              i.id,
+          ];
+      await client.setPlaylistItems(
+          baseUrl: url, token: token, playlistId: id, itemIds: [movieId, movieId]);
+      final held = await entries();
+      // 10.10 keeps one of each title in a playlist, so there's nothing to
+      // tell apart there; the current server holds both.
+      expect(held.toSet(), {movieId});
+      expect(held.length, inInclusiveRange(1, 2));
+      await client.setPlaylistItems(
+          baseUrl: url, token: token, playlistId: id, itemIds: [movieId]);
+      expect(await entries(), [movieId]);
+      await client.deleteItem(baseUrl: url, token: token, itemId: id);
+    });
+
     test('serves the subtitle that sits beside the video', () async {
       final item = await client.getItem(
         baseUrl: url!,

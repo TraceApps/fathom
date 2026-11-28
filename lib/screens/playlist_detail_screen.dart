@@ -7,6 +7,7 @@ import '../api/error_text.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../models/play_queue.dart';
+import '../models/session.dart';
 import '../services/tv_mode.dart';
 import '../state/playlist_run.dart';
 import '../state/playlist_providers.dart';
@@ -31,19 +32,43 @@ class PlaylistDetailScreen extends ConsumerWidget {
   final BaseItemDto playlist;
   const PlaylistDetailScreen({super.key, required this.playlist});
 
-  Future<void> _removeEntry(
-      BuildContext context, WidgetRef ref, BaseItemDto item) async {
+  /// Whether [items] holds the same entry id more than once. Jellyfin 10.9
+  /// and later give an item that's in a playlist twice one entry id for
+  /// both, and then acts on the wrong one, or on both.
+  static bool _hasRepeats(List<BaseItemDto> items) {
+    final ids = {for (final i in items) i.playlistItemId ?? i.id};
+    return ids.length < items.length;
+  }
+
+  /// Sends the playlist as [order], for a list with repeats in it.
+  Future<void> _setOrder(WidgetRef ref, Session session,
+          List<BaseItemDto> order) =>
+      ref.read(jellyfinClientProvider).setPlaylistItems(
+            baseUrl: session.baseUrl,
+            token: session.accessToken,
+            playlistId: playlist.id,
+            itemIds: [for (final i in order) i.id],
+          );
+
+  Future<void> _removeEntry(BuildContext context, WidgetRef ref,
+      List<BaseItemDto> items, int index) async {
+    final item = items[index];
     final l = AppLocalizations.of(context);
     final session = ref.read(sessionControllerProvider).asData?.value;
     if (session == null || item.playlistItemId == null) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(jellyfinClientProvider).removeFromPlaylist(
-            baseUrl: session.baseUrl,
-            token: session.accessToken,
-            playlistId: playlist.id,
-            entryIds: [item.playlistItemId!],
-          );
+      if (_hasRepeats(items)) {
+        // Removing by entry id would take every copy of it.
+        await _setOrder(ref, session, [...items]..removeAt(index));
+      } else {
+        await ref.read(jellyfinClientProvider).removeFromPlaylist(
+              baseUrl: session.baseUrl,
+              token: session.accessToken,
+              playlistId: playlist.id,
+              entryIds: [item.playlistItemId!],
+            );
+      }
       ref.invalidate(playlistItemsProvider(playlist.id));
       ref.invalidate(playlistsProvider);
       showSnackOn(messenger, l.appRemovedNamed(item.name),
@@ -137,13 +162,20 @@ class PlaylistDetailScreen extends ConsumerWidget {
     if (newIndex > oldIndex) newIndex -= 1;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(jellyfinClientProvider).movePlaylistItem(
-            baseUrl: session.baseUrl,
-            token: session.accessToken,
-            playlistId: playlist.id,
-            entryId: entryId,
-            newIndex: newIndex,
-          );
+      if (_hasRepeats(items)) {
+        // Moving by entry id would move the first copy, whichever was meant.
+        final order = [...items];
+        order.insert(newIndex, order.removeAt(oldIndex));
+        await _setOrder(ref, session, order);
+      } else {
+        await ref.read(jellyfinClientProvider).movePlaylistItem(
+              baseUrl: session.baseUrl,
+              token: session.accessToken,
+              playlistId: playlist.id,
+              entryId: entryId,
+              newIndex: newIndex,
+            );
+      }
       ref.invalidate(playlistItemsProvider(playlist.id));
     } catch (e) {
       showErrorOn(messenger, e);
@@ -354,7 +386,8 @@ class PlaylistDetailScreen extends ConsumerWidget {
                             icon: const Icon(
                                 Icons.remove_circle_outline_rounded),
                             tooltip: l.commonRemove,
-                            onPressed: () => _removeEntry(context, ref, item),
+                            onPressed: () =>
+                                _removeEntry(context, ref, items, i),
                           ),
                         ],
                       )),

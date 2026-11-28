@@ -985,6 +985,8 @@
   "prefsCustomColor": "Custom Color",
   "@prefsCustomColor": {"description": "Screen reader name of the rainbow swatch that opens the color wheel."},
   "tvVoiceInput": "Voice Input",
+  "tvSystemKeyboard": "TV Keyboard",
+  "@tvSystemKeyboard": {"description": "Button on Fathom's on-screen TV keyboard: types with the TV's own keyboard instead, which a phone's remote app can type into."},
   "@tvVoiceInput": {"description": "Screen reader name of the microphone key on the TV keyboard."},
   "prefsAccentColor": "Accent Color",
   "@prefsAccentColor": {
