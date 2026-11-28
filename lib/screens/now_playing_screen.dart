@@ -1289,12 +1289,28 @@ class _UpNextPeek extends StatelessWidget {
     final idx = currentId == null
         ? -1
         : audio.queue.indexWhere((t) => t.id == currentId);
-    if (idx < 0 || idx + 1 >= audio.queue.length) {
-      return const SizedBox.shrink();
-    }
-    final nextTrack = audio.queue[idx + 1];
+    if (idx < 0) return const SizedBox.shrink();
+    // On the last song there's nothing next, but the row keeps its place
+    // (unseen, and no stop for a remote or the Tab key): taking it away let
+    // the controls above drop down as the page centered itself again.
+    final hasNext = idx + 1 < audio.queue.length;
+    final nextTrack = audio.queue[hasNext ? idx + 1 : idx];
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    return Visibility(
+      visible: hasNext,
+      maintainSize: true,
+      maintainAnimation: true,
+      maintainState: true,
+      child: ExcludeFocus(
+        excluding: !hasNext,
+        child: _peek(context, l, theme, nextTrack),
+      ),
+    );
+  }
+
+  Widget _peek(BuildContext context, AppLocalizations l, ThemeData theme,
+      BaseItemDto nextTrack) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 460),
       child: Material(
