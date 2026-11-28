@@ -366,6 +366,20 @@ void main() {
       expect(await c.read(watchlistProvider.future), isEmpty);
     });
 
+    test('adding before the list has loaded adds no second entry', () async {
+      // A card's menu opened right after launch: the list wasn't in yet, so
+      // a title already on it looked addable, and was added again.
+      final server = _PlaylistServer(entries: [
+        {..._PlaylistServer.movie('m1'), 'PlaylistItemId': 'p0'},
+      ]);
+      final c = _watchlistOn(server);
+      // No waiting for the list here.
+      await c.read(watchlistProvider.notifier).add(
+          const BaseItemDto(id: 'm1', name: 'Rig Movie', type: 'Movie'));
+      expect(server.added, isEmpty);
+      expect(server.entries, hasLength(1));
+    });
+
     test('a show turned into hundreds of episodes comes off in batches',
         () async {
       final server = _PlaylistServer(entries: [

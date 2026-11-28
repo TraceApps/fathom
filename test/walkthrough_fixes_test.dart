@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -12,7 +13,11 @@ import 'package:fathom/routing/app_shell.dart';
 import 'package:fathom/routing/item_page.dart';
 import 'package:fathom/screens/detail_screen.dart';
 import 'package:fathom/l10n/generated/app_localizations.dart';
+import 'package:fathom/screens/search_screen.dart';
+import 'package:fathom/services/tv_mode.dart';
+import 'package:fathom/widgets/item_actions.dart';
 import 'package:fathom/widgets/player_controls.dart';
+import 'package:fathom/widgets/tv_keyboard.dart';
 import 'package:fathom/widgets/ui_common.dart';
 import 'package:fathom/widgets/video_system_ui.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
@@ -40,6 +45,22 @@ class _PageState extends State<_Page> {
           child: const Text('open'),
         ),
       );
+}
+
+/// Answers every request with the JSON [answer] gives.
+class _Json implements HttpClientAdapter {
+  _Json(this.answer);
+  final Object Function(RequestOptions) answer;
+
+  @override
+  Future<ResponseBody> fetch(
+      RequestOptions o, Stream<Uint8List>? body, Future<void>? cancel) async =>
+      ResponseBody.fromString(jsonEncode(answer(o)), 200, headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      });
+
+  @override
+  void close({bool force = false}) {}
 }
 
 class _Recorder implements HttpClientAdapter {
@@ -192,6 +213,117 @@ void main() {
     // And it is disposed in the end, not leaked.
     await tester.pump(const Duration(seconds: 1));
     expect(() => ctrl.addListener(() {}), throwsFlutterError);
+  });
+
+  group('search', () {
+    final movie = BaseItemDto(id: 'm', name: 'Rig Movie', type: 'Movie');
+    final artist = BaseItemDto(id: 'ar', name: 'Rig Artist', type: 'MusicArtist');
+    final actor = BaseItemDto(id: 'p1', name: 'Rig Actor', type: 'Person');
+    // Jellyfin keeps a musician as a person too.
+    final artistAsPerson =
+        BaseItemDto(id: 'p2', name: 'Rig Artist', type: 'Person');
+
+    test('people are added to the titles found, a musician only once', () {
+      final all = mergeSearchResults([movie, artist], [actor, artistAsPerson]);
+      expect(all.map((i) => i.id), ['m', 'ar', 'p1']);
+      // Searching People alone shows everyone.
+      expect(mergeSearchResults(const [], [actor, artistAsPerson]),
+          hasLength(2));
+    });
+
+    test('people are asked of /Persons, which every server version answers',
+        () async {
+      final asked = <Uri>[];
+      final client = JellyfinClient(
+        deviceId: 'd',
+        httpClient: Dio()
+          ..httpClientAdapter = _Json((o) {
+            asked.add(o.uri);
+            return {
+              'Items': [
+                {'Id': 'p1', 'Name': 'Rig Actor', 'Type': 'Person'}
+              ]
+            };
+          }),
+      );
+      final found = await client.searchPeople(
+          baseUrl: 'http://jf', userId: 'u', token: 't', searchTerm: 'rig');
+      expect(found.single.type, 'Person');
+      expect(asked.single.path, '/Persons');
+      expect(asked.single.queryParameters['searchTerm'], 'rig');
+    });
+  });
+
+  test('Delete is named the same on a card and on the title page', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    expect(deleteLabelFor(l, BaseItemDto(id: '1', name: 'm', type: 'Movie')),
+        'Delete Movie');
+    expect(deleteLabelFor(l, BaseItemDto(id: '2', name: 's', type: 'Series')),
+        'Delete Series');
+    expect(deleteLabelFor(l, BaseItemDto(id: '3', name: 'e', type: 'Episode')),
+        'Delete Episode');
+    expect(deleteLabelFor(l, BaseItemDto(id: '4', name: 'a', type: 'MusicAlbum')),
+        'Delete');
+    // The title page's menu uses it too, not a bare "Delete".
+    final page = File('lib/screens/detail_screen.dart').readAsStringSync();
+    expect(page, contains('deleteLabelFor(l, item)'));
+  });
+
+  group('on a TV', () {
+    setUp(() => isTvDevice = true);
+    tearDown(() => isTvDevice = false);
+
+    testWidgets("the keyboard's Done submits the field", (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final ctrl = TextEditingController(text: 'secret');
+      String? submitted;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: TvTextField(
+            controller: ctrl,
+            label: 'Password',
+            obscure: true,
+            onSubmitted: (v) => submitted = v,
+          ),
+        ),
+      ));
+      // Select on the field opens the on-screen keyboard.
+      await tester.tap(find.text('Password'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TvKeyboard), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+      await tester.pumpAndSettle();
+      expect(find.byType(TvKeyboard), findsNothing);
+      expect(submitted, 'secret');
+    });
+
+    testWidgets('backing out of the keyboard submits nothing', (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final ctrl = TextEditingController(text: 'half');
+      String? submitted;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: TvTextField(
+            controller: ctrl,
+            label: 'Password',
+            onSubmitted: (v) => submitted = v,
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Password'));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(submitted, isNull);
+    });
   });
 
   test('a player leaving after Next leaves the screen to the new one', () {

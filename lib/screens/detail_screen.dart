@@ -1401,7 +1401,7 @@ class _ItemMenu extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.error,
               ),
               title: Text(
-                l.commonDelete,
+                deleteLabelFor(l, item),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               contentPadding: EdgeInsets.zero,

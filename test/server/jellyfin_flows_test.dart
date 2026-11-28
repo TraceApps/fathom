@@ -231,6 +231,25 @@ void main() {
       expect(items.items.map((i) => i.id), contains(movieId));
     });
 
+    test('searching finds a person by name, on old servers too', () async {
+      // 10.8 and 10.10 leave people out of an /Items search; Search asks
+      // /Persons for them.
+      final people = await client.searchPeople(
+        baseUrl: url!,
+        userId: userId,
+        token: token,
+        searchTerm: 'Test Actor',
+      );
+      expect(people.map((p) => p.name), contains('Fathom Test Actor'));
+      final none = await client.searchPeople(
+        baseUrl: url,
+        userId: userId,
+        token: token,
+        searchTerm: 'nobody-by-this-name',
+      );
+      expect(none, isEmpty);
+    });
+
     test('a playlist can be renamed, on old servers too', () async {
       // 10.9 and later rename with POST /Playlists/{id}; 10.8 has no such
       // route and takes the whole item back with its new name.

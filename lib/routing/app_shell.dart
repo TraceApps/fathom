@@ -11,6 +11,7 @@ import '../models/base_item.dart';
 import '../services/resilient_secure_storage.dart';
 import '../theme/app_theme.dart' show kInlineButtonStyle;
 import '../services/tv_mode.dart';
+import '../state/watchlist.dart';
 import '../state/audio_player.dart';
 import '../state/library_providers.dart';
 import '../state/notifications_controller.dart';
@@ -217,6 +218,10 @@ class AppShell extends ConsumerWidget {
     ref.watch(arrEventWatcherProvider);
     // And while Fathom is closed, on Android.
     ref.watch(arrBackgroundScheduleProvider);
+    // The Watchlist, read as the app opens and kept: a card's menu and a
+    // title's bookmark say whether it's on the list, and before the list had
+    // been opened once they said "Add to Watchlist" for everything.
+    ref.listen(watchlistProvider, (_, _) {});
     // On a TV the bottom mini-player is hard to drive with a remote, so when
     // music actually starts (nothing → a track) open the full Now Playing
     // screen, which is fully D-pad operable. Track-to-track changes don't

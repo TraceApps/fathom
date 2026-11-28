@@ -30,12 +30,13 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   // The include-item-types query for each filter id (not user-facing).
+  // People have no types here: they come from a search of their own.
   static const _filterTypes = <String, String>{
-    'all': 'Movie,Series,Episode,BoxSet,MusicAlbum,MusicArtist',
+    'all': 'Movie,Series,Episode,BoxSet,MusicAlbum,MusicArtist,Audio',
     'movies': 'Movie',
     'shows': 'Series',
     'episodes': 'Episode',
-    'music': 'MusicAlbum,MusicArtist',
+    'music': 'MusicAlbum,MusicArtist,Audio',
   };
 
   // The filter chips as (id, localized label). A function so labels localize.
@@ -45,6 +46,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ('shows', l.browseShows),
         ('episodes', l.browseEpisodes),
         ('music', l.browseMusic),
+        ('people', l.browsePeople),
       ];
   String _filter = 'all';
   final _controller = TextEditingController();
@@ -86,18 +88,36 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _error = null;
     });
     try {
-      final res = await ref.read(jellyfinClientProvider).getItems(
-            baseUrl: session.baseUrl,
-            userId: session.userId,
-            token: session.accessToken,
-            searchTerm: query,
-            includeItemTypes: _filterTypes[_filter],
-            recursive: true,
-            limit: 60,
-          );
+      final client = ref.read(jellyfinClientProvider);
+      final types = _filterTypes[_filter];
+      // Titles and music from the library search; people (for All and
+      // People) from theirs, side by side.
+      final itemsReq = types == null
+          ? Future.value(const <BaseItemDto>[])
+          : client
+              .getItems(
+                baseUrl: session.baseUrl,
+                userId: session.userId,
+                token: session.accessToken,
+                searchTerm: query,
+                includeItemTypes: types,
+                recursive: true,
+                limit: 60,
+              )
+              .then((r) => r.items);
+      final peopleReq = _filter == 'all' || _filter == 'people'
+          ? client.searchPeople(
+              baseUrl: session.baseUrl,
+              userId: session.userId,
+              token: session.accessToken,
+              searchTerm: query,
+            )
+          : Future.value(const <BaseItemDto>[]);
+      final items = await itemsReq;
+      final people = await peopleReq;
       if (!mounted || reqId != _requestId) return; // stale response
       setState(() {
-        _results = res.items;
+        _results = mergeSearchResults(items, people);
         _searched = true;
       });
     } on JellyfinException catch (e) {
@@ -313,3 +333,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
+
+/// A search's titles and music, then the people found, as one list. A
+/// musician is both an artist and a person on the server: shown once, as
+/// the artist, whose page has the albums.
+List<BaseItemDto> mergeSearchResults(
+    List<BaseItemDto> items, List<BaseItemDto> people) {
+  final artists = {
+    for (final i in items)
+      if (i.type == 'MusicArtist') i.name.toLowerCase(),
+  };
+  final seen = {for (final i in items) i.id};
+  return [
+    ...items,
+    for (final p in people)
+      if (!artists.contains(p.name.toLowerCase()) && seen.add(p.id)) p,
+  ];
+}

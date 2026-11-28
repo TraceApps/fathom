@@ -297,14 +297,17 @@ class _TvKeyState extends State<_TvKey> {
 
 /// Opens the [TvKeyboard] in a slide-up sheet bound to [controller]. Returns
 /// when the user closes it (submit or Back). Used by [TvTextField] on TV.
-Future<void> showTvKeyboard(
+/// Opens the on-screen keyboard for a TV. True when it was closed with its
+/// Done key (the text is meant: a form may go ahead with it), false when it
+/// was backed out of.
+Future<bool> showTvKeyboard(
   BuildContext context, {
   required TextEditingController controller,
   String? label,
   bool obscure = false,
-}) {
+}) async {
   final scheme = Theme.of(context).colorScheme;
-  return showModalBottomSheet<void>(
+  final done = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: scheme.surfaceContainer,
@@ -341,7 +344,7 @@ Future<void> showTvKeyboard(
               const SizedBox(height: 12),
               TvKeyboard(
                 controller: controller,
-                onSubmit: () => Navigator.of(ctx).pop(),
+                onSubmit: () => Navigator.of(ctx).pop(true),
               ),
             ],
           ),
@@ -349,6 +352,7 @@ Future<void> showTvKeyboard(
       );
     },
   );
+  return done ?? false;
 }
 
 /// The text-entry preview above the sheet keyboard: shows the live value with a
@@ -633,9 +637,14 @@ class TvTextField extends StatelessWidget {
       hint: hint,
       obscure: obscure,
       autofocus: autofocus,
+      // Done on the keyboard submits the field, as Enter does on a real
+      // one: signing in no longer needs a walk down to the button.
       onOpen: enabled
-          ? () => showTvKeyboard(context,
-              controller: controller, label: label, obscure: obscure)
+          ? () async {
+              final done = await showTvKeyboard(context,
+                  controller: controller, label: label, obscure: obscure);
+              if (done) onSubmitted?.call(controller.text);
+            }
           : null,
     );
   }

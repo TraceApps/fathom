@@ -90,13 +90,6 @@ Future<void> showItemActionsMenu(
       item.isSeries ||
       item.type == 'Season';
 
-  String deleteLabel() {
-    if (item.isSeries) return l.actionDeleteSeries;
-    if (item.isEpisode) return l.actionDeleteEpisode;
-    if (item.type == 'Season') return l.actionDeleteSeason;
-    if (item.type == 'Movie') return l.actionDeleteMovie;
-    return l.commonDelete;
-  }
 
   final actions = <ContextMenuAction>[];
   if (isPlayable) {
@@ -307,7 +300,7 @@ Future<void> showItemActionsMenu(
   if (canDelete) {
     actions.add(ContextMenuAction(
       icon: Icons.delete_outline_rounded,
-      label: deleteLabel(),
+      label: deleteLabelFor(l, item),
       color: cs.error,
       onTap: () =>
           _confirmAndDelete(context, container, messenger, item, onDeleted),
@@ -401,4 +394,15 @@ void _invalidateLists(ProviderContainer container, BaseItemDto item) {
     container.invalidate(episodesProvider(seriesId));
     container.invalidate(nextUpProvider(seriesId));
   }
+}
+
+/// What Delete is called for [item] in a menu: it names what goes ("Delete
+/// Series" takes every episode with it). The same on a card's menu and on
+/// the title's own page.
+String deleteLabelFor(AppLocalizations l, BaseItemDto item) {
+  if (item.isSeries) return l.actionDeleteSeries;
+  if (item.isEpisode) return l.actionDeleteEpisode;
+  if (item.type == 'Season') return l.actionDeleteSeason;
+  if (item.type == 'Movie') return l.actionDeleteMovie;
+  return l.commonDelete;
 }

@@ -15,6 +15,7 @@ import '../state/session_controller.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/arr_widgets.dart' show ArrRefreshKeys;
+import '../widgets/item_actions.dart';
 import '../widgets/item_selection.dart';
 import '../widgets/list_toolbar.dart';
 import '../widgets/search_field.dart';
@@ -530,7 +531,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
 /// A compact library row for list view: small poster, title, meta, and a
 /// watched tick.
-class _LibraryListRow extends StatelessWidget {
+class _LibraryListRow extends ConsumerWidget {
   final BaseItemDto item;
   final VoidCallback onTap;
   final bool autofocus;
@@ -538,7 +539,7 @@ class _LibraryListRow extends StatelessWidget {
   /// Whether it's picked, while picking; null otherwise.
   final bool? selected;
 
-  /// Starts picking with this row (a long press).
+  /// Starts picking with this row: Select, in the row's More menu.
   final VoidCallback? onSelect;
   const _LibraryListRow({
     required this.item,
@@ -549,8 +550,22 @@ class _LibraryListRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    // A long press or right click opens the row's More menu, with Select in
+    // it, as on a card in the grid and everywhere else. It used to start
+    // picking outright, here only. Not while picking, and not on a TV, which
+    // has no such menu.
+    final canMenu = !isTvDevice && selected == null;
+    void openMenu(Offset at) => showItemActionsMenu(
+          context,
+          ref,
+          item,
+          at: at,
+          fromGrid: true,
+          onOpenDetails: onTap,
+          onSelect: onSelect,
+        );
     final meta = [
       if (item.productionYear != null) '${item.productionYear}',
       if (item.officialRating != null) item.officialRating!,
@@ -559,6 +574,9 @@ class _LibraryListRow extends StatelessWidget {
     return TvFocusRing(
       borderRadius: BorderRadius.circular(10),
       child: HoverHighlight(
+      child: GestureDetector(
+      onLongPressStart: canMenu ? (d) => openMenu(d.globalPosition) : null,
+      onSecondaryTapDown: canMenu ? (d) => openMenu(d.globalPosition) : null,
       child: ListTile(
         autofocus: autofocus,
         // HoverHighlight provides the hover tint; suppress ListTile's own so
@@ -594,7 +612,7 @@ class _LibraryListRow extends StatelessWidget {
             : null,
         selected: selected ?? false,
         onTap: onTap,
-        onLongPress: selected == null ? onSelect : null,
+      ),
       ),
     ),
     );

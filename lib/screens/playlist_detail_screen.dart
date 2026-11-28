@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,6 +21,7 @@ import '../widgets/hover_pill_button.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/app_spinner.dart';
 import '../widgets/tv_keyboard.dart';
+import '../widgets/tv_focus.dart';
 import '../widgets/ui_common.dart';
 import '../api/jellyfin_client.dart';
 
@@ -251,14 +253,16 @@ class PlaylistDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                 child: Row(
                   children: [
-                    HoverPillButton(
-                      icon: Icons.play_arrow_rounded,
-                      label: l.commonPlay,
-                      primary: true,
-                      showLabel: true,
-                      // On a TV the remote lands on Play.
-                      autofocus: isTvDevice,
-                      onTap: () => _playAll(context, ref, items),
+                    _PlayStop(
+                      child: HoverPillButton(
+                        icon: Icons.play_arrow_rounded,
+                        label: l.commonPlay,
+                        primary: true,
+                        showLabel: true,
+                        // On a TV the remote lands on Play.
+                        autofocus: isTvDevice,
+                        onTap: () => _playAll(context, ref, items),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     HoverPillButton(
@@ -289,6 +293,8 @@ class PlaylistDetailScreen extends ConsumerWidget {
                     return dragAnywhere(
                       key: ValueKey(item.playlistItemId ?? item.id),
                       index: i,
+                      child: _UpToPlay(
+                      first: i == 0,
                       child: ListTile(
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -315,7 +321,9 @@ class PlaylistDetailScreen extends ConsumerWidget {
                               ? Text(item.artistLine!,
                                   maxLines: 1, overflow: TextOverflow.ellipsis)
                               : null),
-                      trailing: Row(
+                      // On a TV the row is one stop, and RIGHT steps onto
+                      // its buttons.
+                      trailing: TvRowActions(child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // A remote can't drag: Move Up and Move Down on a TV.
@@ -333,8 +341,9 @@ class PlaylistDetailScreen extends ConsumerWidget {
                             onPressed: () => _removeEntry(context, ref, item),
                           ),
                         ],
-                      ),
+                      )),
                       onTap: () => _openItem(context, ref, items, i),
+                    ),
                     ),
                     );
                   },
@@ -344,6 +353,49 @@ class PlaylistDetailScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Marks Play, so the first row can send the remote to it.
+class _PlayStop extends StatelessWidget {
+  const _PlayStop({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
+/// On a TV, UP from the first row goes to Play. The rows span the page, so
+/// "the nearest thing above" was Shuffle, a little closer to the middle than
+/// Play at the left edge, and Play is where the page opened.
+class _UpToPlay extends StatelessWidget {
+  const _UpToPlay({required this.first, required this.child});
+  final bool first;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isTvDevice || !first) return child;
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent ||
+            event.logicalKey != LogicalKeyboardKey.arrowUp) {
+          return KeyEventResult.ignored;
+        }
+        for (final n in node.nearestScope?.traversalDescendants ??
+            const <FocusNode>[]) {
+          if (n.canRequestFocus &&
+              n.context?.findAncestorWidgetOfExactType<_PlayStop>() != null) {
+            n.requestFocus();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: child,
     );
   }
 }

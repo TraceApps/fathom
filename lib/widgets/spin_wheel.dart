@@ -562,6 +562,11 @@ class SpinWheelState extends State<SpinWheel> with TickerProviderStateMixin {
                               .withValues(alpha: 0.75),
                           blurRadius: 22,
                           spreadRadius: 1,
+                          // Outside the ring only. A shadow is a filled
+                          // shape, and this ring has nothing inside it to
+                          // cover one: the glow washed over the whole wheel,
+                          // posters and titles with it.
+                          blurStyle: BlurStyle.outer,
                         ),
                       ],
                     ),

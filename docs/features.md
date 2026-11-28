@@ -3,6 +3,7 @@
 ## Your library
 
 - **Movies and TV**: libraries, search, rich detail pages, resume and Next Up, next and previous episode, skip intro, recap, and credits, an Up Next prompt that rolls into the next episode during the credits, chapters, and trickplay thumbnails as you scrub.
+- **Search**: one search across the server finds movies, shows, episodes, collections, albums, artists, songs and people. Chips narrow it to **Movies**, **Shows**, **Episodes**, **Music** or **People**. A person opens their filmography, an artist their albums, and a song its album.
 - **Inside a library**: a search box for that library, **Filter** (Unwatched, Favorites, and a genre), **Sort** (Name, Date Added, Release Date, Rating or Random, then **Ascending** or **Descending**), **List View** or **Grid View**, and **Select** to pick several titles at once. On a phone or in a narrow window, the view and **Select** are under **⋮**. Pull down, or press **F5** or **Ctrl+R** on a computer, to load the library again. When a search or filter leaves nothing, the page says **Nothing matches** and offers **Clear Filters**.
 - **Browse by anything**: genres, studios, artists, and a page for every person, so a cast member's other work is one tap away. Trailers play in the app rather than sending you to a browser.
 - **Extras**: a title's bonus material (behind the scenes, deleted scenes, interviews, featurettes, and trailer files held on your server) appears as its own row on the detail page, and plays in the normal player.
@@ -86,7 +87,7 @@ Fathom on Android TV is driven with the remote alone.
 
 - **Getting around**: Left goes to the side menu from anywhere and lands on the section you're in; Right comes back. A page opens with the remote on its first item, and what sits above it (a search box, **Filter**, **Sort**) is one press of Up away.
 - **The remote's media buttons** work in every player: **Play**, **Pause**, **Rewind**, **Fast Forward** (not on live channels, which have nowhere to seek to), and **Next** and **Previous** for episodes. Holding Rewind or Fast Forward keeps stepping; the others act once per press.
-- **Typing**: every text field, including the ones in **Administration** and **Profile**, opens the on-screen TV keyboard on Select.
+- **Typing**: every text field, including the ones in **Administration** and **Profile**, opens the on-screen TV keyboard on Select. Its **→** key finishes: on the server address it connects, and on the password it signs in.
 - **Reordering**: in **Home Layout** and **Navigation**, each row has **Move Up** and **Move Down**, since a remote can't drag.
 - **Left to a phone or a computer**: picking several titles at once (**Select**), and the long-press menus on posters.
 

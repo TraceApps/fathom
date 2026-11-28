@@ -186,6 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     icon: Icons.lock_outline_rounded,
                     obscure: true,
                     enabled: !_loading,
+                    onSubmitted: (_) => _loading ? null : _signIn(),
                   ),
                 ] else
                   AutofillGroup(

@@ -52,6 +52,14 @@ Future<void> toggleWatchlist(
   List<BaseItemDto> current,
   BaseItemDto item,
 ) async {
+  // What's on the list now: [current] is what the caller had when it drew
+  // the button, which can be nothing yet (a menu opened before the list had
+  // loaded), and going by that added a second entry for a title already on.
+  try {
+    current = await watchlist.loaded();
+  } catch (_) {
+    // The error shows when the change below is tried.
+  }
   final on = watchlistEntryOn(current, item);
   final show = item.isEpisode && on != item.id ? item.seriesName : null;
   try {

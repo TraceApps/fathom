@@ -149,6 +149,9 @@ class WatchlistController extends AsyncNotifier<List<BaseItemDto>> {
         _ => null,
       };
 
+  /// The list once it has loaded (now, when it already has).
+  Future<List<BaseItemDto>> loaded() => future;
+
   bool isInWatchlist(String itemId) =>
       (state.asData?.value ?? const []).any((e) => e.id == itemId);
 
@@ -156,7 +159,11 @@ class WatchlistController extends AsyncNotifier<List<BaseItemDto>> {
   /// Watchlist doesn't take, or what's already on it.
   Future<void> add(BaseItemDto item) async {
     final id = entryIdFor(item);
-    if (id == null || isInWatchlist(id)) return;
+    if (id == null) return;
+    // Against the list as it is, not as far as it had loaded: a second
+    // entry for something already on it would otherwise slip in.
+    await future;
+    if (isInWatchlist(id)) return;
     final session = ref.read(sessionControllerProvider).asData?.value;
     if (session == null) return;
     final client = ref.read(jellyfinClientProvider);

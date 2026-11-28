@@ -508,6 +508,28 @@ Future<void> deletePlaylist({
     );
   }
 
+/// People (actors, directors, writers) whose name matches [searchTerm].
+  /// From /Persons, like favorite people: Jellyfin 10.8 and 10.10 leave
+  /// people out of an /Items search.
+  Future<List<BaseItemDto>> searchPeople({
+    required String baseUrl,
+    required String userId,
+    required String token,
+    required String searchTerm,
+    int limit = 30,
+  }) {
+    return _getItems(
+      '$baseUrl/Persons',
+      token,
+      query: {
+        'userId': userId,
+        'searchTerm': searchTerm,
+        'Limit': '$limit',
+        'Fields': 'PrimaryImageAspectRatio',
+      },
+    );
+  }
+
 /// The people (actors, directors, writers) the user has favorited. Jellyfin
   /// 10.8 and 10.10 leave people out of /Items even when asked for them, so
   /// they come from /Persons on every server.
