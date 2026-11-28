@@ -8,7 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/base_item.dart';
 import '../models/play_queue.dart';
 import '../services/tv_mode.dart';
-import '../state/audio_player.dart' show audioControllerProvider;
+import '../state/playlist_run.dart';
 import '../state/playlist_providers.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
@@ -152,25 +152,29 @@ class PlaylistDetailScreen extends ConsumerWidget {
 
   static bool _isFolder(BaseItemDto i) => i.isFolder || i.isSeries || i.isAlbum;
 
-  /// Plays [order] from [start] on: songs as a music queue, movies and
-  /// episodes one after another in the player. A list that mixes them goes
-  /// through the kind it starts on.
+  /// Plays [order] from [start] on, in its own order: songs in the music
+  /// player, movies and episodes in the video player, each handing over to
+  /// the other where the list changes kind (see [PlaylistRun]).
+  ///
+  /// [at] is a place in [order], not an item: the same song can be in a
+  /// playlist twice.
   Future<void> _playFrom(BuildContext context, WidgetRef ref,
-      List<BaseItemDto> order, BaseItemDto start) async {
+      List<BaseItemDto> order, int at) async {
+    final start = order[at];
+    final items = <BaseItemDto>[];
+    var index = 0;
+    for (var i = 0; i < order.length; i++) {
+      if (_isFolder(order[i])) continue;
+      if (i == at) index = items.length;
+      items.add(order[i]);
+    }
+    final queue = PlayQueue(items, index);
     if (start.isAudio) {
-      final songs = [for (final i in order) if (i.isAudio) i];
-      await ref
-          .read(audioControllerProvider.notifier)
-          .playQueue(songs, songs.indexOf(start));
+      await ref.read(playlistRunProvider).playSongs(queue);
       if (context.mounted) context.push('/nowplaying');
       return;
     }
-    final videos = [
-      for (final i in order)
-        if (!i.isAudio && !_isFolder(i)) i,
-    ];
-    context.push('/player',
-        extra: PlayQueue(videos, videos.indexOf(start)));
+    context.push('/player', extra: queue);
   }
 
   /// Play from the top, or in a shuffled order.
@@ -182,7 +186,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
     ];
     if (shuffle) order.shuffle();
     if (order.isEmpty) return;
-    await _playFrom(context, ref, order, order.first);
+    await _playFrom(context, ref, order, 0);
   }
 
   Future<void> _openItem(
@@ -192,7 +196,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
       context.push('/item', extra: item);
     } else {
       // On through the rest of the list from the one tapped.
-      await _playFrom(context, ref, items, item);
+      await _playFrom(context, ref, items, i);
     }
   }
 
@@ -247,6 +251,18 @@ class PlaylistDetailScreen extends ConsumerWidget {
               message: l.appEmptyPlaylistMessage,
             );
           }
+          // One key per row. Jellyfin gives the same entry id to an item
+          // that's in the playlist twice, and two rows with one key left one
+          // of them blank: a repeat gets its count added.
+          final seen = <String, int>{};
+          final rowKeys = [
+            for (final i in items)
+              () {
+                final id = i.playlistItemId ?? i.id;
+                final n = seen.update(id, (v) => v + 1, ifAbsent: () => 0);
+                return n == 0 ? id : '$id#$n';
+              }(),
+          ];
           return Column(
             children: [
               Padding(
@@ -291,7 +307,7 @@ class PlaylistDetailScreen extends ConsumerWidget {
                   itemBuilder: (context, i) {
                     final item = items[i];
                     return dragAnywhere(
-                      key: ValueKey(item.playlistItemId ?? item.id),
+                      key: ValueKey(rowKeys[i]),
                       index: i,
                       child: _UpToPlay(
                       first: i == 0,

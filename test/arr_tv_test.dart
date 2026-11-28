@@ -586,6 +586,42 @@ void main() {
       return loaded;
     }
 
+    _tvTest("lands on a grid's first row, a gap under the bar, when it comes",
+        (t) async {
+      // Favorites, Playlists, Genres: a button up in the bar, and a grid 16
+      // under a 64 high bar, so its first row starts at 80. On a 1080p TV
+      // (540 high here) that is above the header band (86), so the grid
+      // didn't count as the page's content and the remote ended up on the
+      // bar's button.
+      final loaded = ValueNotifier(false);
+      addTearDown(loaded.dispose);
+      await _shell(t, {
+        '/a': (_) => ValueListenableBuilder(
+          valueListenable: loaded,
+          builder: (_, on, _) => Scaffold(
+            appBar: AppBar(
+              toolbarHeight: 64,
+              title: const Text('Favorites'),
+              actions: const [_Stop('Refresh', width: 56)],
+            ),
+            body: Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: on ? const _Stop('Tile') : const SizedBox(),
+              ),
+            ),
+          ),
+        ),
+      });
+      // The grid comes in a moment after the page opens, as a real one
+      // does, and the page then has all the time it takes to settle.
+      await _frames(t, 2);
+      loaded.value = true;
+      await _frames(t, 90);
+      expect(_at(), 'Tile');
+    });
+
     _tvTest('moves down off its toolbar once the list comes', (t) async {
       final loaded = await slow(t);
       loaded.value = true;

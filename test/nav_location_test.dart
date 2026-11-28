@@ -41,6 +41,9 @@ Future<String> _after(WidgetTester t, String pushed) async {
             '/favorites',
             '/notifications',
             '/item',
+            '/playlists',
+            '/genres',
+            '/library',
           ])
             GoRoute(path: p, builder: (_, _) => const SizedBox()),
         ],
@@ -71,6 +74,14 @@ void main() {
   testWidgets('a page with a tile of its own lights that tile', (t) async {
     expect(await _after(t, '/favorites'), '/favorites');
     expect(await _after(t, '/notifications'), '/notifications');
+  });
+
+  testWidgets('a Browse page or a library opened over Home lights its own row',
+      (t) async {
+    // A phone opens these over the page it was on. The menu lit Home.
+    expect(await _after(t, '/playlists'), '/playlists');
+    expect(await _after(t, '/genres'), '/genres');
+    expect(await _after(t, '/library'), '/library');
   });
 
   testWidgets("a title's page leaves the section it came from lit", (t) async {

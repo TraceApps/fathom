@@ -89,6 +89,42 @@ class _TvKeyboardState extends State<TvKeyboard> {
     setState(() {});
   }
 
+  // Whether a real keyboard has typed here. Its Enter then means "done";
+  // until then Enter is left alone, because on some remotes it is the OK
+  // button, and OK presses the key the remote is on.
+  bool _realKeyboard = false;
+
+  /// A real keyboard (Bluetooth or USB) types straight in: a remote has only
+  /// the arrows and OK, but a TV with a keyboard attached shouldn't make its
+  /// owner hunt for each letter on screen.
+  KeyEventResult _onRealKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.backspace) {
+      _realKeyboard = true;
+      setState(_backspace);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      if (!_realKeyboard) return KeyEventResult.ignored;
+      widget.onSubmit?.call();
+      return KeyEventResult.handled;
+    }
+    final ch = event.character;
+    // A printable character, and not a chord (Ctrl+V and the like).
+    if (ch == null ||
+        ch.isEmpty ||
+        ch.runes.any((r) => r < 0x20 || r == 0x7f) ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+    _realKeyboard = true;
+    setState(() => _insert(ch));
+    return KeyEventResult.handled;
+  }
+
   Widget _charKey(String ch) {
     final c = _shift && !_symbols ? ch.toUpperCase() : ch;
     return _TvKey(label: c, onTap: () => _insert(c));
@@ -99,6 +135,11 @@ class _TvKeyboardState extends State<TvKeyboard> {
     final middleRows = _symbols ? _symbolRows : const ['qwertyuiop', 'asdfghjkl.'];
     final bottom = _symbols ? _symbolsBottom : _lettersBottom;
     return FocusTraversalGroup(
+      child: Focus(
+      // Never a stop itself: it only hears the keys its own keys let by.
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: _onRealKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -155,6 +196,7 @@ class _TvKeyboardState extends State<TvKeyboard> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

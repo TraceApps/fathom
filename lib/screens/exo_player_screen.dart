@@ -20,6 +20,7 @@ import '../services/tv_mode.dart';
 import '../state/cast.dart';
 import '../state/audio_player.dart';
 import '../state/library_providers.dart';
+import '../state/playlist_run.dart';
 import '../state/preferences.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
@@ -508,6 +509,13 @@ class _ExoPlayerScreenState extends ConsumerState<ExoPlayerScreen> {
   void _goEpisode(int i) {
     if (i < 0 || i >= _episodes.length) return;
     final queue = widget.queue;
+    // A song in a playlist: over to the music player, which comes back here
+    // for the video after its songs.
+    if (queue != null && queue.items[i].isAudio) {
+      unawaited(ref.read(playlistRunProvider).playSongs(queue.at(i)));
+      Navigator.of(context).maybePop();
+      return;
+    }
     context.pushReplacement('/player',
         extra: queue != null
             ? queue.at(i)

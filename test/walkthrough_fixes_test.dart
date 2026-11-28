@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -299,6 +299,45 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(TvKeyboard), findsNothing);
       expect(submitted, 'secret');
+    });
+
+    testWidgets('a real keyboard types straight in, and its Enter is Done',
+        (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final ctrl = TextEditingController();
+      String? submitted;
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: TvTextField(
+            controller: ctrl,
+            label: 'Server Address',
+            onSubmitted: (v) => submitted = v,
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Server Address'));
+      await tester.pumpAndSettle();
+      // Before anything is typed, Enter is the remote's OK on some remotes:
+      // it presses the key the remote is on, and doesn't close the keyboard.
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(TvKeyboard), findsOneWidget);
+      final afterOk = ctrl.text;
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyT, character: 't');
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyV, character: 'v');
+      await tester.sendKeyEvent(LogicalKeyboardKey.period, character: '.');
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyX, character: 'x');
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+      expect(ctrl.text, '${afterOk}tv.');
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(TvKeyboard), findsNothing);
+      expect(submitted, '${afterOk}tv.');
     });
 
     testWidgets('backing out of the keyboard submits nothing', (tester) async {

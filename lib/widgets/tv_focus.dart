@@ -84,7 +84,7 @@ FocusNode _tvFrontPage() {
 /// Whether [n] is somewhere a page may open on: under the header band and not
 /// a list's own toolbar, or a [TvLandingSpot].
 bool _tvLands(FocusNode n) =>
-    _tvLandingSpot(n) || (n.rect.top >= _tvHeaderCutoff && !_tvInChrome(n));
+    _tvLandingSpot(n) || (_tvUnderHeader(n) && !_tvInChrome(n));
 
 bool _tvLandingSpot(FocusNode n) =>
     n.context?.findAncestorWidgetOfExactType<TvLandingSpot>() != null;
@@ -151,6 +151,25 @@ bool _tvOnScreen(FocusNode n) {
 /// header). Focus should start on the content BELOW it, not on the back button.
 double get _tvHeaderCutoff => _tvScreenSize().height * 0.16;
 
+/// Whether [n] sits under a page's header: below the band above, or, a
+/// little higher, anything that isn't part of the page's top bar.
+///
+/// The band alone missed the first row of a grid: on a 1080p TV (540 high as
+/// Flutter measures it) the band ends at 86, and a grid under the bar starts
+/// at 80. A page whose list was still loading then parked the remote on a
+/// toolbar button (Refresh, +) and never moved it down to the list.
+bool _tvUnderHeader(FocusNode n) {
+  final top = n.rect.top;
+  if (top >= _tvHeaderCutoff) return true;
+  // A list's first row starts a gap below the bar (64 high in this app, the
+  // row 16 under it). What sits right against the bar (a search field, a
+  // row of filters) is still the page's furniture.
+  return top >= _tvFirstRowTop &&
+      n.context?.findAncestorWidgetOfExactType<AppBar>() == null;
+}
+
+const _tvFirstRowTop = 78.0;
+
 /// The look (about 200 ms apart) from which an opening page with nothing but
 /// its toolbar under the header takes that as all there is: soon enough not
 /// to leave the remote waiting on an empty list.
@@ -187,7 +206,7 @@ FocusNode? _tvFirstVisibleIn(
   if (visible.isEmpty) return null;
   final headerCutoff = _tvHeaderCutoff;
   for (final n in visible) {
-    if (n.rect.top >= headerCutoff && !_tvInChrome(n)) return n;
+    if (_tvUnderHeader(n) && !_tvInChrome(n)) return n;
   }
   // Nothing below the header yet: either still loading (retry) or a genuinely
   // short screen (accept a list's own toolbar, then the top node).
@@ -868,7 +887,7 @@ class TvRailPolicy extends ReadingOrderTraversalPolicy {
           target.context?.mounted == true &&
           _tvFrontPage().traversalDescendants.contains(target) &&
           _tvOnScreen(target) &&
-          (target.rect.top >= _tvHeaderCutoff || _tvLandingSpot(target))) {
+          (_tvUnderHeader(target) || _tvLandingSpot(target))) {
         target.requestFocus();
         return true;
       }

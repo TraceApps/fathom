@@ -16,6 +16,7 @@ import 'package:fathom/api/jellyfin_client.dart';
 import 'package:fathom/models/base_item.dart';
 import 'package:fathom/models/play_queue.dart';
 import 'package:fathom/state/playlist_providers.dart';
+import 'package:fathom/state/playlist_run.dart';
 import 'package:fathom/models/session.dart';
 import 'package:fathom/state/session_controller.dart';
 import 'package:fathom/routing/item_page.dart';
@@ -455,6 +456,53 @@ void main() {
       final q = pushed.single as PlayQueue;
       expect(q.items.map((i) => i.id), unorderedEquals(['va', 'vb', 'vc']));
       expect(q.index, 0);
+    });
+
+    testWidgets('a mixed list keeps its songs in the queue, in order',
+        (tester) async {
+      final pushed = await open(tester, [movieA, _song, movieC],
+          () => tester.tap(find.byIcon(Icons.play_arrow_rounded).first));
+      final q = pushed.single as PlayQueue;
+      // The song is in it: the player hands over to music when it gets there.
+      expect(q.items.map((i) => i.id), ['va', 'a1', 'vc']);
+    });
+
+    testWidgets('an item in a playlist twice shows twice, and plays from the '
+        'one tapped', (tester) async {
+      // Jellyfin gives both the same entry id: with one key for two rows,
+      // one of them was left blank.
+      BaseItemDto entry(String id, String type, String name) => BaseItemDto(
+          id: id, name: name, type: type, playlistItemId: id);
+      final list = [
+        entry('va', 'Movie', 'Movie A'),
+        entry('vb', 'Episode', 'Episode B'),
+        entry('va', 'Movie', 'Movie A'),
+      ];
+      final pushed = await open(tester, list, () async {
+        expect(find.text('Movie A'), findsNWidgets(2));
+        await tester.tap(find.text('Movie A').last);
+      });
+      final q = pushed.single as PlayQueue;
+      expect(q.index, 2);
+    });
+
+    test('songs play as far as the next video, which follows them', () {
+      final song2 = _it('a2', 'Audio', name: 'Song Two');
+      final list = [_song, song2, movieA, _song, movieC];
+      // From the top: two songs, then on to Movie A.
+      final (songs, after) = PlaylistRun.songsFrom(PlayQueue(list, 0));
+      expect(songs.map((s) => s.id), ['a1', 'a2']);
+      expect(after!.current.id, 'va');
+      expect(identical(after.items, list), isTrue);
+      // The song between the movies: one song, then Movie C.
+      final (mid, then) = PlaylistRun.songsFrom(PlayQueue(list, 3));
+      expect(mid.map((s) => s.id), ['a1']);
+      expect(then!.current.id, 'vc');
+      // Songs at the end of a list end it.
+      final (last, none) =
+          PlaylistRun.songsFrom(PlayQueue([movieA, _song, song2], 1));
+      expect(last, hasLength(2));
+      expect(none, isNull);
     });
 
     test("the player's Next steps through the playlist, not the show", () {

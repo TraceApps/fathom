@@ -193,6 +193,11 @@ String navLocation(GoRouterState state, Iterable<String> routes) {
   if (_settingsPages.any(shown.startsWith)) return '/settings';
   if (shown.startsWith('/updates') ||
       shown.startsWith('/notifications') ||
+      // A library, and the pages under Browse: their rows in the menu are
+      // groups, not tiles, so they're not among [routes]. Opened over
+      // another page (as a phone opens them) they lit the page underneath.
+      shown.startsWith('/library') ||
+      _browsePages.any(shown.startsWith) ||
       routes.any(shown.startsWith)) {
     return shown;
   }
@@ -1360,6 +1365,9 @@ class _BrowseNav extends ConsumerWidget {
     // On phones these are drill-downs, so push (a real Back button, uniform with
     // Settings/details). On the desktop rail they're peers you switch between, so
     // keep the replace so the rail selection tracks and pages don't stack.
+    // A 1080p TV measures like a phone here and opens them the same way,
+    // which is what lands the remote on the page's first item ([navLocation]
+    // lights Browse for a page opened either way).
     final mobile = MediaQuery.of(context).size.shortestSide < 600;
     void openBrowse(String route) =>
         mobile ? context.push(route) : context.go(route);

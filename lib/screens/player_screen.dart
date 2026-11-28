@@ -41,6 +41,7 @@ import '../state/downloads.dart';
 import '../state/preferences.dart';
 import '../state/sleep_timer.dart';
 import '../state/library_providers.dart';
+import '../state/playlist_run.dart';
 import '../state/pip_controller.dart';
 import '../state/providers.dart';
 import '../state/session_controller.dart';
@@ -1431,6 +1432,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     await _exitFullscreenIfNeeded();
     if (!mounted) return;
     final queue = widget.queue;
+    // A song in a playlist: over to the music player, which comes back here
+    // for the video after its songs.
+    if (queue != null && queue.items[index].isAudio) {
+      unawaited(ref.read(playlistRunProvider).playSongs(queue.at(index)));
+      Navigator.of(context).maybePop();
+      return;
+    }
     context.pushReplacement('/player',
         extra: queue != null ? queue.at(index) : _episodes[index]);
   }

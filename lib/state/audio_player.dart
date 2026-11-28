@@ -483,6 +483,19 @@ class AudioController extends Notifier<AudioState> {
     // track is a single Media, so advance the YouTube queue ourselves when it
     // finishes.
     final subCompleted = _player.stream.completed.listen((done) {
+      // Library music: the player walks its own queue, and says "completed"
+      // once, when the last song has played out (never with repeat on). A
+      // playlist that goes on to a video after its songs waits for this.
+      if (done &&
+          !state.isYoutubeAudio &&
+          !state.isRadio &&
+          state.current != null &&
+          _player.state.duration > Duration.zero &&
+          state.repeat == PlaylistMode.none &&
+          _player.state.playlist.index >=
+              _player.state.playlist.medias.length - 1) {
+        onMusicQueueFinished?.call();
+      }
       if (!done || !state.isYoutubeAudio) return;
       // media_kit also fires `completed` when a media fails to open (its
       // duration stays zero). Only a real end-of-track — a non-zero duration
@@ -1244,6 +1257,10 @@ class AudioController extends Notifier<AudioState> {
       artUri: Uri.tryParse(item.thumbnailUrl),
     ));
   }
+
+  /// Called when the music queue has played out to its end. One listener:
+  /// the playlist run, which may have a video to go on to.
+  void Function()? onMusicQueueFinished;
 
   /// Stop the music and put its queue away, so the mini player closes: the
   /// server is told playback ended, and the notification goes with it.
